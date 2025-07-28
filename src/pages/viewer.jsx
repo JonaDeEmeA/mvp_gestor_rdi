@@ -6,7 +6,7 @@ import * as FRAGS from '@thatopen/fragments';
 import * as OBC from "@thatopen/components";
 import * as OBCF from "@thatopen/components-front";
 import { FragmentsModels } from '@thatopen/fragments';
-//import * as BUI from '@thatopen/ui';
+//import * as BUI from '@thatopen/ui';.....
 
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
