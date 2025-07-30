@@ -471,7 +471,7 @@ export default function Home() {
           ref={containerRef}
           sx={{
             width: "100%",
-            height: "100vh",
+            height: "83vh",
             borderRadius: 5,
             background: "#222", // opcional, para distinguir el visor
             boxShadow: 3,
@@ -506,10 +506,7 @@ export default function Home() {
               pointerEvents: "auto"
             }} />)}
 
-
-
-        </Box>
-        {showRDIManager && (
+            {showRDIManager && (
           <TabTools
             component={componentsRef.current}
             world={worldRef.current}
@@ -520,7 +517,7 @@ export default function Home() {
               width: { xs: "100vw", sm: "auto" },
               left: { sm: 0 },
               right: { sm: 0 },
-              top: { sm: 0 },
+              top: { sm: "17vh" },
               bottom: { sm: 0 },
               height: { xs: "auto", sm: "90%" },
               zIndex: 20,
@@ -529,6 +526,9 @@ export default function Home() {
 
             }} />
         )}
+
+        </Box>
+        
 
       </Box>
 

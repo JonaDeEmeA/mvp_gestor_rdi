@@ -37,11 +37,16 @@ function TabPanel({ children, value, index, ...other }) {
       id={`tabpanel-${index}`}
       aria-labelledby={`tab-${index}`}
       {...other}
-      style={{ height: "100%" }}
+      style={{ height: "90%" }}
     >
       {value === index && <Box sx={{ p: 2, height: "100%" }}>{children}</Box>}
     </div>
   )
+}
+
+const inputStyles = {
+  fontSize: '0.75rem',
+  height: '32px'
 }
 
 export default function TabTools({ sx, exportBCF, topic, world, component }) {
@@ -67,7 +72,7 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
   const resizerRef = useRef(null)
 
   const topicRef = useRef(null)
-  const topicSetupRef = useRef(null)  
+  const topicSetupRef = useRef(null)
 
   useEffect(() => {
 
@@ -108,14 +113,14 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
 
     topicRef.current = topic;
     topicSetupRef.current = bcfTopics;
-    
-    
+
+
 
 
   }, []);
-  console.log( "test");
+  console.log("test");
 
-//const configuredStatuses = topicSetupRef.current.config.statuses;
+  //const configuredStatuses = topicSetupRef.current.config.statuses;
 
   // Creación fuera de useEffect (en handlers)  
   const handleCreateViewpoint = async () => {
@@ -319,12 +324,12 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
           sx={{
             minWidth: { xs: "100%", sm: "400px" },
             width: `${paperWidth}%`,
-            height: "90%",
+            height: "100%",
             display: "flex",
             flexDirection: "column",
             position: "absolute",
             right: 0,
-            top: { xs: "100%", sm: "20%" },
+            top: { xs: "100%", sm: "auto" },
             pointerEvents: "auto",
             transition: isResizing ? "none" : "width 0.2s ease",
           }}
@@ -339,8 +344,9 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
             <Tab label="DASHBOARD" />
           </Tabs>
 
-          <TabPanel value={tabValue} index={0}>
-            <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+          <TabPanel value={tabValue} index={0} sx={{ overflowY: "auto" }}>
+
+            <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflowY: "auto" }}>
               {/* Botón Agregar RDI */}
               <Button variant="contained" color="primary" onClick={handleAgregarRDI} sx={{ mb: 2 }} fullWidth>
                 AGREGAR RDI
@@ -351,29 +357,37 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
 
               {/* Formulario con transición Collapse */}
               <Collapse in={showForm}>
-                <Box sx={{ mb: 3, p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }}>
+                <Box sx={{ p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }} >
                   <Typography variant="h6" sx={{ mb: 2 }}>
                     {editId !== null ? "Editar RDI" : "Nuevo RDI"}
                   </Typography>
                   {/* Input titulo */}
                   <TextField
+                    size="small"
                     fullWidth
                     label="Título"
+
+                    slotProps={{ input: { style: inputStyles } }}
                     value={formData.titulo}
                     onChange={(e) => handleFormChange("titulo", e.target.value)}
-                    sx={{ mb: 2 }}
+                    sx={{
+                      mb: 2, '& .MuiInputLabel-root': {
+                        fontSize: '0.75rem'
+                      }
+                    }}
                   />
                   {/* Select de tipo */}
-                  <FormControl fullWidth sx={{ mb: 2 }}>
+                  <FormControl fullWidth sx={{ mb: 2 }} size="small">
 
-                    <InputLabel>Tipo</InputLabel>
+                    <InputLabel sx={inputStyles}>Tipo</InputLabel>
                     <Select
+                      sx={inputStyles}
                       value={formData.tipo}
                       label="Tipo"
                       onChange={(e) => handleFormChange("tipo", e.target.value)}
                     >
                       {tiposRDI.map((tipo) => (
-                        <MenuItem key={tipo.value} value={tipo.value}>
+                        <MenuItem sx={inputStyles} key={tipo.value} value={tipo.value}>
                           {tipo.label}
                         </MenuItem>
                       ))}
@@ -381,7 +395,7 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
                   </FormControl>
 
                   {/* Select de Asignar a */}
-                  <FormControl fullWidth sx={{ mb: 2 }}>
+                  <FormControl fullWidth sx={{ mb: 2 }} size="small">
 
                     <InputLabel>Especialidad</InputLabel>
                     <Select
@@ -397,7 +411,7 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
                     </Select>
                   </FormControl>
 
-                  <FormControl fullWidth sx={{ mb: 2 }}>
+                  <FormControl fullWidth sx={{ mb: 2 }} size="small">
                     <InputLabel>Estado</InputLabel>
                     <Select
                       value={formData.estado}
@@ -414,6 +428,7 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
 
                   {/* Input comentario */}
                   <TextField
+                    size="small"
                     fullWidth
                     label="Descripción"
                     multiline
@@ -438,6 +453,7 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
                     }}
                   />
                   <TextField
+                    size="small"
                     fullWidth
                     label="Comentario"
                     multiline
@@ -460,7 +476,7 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
               </Collapse>
 
               {/* Lista de RDIs */}
-              <Box sx={{ flex: 1, overflow: "auto" }}>
+              <Box sx={{ flex: 1 }}>
                 {rdiList.length > 0 && (
                   <>
                     <Typography variant="h6" sx={{ mb: 1 }}>
@@ -556,7 +572,7 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
-            <Box sx={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Box sx={{ height: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Typography variant="h6" color="text.secondary">
                 Contenido del Dashboard
               </Typography>

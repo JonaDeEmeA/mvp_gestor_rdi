@@ -42,7 +42,7 @@ export default function TabStandar({ onCargarFile, onCloseBrowser, onCloseRdiMan
   };
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box sx={{ width: '100%', height: '17vh' }}>
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
           <Tab  sx={{ color: 'gray' }} label="Archivos" {...a11yProps(0)} />
@@ -55,7 +55,7 @@ export default function TabStandar({ onCargarFile, onCloseBrowser, onCloseRdiMan
         
       </CustomTabPanel>
       <CustomTabPanel value={value} index={1}>
-        <Button size='small' variant="outlined" onClick={onCloseBrowser} >Explorador</Button>
+        <Button sx={{ fontSize: '0.675rem'}} size='small' variant="outlined" onClick={onCloseBrowser} >Explorador</Button>
         <Button size='small' variant="outlined" onClick={onCloseRdiManager} >Gestor RDI</Button>
       </CustomTabPanel>
       <CustomTabPanel value={value} index={2}>
