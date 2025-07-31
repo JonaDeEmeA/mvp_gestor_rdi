@@ -35,6 +35,16 @@ a {
   text-decoration: none;
 }
 
+/* Scrollbar minimalista */
+::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 3px;
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
