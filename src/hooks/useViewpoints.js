@@ -109,6 +109,95 @@ export const useViewpoints = (component, world) => {
     setSnapShotReady(false);
   };
 
+  // Obtener datos del snapshot para guardar
+  const getSnapshotData = () => {
+    if (!viewpoint || !viewpointsRef.current) {
+      return null;
+    }
+
+    try {
+      // Obtener los datos del snapshot como ArrayBuffer
+      const snapshotData = viewpointsRef.current.snapshots.get(viewpoint.snapshot);
+      
+      if (snapshotData) {
+        // Convertir ArrayBuffer a base64 para almacenamiento
+        const uint8Array = new Uint8Array(snapshotData);
+        const binaryString = uint8Array.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+        const base64String = btoa(binaryString);
+        
+        return {
+          imageData: base64String,
+          viewpointData: {
+            guid: viewpoint.guid,
+            title: viewpoint.title,
+            snapshot: viewpoint.snapshot,
+            // Datos de la cámara
+            camera: viewpoint.camera ? {
+              position: viewpoint.camera.position,
+              direction: viewpoint.camera.direction,
+              up: viewpoint.camera.up,
+              fov: viewpoint.camera.fov
+            } : null
+          }
+        };
+      }
+    } catch (error) {
+      console.error('Error obteniendo datos del snapshot:', error);
+    }
+    
+    return null;
+  };
+
+  // Restaurar snapshot desde datos guardados
+  const restoreSnapshot = (snapshotData) => {
+    if (!snapshotData || !viewpointsRef.current) {
+      return;
+    }
+
+    try {
+      // Restaurar la imagen del snapshot desde base64
+      if (snapshotData.imageData) {
+        // Convertir base64 de vuelta a blob
+        const binaryString = atob(snapshotData.imageData);
+        const uint8Array = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          uint8Array[i] = binaryString.charCodeAt(i);
+        }
+        
+        const blob = new Blob([uint8Array], { type: "image/png" });
+        const url = URL.createObjectURL(blob);
+        
+        // Limpiar URL anterior
+        if (snapshotUrl) {
+          URL.revokeObjectURL(snapshotUrl);
+        }
+        
+        setSnapshotUrl(url);
+        setSnapShotReady(true);
+      }
+
+      // Si hay datos del viewpoint, intentar recrearlo
+      if (snapshotData.viewpointData) {
+        const vpData = snapshotData.viewpointData;
+        
+        // Crear un nuevo viewpoint con los datos guardados
+        const restoredViewpoint = viewpointsRef.current.create();
+        restoredViewpoint.title = vpData.title || "Viewpoint Restaurado";
+        restoredViewpoint.guid = vpData.guid;
+        
+        // Restaurar datos de la cámara si existen
+        if (vpData.camera) {
+          restoredViewpoint.camera = vpData.camera;
+        }
+        
+        setViewpoint(restoredViewpoint);
+        console.log('Snapshot restaurado exitosamente:', vpData);
+      }
+    } catch (error) {
+      console.error('Error restaurando snapshot:', error);
+    }
+  };
+
   return {
     viewpoint,
     snapshotUrl,
@@ -118,5 +207,7 @@ export const useViewpoints = (component, world) => {
     updateSnapshot,
     updateSnapshotDisplay,
     resetViewpoint,
+    getSnapshotData,
+    restoreSnapshot,
   };
 };

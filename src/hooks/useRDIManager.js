@@ -44,7 +44,8 @@ export const useRDIManager = (db) => {
   }, [db]);
 
   // Guardar nuevo RDI en IndexedDB y actualizar lista local
-  const saveRDI = useCallback(async (rdiData) => {
+  // Solo guarda los datos del formulario (formData)
+  const saveRDI = useCallback(async (formData, snapshotData = null) => {
     if (!db) {
       console.warn('IndexedDB no está listo');
       return null;
@@ -57,19 +58,35 @@ export const useRDIManager = (db) => {
       const transaction = db.transaction(['topics'], 'readwrite');
       const store = transaction.objectStore('topics');
       
-      // Preparar datos para guardar
+      // Preparar los datos del formulario para guardar
       const rdiToSave = {
-        ...rdiData,
-        id: rdiData.id || Date.now(),
-        createdAt: rdiData.createdAt || new Date().toISOString(),
+        // Solo datos del formulario
+        types: formData.types,
+        titulo: formData.titulo,
+        descripcion: formData.descripcion,
+        comentario: formData.comentario,
+        fecha: formData.fecha,
+        statuses: formData.statuses,
+        labels: formData.labels,
+        // Metadatos de gestión
+        id: formData.id || Date.now(),
+        createdAt: formData.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        // Datos del snapshot si existe
+        ...(snapshotData && {
+          snapshot: {
+            imageData: snapshotData.imageData,
+            viewpointData: snapshotData.viewpointData,
+            createdAt: new Date().toISOString()
+          }
+        })
       };
 
       const request = store.add(rdiToSave);
 
       return new Promise((resolve, reject) => {
         request.onsuccess = () => {
-          console.log('RDI guardado en IndexedDB:', rdiToSave);
+          console.log('RDI (formData + snapshot) guardado en IndexedDB:', rdiToSave);
           
           // Actualizar lista local
           setRdiList(prev => [...prev, rdiToSave]);
@@ -93,7 +110,7 @@ export const useRDIManager = (db) => {
   }, [db]);
 
   // Actualizar RDI existente en IndexedDB y lista local
-  const updateRDI = useCallback(async (id, updatedData) => {
+  const updateRDI = useCallback(async (id, updatedData, snapshotData = null) => {
     if (!db) {
       console.warn('IndexedDB no está listo');
       return null;
@@ -127,6 +144,14 @@ export const useRDIManager = (db) => {
             ...updatedData,
             id: id, // Mantener el ID original
             updatedAt: new Date().toISOString(),
+            // Actualizar snapshot si se proporciona
+            ...(snapshotData && {
+              snapshot: {
+                imageData: snapshotData.imageData,
+                viewpointData: snapshotData.viewpointData,
+                createdAt: new Date().toISOString()
+              }
+            })
           };
 
           // Actualizar en IndexedDB
@@ -277,6 +302,116 @@ export const useRDIManager = (db) => {
     return { total, byStatus, byType };
   }, [rdiList]);
 
+  // Convertir datos de RDI a formato BCF Topic
+  const convertRDIToBCFTopic = useCallback((rdiData) => {
+    return {
+      guid: `rdi-${rdiData.id}`, // GUID único para BCF
+      title: rdiData.titulo || 'Sin título',
+      description: rdiData.descripcion || '',
+      topic_type: rdiData.types || 'Información',
+      topic_status: rdiData.statuses || 'Pendiente',
+      labels: rdiData.labels ? [rdiData.labels] : [],
+      creation_date: rdiData.createdAt || new Date().toISOString(),
+      modified_date: rdiData.updatedAt || new Date().toISOString(),
+      due_date: rdiData.fecha ? new Date(rdiData.fecha.split('/').reverse().join('-')).toISOString() : null,
+      assigned_to: 'coordinacion@gmail.com', // Usuario por defecto
+      stage: 'Diseño',
+      // Campos adicionales para contexto
+      priority: 'Normal',
+      index: rdiData.id,
+      // Comentarios si existen
+      ...(rdiData.comentario && {
+        comments: [{
+          guid: `comment-${rdiData.id}`,
+          date: rdiData.createdAt || new Date().toISOString(),
+          author: 'signed.user@mail.com',
+          comment: rdiData.comentario,
+          topic_guid: `rdi-${rdiData.id}`
+        }]
+      })
+    };
+  }, []);
+
+  // Exportar un RDI individual a formato BCF
+  const exportRDIToBCF = useCallback(async (rdiId) => {
+    const rdi = getRDIById(rdiId);
+    if (!rdi) {
+      throw new Error(`RDI con ID ${rdiId} no encontrado`);
+    }
+
+    const bcfTopic = convertRDIToBCFTopic(rdi);
+    
+    // Crear estructura BCF básica
+    const bcfData = {
+      version: '3.0',
+      topics: [bcfTopic],
+      project: {
+        name: 'Proyecto RDI',
+        project_id: 'rdi-project'
+      }
+    };
+
+    // Convertir a JSON para descarga
+    const jsonString = JSON.stringify(bcfData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    // Crear enlace de descarga
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `RDI_${rdi.id}_${rdi.titulo.replace(/[^a-zA-Z0-9]/g, '_')}.bcf.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    console.log('RDI exportado a BCF:', bcfTopic);
+    return bcfTopic;
+  }, [getRDIById, convertRDIToBCFTopic]);
+
+  // Exportar todos los RDIs a formato BCF
+  const exportAllRDIsToBCF = useCallback(async () => {
+    if (rdiList.length === 0) {
+      throw new Error('No hay RDIs para exportar');
+    }
+
+    const bcfTopics = rdiList.map(rdi => convertRDIToBCFTopic(rdi));
+    
+    // Crear estructura BCF completa
+    const bcfData = {
+      version: '3.0',
+      topics: bcfTopics,
+      project: {
+        name: 'Proyecto RDI - Exportación Completa',
+        project_id: 'rdi-project-full',
+        creation_date: new Date().toISOString()
+      },
+      extensions: {
+        topic_type: Array.from(new Set(rdiList.map(rdi => rdi.types).filter(Boolean))),
+        topic_status: Array.from(new Set(rdiList.map(rdi => rdi.statuses).filter(Boolean))),
+        topic_label: Array.from(new Set(rdiList.map(rdi => rdi.labels).filter(Boolean))),
+        users: ['signed.user@mail.com', 'coordinacion@gmail.com']
+      }
+    };
+
+    // Convertir a JSON para descarga
+    const jsonString = JSON.stringify(bcfData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    // Crear enlace de descarga
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Todos_los_RDIs_${new Date().toISOString().split('T')[0]}.bcf.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    console.log(`${rdiList.length} RDIs exportados a BCF:`, bcfTopics);
+    return bcfData;
+  }, [rdiList, convertRDIToBCFTopic]);
+
   return {
     // Estado
     rdiList,
@@ -297,5 +432,10 @@ export const useRDIManager = (db) => {
     
     // Operaciones de carga
     loadRDIsFromDB,
+    
+    // Exportación BCF
+    convertRDIToBCFTopic,
+    exportRDIToBCF,
+    exportAllRDIsToBCF,
   };
 };

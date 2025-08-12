@@ -48,7 +48,9 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
     snapShotReady, 
     createViewpoint, 
     updateSnapshot, 
-    resetViewpoint 
+    resetViewpoint,
+    getSnapshotData,
+    restoreSnapshot
   } = useViewpoints(component, world)
 
   // Hook de gestión de RDIs (nuevo sistema unificado)
@@ -61,6 +63,8 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
     updateRDIStatus,
     clearAllRDIs,
     getRDIStats,
+    exportRDIToBCF,
+    exportAllRDIsToBCF,
   } = useRDIManager(db)
   
   // Hook del formulario
@@ -92,11 +96,14 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
 
   // Manejar envío del formulario
   const handleFormAccept = async () => {
+    // Obtener datos del snapshot si existe
+    const snapshotData = getSnapshotData();
+    
     const success = await handleSubmit(
       // Función para crear nuevo RDI
       async (rdiData) => {
-        // Guardar en IndexedDB
-        const savedRDI = await saveRDI(rdiData)
+        // Guardar en IndexedDB con snapshot
+        const savedRDI = await saveRDI(rdiData, snapshotData)
         
         // Crear topic BCF si es necesario
         /*if (savedRDI) {
@@ -109,8 +116,8 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
       },
       // Función para actualizar RDI existente
       async (id, rdiData) => {
-        // Actualizar en IndexedDB
-        const updatedRDI = await updateRDI(id, rdiData)
+        // Actualizar en IndexedDB con snapshot
+        const updatedRDI = await updateRDI(id, rdiData, snapshotData)
         
         // Actualizar topic BCF si es necesario
         if (updatedRDI) {
@@ -125,7 +132,7 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
 
     if (success) {
       resetViewpoint()
-      console.log('RDI guardado exitosamente')
+      console.log('RDI guardado exitosamente con snapshot:', snapshotData ? 'Sí' : 'No')
     }
   }
 
@@ -137,6 +144,14 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
   const handleEditRDI = (item) => {
     console.log('Editando RDI:', item)
     startEdit(item)
+    
+    // Restaurar snapshot si existe
+    if (item.snapshot) {
+      console.log('Restaurando snapshot para RDI:', item.id)
+      restoreSnapshot(item.snapshot)
+    } else {
+      console.log('No hay snapshot para restaurar en RDI:', item.id)
+    }
   }
 
   const handleStatusChange = async (id, newStatus) => {
@@ -163,6 +178,31 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
       } catch (error) {
         console.error('Error eliminando RDIs:', error)
       }
+    }
+  }
+
+  // Handler para exportar RDI individual a BCF
+  const handleExportRDIToBCF = async (rdiId) => {
+    try {
+      console.log('Exportando RDI a BCF:', rdiId)
+      await exportRDIToBCF(rdiId)
+      console.log('RDI exportado exitosamente')
+    } catch (error) {
+      console.error('Error exportando RDI:', error)
+      alert('Error al exportar RDI: ' + error.message)
+    }
+  }
+
+  // Handler para exportar todos los RDIs a BCF
+  const handleExportAllRDIsToBCF = async () => {
+    try {
+      console.log('Exportando todos los RDIs a BCF')
+      await exportAllRDIsToBCF()
+      console.log('Todos los RDIs exportados exitosamente')
+      alert(`${rdiList.length} RDIs exportados exitosamente a formato BCF`)
+    } catch (error) {
+      console.error('Error exportando todos los RDIs:', error)
+      alert('Error al exportar RDIs: ' + error.message)
     }
   }
 
@@ -272,22 +312,32 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
                 onEdit={handleEditRDI}
                 onStatusChange={handleStatusChange}
                 onInfo={handleInfoClick}
+                onExportToBCF={handleExportRDIToBCF}
                 bcfTopicSet={bcfTopicSet}
                 totalCount={rdiList.length}
               />
             )}
 
-            {/* Botón eliminar todos */}
+            {/* Botones de acción masiva */}
             {!showForm && rdiList.length > 0 && (
-              <Button 
-                variant="contained" 
-                color="warning" 
-                onClick={handleClearAllRDIs} 
-                sx={{ mt: 2 }} 
-                fullWidth
-              >
-                ELIMINAR TODOS LOS RDIs
-              </Button>
+              <Box sx={{ mt: 2, display: 'flex', gap: 1, flexDirection: 'column' }}>
+                <Button 
+                  variant="contained" 
+                  color="success" 
+                  onClick={handleExportAllRDIsToBCF} 
+                  fullWidth
+                >
+                  EXPORTAR TODOS A BCF ({rdiList.length})
+                </Button>
+                <Button 
+                  variant="contained" 
+                  color="warning" 
+                  onClick={handleClearAllRDIs} 
+                  fullWidth
+                >
+                  ELIMINAR TODOS LOS RDIs
+                </Button>
+              </Box>
             )}
           </Box>
         </TabPanel>

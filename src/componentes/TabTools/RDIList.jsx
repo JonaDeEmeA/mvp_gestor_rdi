@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import InfoIcon from '@mui/icons-material/Info';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 const RDIList = ({
   rdiList,
@@ -22,6 +23,7 @@ const RDIList = ({
   onEdit,
   onStatusChange,
   onInfo,
+  onExportToBCF,
   bcfTopicSet,
   totalCount,
 }) => {
@@ -116,6 +118,18 @@ const RDIList = ({
                   </Select>
                 </FormControl>
 
+                {/* Botón Exportar a BCF */}
+                <IconButton
+                  edge="end"
+                  aria-label="export-bcf"
+                  onClick={() => onExportToBCF(rdi.id)}
+                  size="small"
+                  title="Exportar a formato BCF"
+                  color="success"
+                >
+                  <FileDownloadIcon />
+                </IconButton>
+
                 {/* Botón Info */}
                 <IconButton
                   edge="end"
@@ -123,6 +137,7 @@ const RDIList = ({
                   onClick={() => onInfo(rdi)}
                   size="small"
                   title="Ver información detallada"
+                  sx={{ ml: 1 }}
                 >
                   <InfoIcon />
                 </IconButton>
