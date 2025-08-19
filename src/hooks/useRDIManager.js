@@ -43,6 +43,41 @@ export const useRDIManager = (db) => {
     }
   }, [db]);
 
+  // Consultar RDI por ID directamente desde IndexedDB
+const getRDIByIdFromDB = useCallback(async (id) => {
+  if (!db) {
+    console.warn('IndexedDB no está listo');
+    return null;
+  }
+
+  try {
+    const transaction = db.transaction(['topics'], 'readonly');
+    const store = transaction.objectStore('topics');
+    const request = store.get(id);
+
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => {
+        const result = request.result;
+        if (result) {
+          console.log('RDI encontrado en IndexedDB:', result);
+          resolve(result);
+        } else {
+          console.log(`RDI con ID ${id} no encontrado en IndexedDB`);
+          resolve(null);
+        }
+      };
+
+      request.onerror = (event) => {
+        console.error('Error consultando RDI por ID:', event.target.error);
+        reject(event.target.error);
+      };
+    });
+  } catch (err) {
+    console.error('Error en getRDIByIdFromDB:', err);
+    throw err;
+  }
+}, [db]);
+
   // Guardar nuevo RDI en IndexedDB y actualizar lista local
   // Solo guarda los datos del formulario (formData)
   const saveRDI = useCallback(async (formData, snapshotData = null) => {
@@ -61,17 +96,17 @@ export const useRDIManager = (db) => {
       // Preparar los datos del formulario para guardar
       const rdiToSave = {
         // Solo datos del formulario
-        types: formData.types,
+        tipo: formData.tipo,
         titulo: formData.titulo,
         descripcion: formData.descripcion,
         comentario: formData.comentario,
         fecha: formData.fecha,
-        statuses: formData.statuses,
-        labels: formData.labels,
+        estado: formData.estado,
+        etiqueta: formData.etiqueta,
         // Metadatos de gestión
         id: formData.id || Date.now(),
-        createdAt: formData.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        //createdAt: formData.createdAt || new Date().toISOString(),
+        //updatedAt: new Date().toISOString(),
         // Datos del snapshot si existe
         ...(snapshotData && {
           snapshot: {
@@ -233,7 +268,7 @@ export const useRDIManager = (db) => {
 
   // Actualizar solo el estado de un RDI
   const updateRDIStatus = useCallback(async (id, newStatus) => {
-    return updateRDI(id, { statuses: newStatus });
+    return updateRDI(id, { estado: newStatus });
   }, [updateRDI]);
 
   // Obtener RDI por ID
@@ -288,13 +323,13 @@ export const useRDIManager = (db) => {
   const getRDIStats = useCallback(() => {
     const total = rdiList.length;
     const byStatus = rdiList.reduce((acc, rdi) => {
-      const status = rdi.statuses || 'Sin estado';
+      const status = rdi.estado || rdi.statuses || 'Sin estado';
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {});
     
     const byType = rdiList.reduce((acc, rdi) => {
-      const type = rdi.types || 'Sin tipo';
+      const type = rdi.tipo || rdi.types || 'Sin tipo';
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {});
@@ -308,9 +343,9 @@ export const useRDIManager = (db) => {
       guid: `rdi-${rdiData.id}`, // GUID único para BCF
       title: rdiData.titulo || 'Sin título',
       description: rdiData.descripcion || '',
-      topic_type: rdiData.types || 'Información',
-      topic_status: rdiData.statuses || 'Pendiente',
-      labels: rdiData.labels ? [rdiData.labels] : [],
+      topic_type: rdiData.tipo || rdiData.types || 'Información',
+      topic_status: rdiData.estado || rdiData.statuses || 'Pendiente',
+      labels: (rdiData.etiqueta || rdiData.labels) ? [rdiData.etiqueta || rdiData.labels] : [],
       creation_date: rdiData.createdAt || new Date().toISOString(),
       modified_date: rdiData.updatedAt || new Date().toISOString(),
       due_date: rdiData.fecha ? new Date(rdiData.fecha.split('/').reverse().join('-')).toISOString() : null,
@@ -387,9 +422,9 @@ export const useRDIManager = (db) => {
         creation_date: new Date().toISOString()
       },
       extensions: {
-        topic_type: Array.from(new Set(rdiList.map(rdi => rdi.types).filter(Boolean))),
-        topic_status: Array.from(new Set(rdiList.map(rdi => rdi.statuses).filter(Boolean))),
-        topic_label: Array.from(new Set(rdiList.map(rdi => rdi.labels).filter(Boolean))),
+        topic_type: Array.from(new Set(rdiList.map(rdi => rdi.tipo || rdi.types).filter(Boolean))),
+        topic_status: Array.from(new Set(rdiList.map(rdi => rdi.estado || rdi.statuses).filter(Boolean))),
+        topic_label: Array.from(new Set(rdiList.map(rdi => rdi.etiqueta || rdi.labels).filter(Boolean))),
         users: ['signed.user@mail.com', 'coordinacion@gmail.com']
       }
     };
@@ -425,6 +460,7 @@ export const useRDIManager = (db) => {
     updateRDIStatus,
     
     // Utilidades
+    getRDIByIdFromDB,
     getRDIById,
     clearAllRDIs,
     refreshRDIs,

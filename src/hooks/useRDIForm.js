@@ -1,13 +1,13 @@
 import { useState } from 'react';
 
 const initialFormData = {
-  types: "",
+  tipo: "",
   titulo: "",
   descripcion: "",
   comentario: "",
   fecha: null,
-  statuses: "",
-  labels: "",
+  estado: "",
+  etiqueta: "",
 };
 
 export const useRDIForm = () => {
@@ -28,7 +28,7 @@ export const useRDIForm = () => {
 
   // Validar formulario
   const validateForm = () => {
-    const requiredFields = ['types', 'titulo', 'fecha', 'statuses'];
+    const requiredFields = ['tipo', 'titulo', 'fecha', 'estado'];
     const missingFields = requiredFields.filter(field => {
       const value = formData[field];
       return !value || (typeof value === 'string' && value.trim() === '');
@@ -64,13 +64,13 @@ export const useRDIForm = () => {
   // Iniciar edición
   const startEdit = (item) => {
     setFormData({
-      types: item.types || "",
+      tipo: item.tipo  || "",
       titulo: item.titulo || "",
       descripcion: item.descripcion || "",
       comentario: item.comentario || "",
       fecha: parseDateFromString(item.fecha),
-      statuses: item.statuses || "",
-      labels: item.labels || "",
+      estado: item.estado  || "",
+      etiqueta: item.etiqueta  || "",
     });
     setEditId(item.id);
     setShowForm(true);
@@ -112,9 +112,9 @@ export const useRDIForm = () => {
       titulo: formData.titulo,
       descripcion: formData.descripcion,
       fecha: formData.fecha,
-      types: formData.types,
-      statuses: formData.statuses,
-      labels: formData.labels,
+      types: formData.tipo,
+      statuses: formData.estado,
+      labels: formData.etiqueta,
     };
   };
 

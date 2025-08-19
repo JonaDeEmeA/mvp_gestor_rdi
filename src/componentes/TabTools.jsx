@@ -44,13 +44,15 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
   
   const { 
     viewpoint, 
+    viewpointsRef,
     snapshotUrl, 
     snapShotReady, 
     createViewpoint, 
     updateSnapshot, 
     resetViewpoint,
     getSnapshotData,
-    restoreSnapshot
+    restoreSnapshot,
+    updateCameraFromViewpoint
   } = useViewpoints(component, world)
 
   // Hook de gestión de RDIs (nuevo sistema unificado)
@@ -58,11 +60,13 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
     rdiList,
     loading: rdiLoading,
     error: rdiError,
+    getRDIByIdFromDB,
     saveRDI,
     updateRDI,
     updateRDIStatus,
     clearAllRDIs,
     getRDIStats,
+    convertRDIToBCFTopic,
     exportRDIToBCF,
     exportAllRDIsToBCF,
   } = useRDIManager(db)
@@ -105,13 +109,6 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
         // Guardar en IndexedDB con snapshot
         const savedRDI = await saveRDI(rdiData, snapshotData)
         
-        // Crear topic BCF si es necesario
-        /*if (savedRDI) {
-          const bcfTopicData = getBCFTopicData()
-          const topic = await createBCFTopic(bcfTopicData, viewpoint)
-          console.log('Topic BCF creado:', topic)
-        }*/
-        
         return savedRDI
       },
       // Función para actualizar RDI existente
@@ -120,11 +117,11 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
         const updatedRDI = await updateRDI(id, rdiData, snapshotData)
         
         // Actualizar topic BCF si es necesario
-        if (updatedRDI) {
+        /*if (updatedRDI) {
           const bcfTopicData = getBCFTopicData()
           const topic = await createBCFTopic(bcfTopicData, viewpoint, id)
           console.log('Topic BCF actualizado:', topic)
-        }
+        }*/
         
         return updatedRDI
       }
@@ -142,7 +139,14 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
   }
 
   const handleEditRDI = (item) => {
+
+    updateCameraFromViewpoint(item.snapshot.viewpointData)
+    //let snapdata = getSnapshotData();
     console.log('Editando RDI:', item)
+    //console.log('snapshotdata:', snapdata)
+   
+    
+    
     startEdit(item)
     
     // Restaurar snapshot si existe
@@ -193,6 +197,32 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
     }
   }
 
+  const crearBCFTopic = async (rdiId) => {
+  try {
+    // 1. Obtener datos desde IndexedDB
+    const rdiData = await getRDIByIdFromDB(rdiId);
+    
+    if (!rdiData) {
+      console.error(`RDI con ID ${rdiId} no encontrado`);
+      return null;
+    }
+    
+    // 2. Almacenar los datos (opcional)
+    console.log('Datos del RDI:', rdiData);
+    
+    // 3. Convertir a BCF Topic
+    const bcfTopic = convertRDIToBCFTopic(rdiData);
+    
+    // 4. Usar el BCF Topic
+    console.log('BCF Topic creado:', bcfTopic);
+    return bcfTopic;
+    
+  } catch (error) {
+    console.error('Error:', error);
+    return null;
+  }
+};
+
   // Handler para exportar todos los RDIs a BCF
   const handleExportAllRDIsToBCF = async () => {
     try {
@@ -209,7 +239,7 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
   // Filtrar lista según el filtro seleccionado
   const getFilteredRDIList = () => {
     return filterTipo
-      ? rdiList.filter((rdi) => rdi.types === filterTipo)
+      ? rdiList.filter((rdi) => (rdi.tipo || rdi.types) === filterTipo)
       : rdiList
   }
   console.log(showForm, 'showForm');
@@ -306,13 +336,15 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
             {/* Lista de RDIs */}
             {!showForm && (
               <RDIList
+                
                 rdiList={getFilteredRDIList()}
                 filterTipo={filterTipo}
                 onFilterChange={setFilterTipo}
                 onEdit={handleEditRDI}
                 onStatusChange={handleStatusChange}
                 onInfo={handleInfoClick}
-                onExportToBCF={handleExportRDIToBCF}
+                //onExportToBCF={handleExportRDIToBCF}
+                onExportToBCF={crearBCFTopic}
                 bcfTopicSet={bcfTopicSet}
                 totalCount={rdiList.length}
               />

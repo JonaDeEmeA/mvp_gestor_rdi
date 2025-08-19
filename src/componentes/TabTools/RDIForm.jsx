@@ -36,7 +36,7 @@ const RDIForm = ({
   };
 
   const validateForm = () => {
-    return formData.types && formData.titulo && formData.fecha && formData.statuses;
+    return formData.tipo && formData.titulo && formData.fecha && formData.estado;
   };
 
   return (
@@ -113,9 +113,9 @@ const RDIForm = ({
           <InputLabel sx={inputStyles}>Tipo</InputLabel>
           <Select
             sx={inputStyles}
-            value={formData.types}
+            value={formData.tipo}
             label="Tipo"
-            onChange={(e) => onFormChange("types", e.target.value)}
+            onChange={(e) => onFormChange("tipo", e.target.value)}
           >
             {Array.from(bcfTopicSet.types || []).map((tipo) => (
               <MenuItem sx={inputStyles} key={tipo} value={tipo}>
@@ -129,9 +129,9 @@ const RDIForm = ({
         <FormControl fullWidth sx={{ mb: 2 }} size="small">
           <InputLabel>Especialidad</InputLabel>
           <Select
-            value={formData.labels}
+            value={formData.etiqueta}
             label="Especialidad"
-            onChange={(e) => onFormChange("labels", e.target.value)}
+            onChange={(e) => onFormChange("etiqueta", e.target.value)}
           >
             {Array.from(bcfTopicSet.labels || []).map((esp) => (
               <MenuItem key={esp} value={esp}>
@@ -145,9 +145,9 @@ const RDIForm = ({
         <FormControl fullWidth sx={{ mb: 2 }} size="small" required>
           <InputLabel>Estado</InputLabel>
           <Select
-            value={formData.statuses}
+            value={formData.estado}
             label="Estado"
-            onChange={(e) => onFormChange("statuses", e.target.value)}
+            onChange={(e) => onFormChange("estado", e.target.value)}
           >
             {Array.from(bcfTopicSet.statuses || []).map((estado) => (
               <MenuItem key={estado} value={estado}>

@@ -67,9 +67,9 @@ export const useBCFTopics = (component, db) => {
       title: topicData.titulo,
       description: topicData.descripcion,
       dueDate: topicData.fecha,
-      type: topicData.types,
-      status: topicData.statuses,
-      labels: [topicData.labels],
+      type: topicData.tipo,
+      status: topicData.estado,
+      labels: [topicData.estiqueta],
     };
 
     // Si es edición, agrega el id original
@@ -85,13 +85,13 @@ export const useBCFTopics = (component, db) => {
     }
 
     // Guardar en IndexedDB
-    await saveTopicToDB(topic, editId);
+    //await saveTopicToDB(topic, editId);
 
     return topic;
   };
 
   // Guardar topic en IndexedDB
-  const saveTopicToDB = async (topic, editId = null) => {
+  /*const saveTopicToDB = async (topic, editId = null) => {
     if (!db) {
       console.warn('IndexedDB no está listo, no se guardó el topic');
       return;
@@ -140,7 +140,7 @@ export const useBCFTopics = (component, db) => {
       console.error('Error en saveTopicToDB:', error);
       throw error;
     }
-  };
+  };*/
 
   // Limpiar todos los topics de IndexedDB
   const clearAllTopics = () => {
@@ -169,7 +169,7 @@ export const useBCFTopics = (component, db) => {
     bcfTopicSet,
     bcfTopicsRef,
     createBCFTopic,
-    saveTopicToDB,
+    //saveTopicToDB,
     clearAllTopics,
   };
 };

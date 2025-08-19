@@ -61,7 +61,7 @@ const RDIList = ({
             <em>Todos ({totalCount})</em>
           </MenuItem>
           {Array.from(bcfTopicSet.types || []).map((tipo) => {
-            const count = rdiList.filter(rdi => rdi.types === tipo).length;
+            const count = rdiList.filter(rdi => (rdi.tipo || rdi.types) === tipo).length;
             return (
               <MenuItem key={tipo} value={tipo}>
                 {tipo} ({count})
@@ -102,21 +102,7 @@ const RDIList = ({
             }}
             secondaryAction={
               <Box sx={{ display: "flex", alignItems: "center" }}>
-                {/* Selector editable de estado */}
-                <FormControl size="small" sx={{ minWidth: 120, mr: 1 }}>
-                  <InputLabel>Estado</InputLabel>
-                  <Select
-                    value={rdi.statuses || ""}
-                    label="Estado"
-                    onChange={(e) => onStatusChange(rdi.id, e.target.value)}
-                  >
-                    {Array.from(bcfTopicSet.statuses || []).map((estado) => (
-                      <MenuItem key={estado} value={estado}>
-                        {estado}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+               
 
                 {/* Botón Exportar a BCF */}
                 <IconButton
@@ -163,7 +149,7 @@ const RDIList = ({
                     {rdi.titulo}
                   </Typography>
                   <Chip 
-                    label={rdi.types || "Sin tipo"} 
+                    label={rdi.tipo || rdi.types || "Sin tipo"} 
                     size="small" 
                     color="primary" 
                     variant="outlined"
@@ -176,13 +162,13 @@ const RDIList = ({
                     <strong>ID:</strong> {rdi.id}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" component="div">
-                    <strong>Especialidad:</strong> {rdi.labels || "No definida"}
+                    <strong>Especialidad:</strong> {rdi.etiqueta || rdi.labels || "No definida"}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" component="div">
                     <strong>Fecha:</strong> {rdi.fecha}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" component="div">
-                    <strong>Estado:</strong> {rdi.statuses || "No definido"}
+                    <strong>Estado:</strong> {rdi.estado || rdi.statuses || "No definido"}
                   </Typography>
                   {rdi.descripcion && (
                     <Typography variant="body2" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
@@ -207,7 +193,7 @@ const RDIList = ({
       <Box sx={{ mt: 2, p: 1, backgroundColor: 'grey.50', borderRadius: 1 }}>
         <Typography variant="caption" color="text.secondary">
           Estados: {Array.from(bcfTopicSet.statuses || []).map(estado => {
-            const count = rdiList.filter(rdi => rdi.statuses === estado).length;
+            const count = rdiList.filter(rdi => (rdi.estado || rdi.statuses) === estado).length;
             return count > 0 ? `${estado}: ${count}` : null;
           }).filter(Boolean).join(' | ') || 'Sin datos'}
         </Typography>

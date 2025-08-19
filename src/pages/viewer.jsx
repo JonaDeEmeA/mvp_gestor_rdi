@@ -70,7 +70,7 @@ export default function Home() {
       const world = worlds.create();
       world.scene = new OBC.SimpleScene(components);
       world.renderer = new OBC.SimpleRenderer(components, container);
-      world.camera = new OBC.SimpleCamera(components);
+      world.camera = new OBC.OrthoPerspectiveCamera(components);
       await components.init();
       if (!world.camera.controls.object && world.camera.three) {
         world.camera.controls.object = world.camera.three;
@@ -86,7 +86,9 @@ export default function Home() {
       worldRef.current = world;
 
       const workerUrl = '/workers/worker.mjs';
-      const fragments = new FRAGS.FragmentsModels(workerUrl);
+      //const fragments = new FRAGS.FragmentsModels(workerUrl);
+      const fragments = components.get(OBC.FragmentsManager);
+      fragments.init(workerUrl);  
       fragmentsRef.current = fragments;
 
       // Actualización completa cuando para 
@@ -95,8 +97,11 @@ export default function Home() {
       });*/
 
       // Actualización continua durante movimiento
-      world.camera.controls.addEventListener('update', () => {
+      /*world.camera.controls.addEventListener('update', () => {
         fragments.update(true);
+      });*/
+      world.camera.controls.addEventListener('update', () => {
+        fragments.core.update(true);  
       });
 
 
@@ -262,7 +267,7 @@ export default function Home() {
       const modelo = importedModel.find(el => el.object.uuid === id);
       if (modelo) {
         modelo.object.visible = !modelo.object.visible;
-        fragmentsRef.current.update(true);
+        fragmentsRef.current.core.update(true);
         setImportedModel([...importedModel]);
       }
     }
@@ -358,9 +363,9 @@ export default function Home() {
       console.log('Fragmentos generados:', fragmentBytes.length, 'bytes');
 
       // Cargar en el gestor de fragmentos
-      const model = await fragments.load(fragmentBytes, { modelId: file.name, coordinate: false, properties: true });
+      const model = await fragments.core.load(fragmentBytes, { modelId: file.name, coordinate: false, properties: true });
       // Verificar geometría cargada
-      const fragModel = fragments.models.list.get(file.name);
+      const fragModel = fragments.list.get(file.name);
       console.log('Modelos disponibles:', fragModel);
       console.log('propiedades:', Object.keys(fragModel));
       //console.log('Geometrías disponibles:', Object.keys(fragModel.geometries).length);
@@ -397,14 +402,14 @@ export default function Home() {
 
       model.useCamera(world.camera.three);
       world.scene.three.add(model.object);
-      await fragments.update(true);
+      await fragments.core.update(true);
 
     } else if (ext === 'frag') {
 
 
       const buffer = await file.arrayBuffer();
-      const model = await fragments.load(buffer, { modelId: file.name });
-      const fragModel = fragments.models.list.get(file.name);
+      const model = await fragments.core.load(buffer, { modelId: file.name });
+      const fragModel = fragments.list.get(file.name);
       // Verificar carga
       console.log('Fragment cargado:', fragModel);
       console.log('Propiedades disponibles:', Object.keys(fragModel));
@@ -432,7 +437,7 @@ export default function Home() {
 
       model.useCamera(world.camera.three);
       world.scene.three.add(model.object);
-      await fragments.update(true);
+      await fragments.core.update(true);
 
 
 
