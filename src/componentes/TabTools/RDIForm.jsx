@@ -29,6 +29,7 @@ const RDIForm = ({
   snapShotReady,
   onCreateViewpoint,
   onUpdateSnapshot,
+  onVerSnapshotPV,
 }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -64,7 +65,10 @@ const RDIForm = ({
 
         {/* Snapshot Controls */}
         {showForm && (
-          <Box sx={{ mb: 2 }}>
+          <Box 
+          display="flex" 
+          flexDirection="row"
+          sx={{ mb: 2 }}>
             {!snapShotReady ? (
               <Button 
                 variant="outlined" 
@@ -76,7 +80,13 @@ const RDIForm = ({
                 AGREGAR SNAPSHOT
               </Button>
             ) : (
+              <>
               <Button 
+                 sx={{
+                    fontSize: '0.60rem',
+                    padding: '2px 4px',
+                    minWidth: 'auto',         // Permite ancho automático
+                  }}
                 variant="outlined" 
                 color="secondary" 
                 onClick={onUpdateSnapshot} 
@@ -85,6 +95,23 @@ const RDIForm = ({
               >
                 ACTUALIZAR SNAPSHOT
               </Button>
+              <Button
+                sx={{
+                  fontSize: '0.60rem',
+                  padding: '2px 4px',
+                  minWidth: 'auto',         // Permite ancho automático
+                  ml: 1,                    // Margen izquierdo para separación
+                }} 
+                disabled={!isEditing}
+                variant="outlined" 
+                color="secondary" 
+                onClick={onVerSnapshotPV} 
+                fullWidth
+                size="small"
+              >
+                VER
+              </Button>
+              </>
             )}
           </Box>
         )}

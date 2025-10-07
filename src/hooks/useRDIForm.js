@@ -73,7 +73,7 @@ export const useRDIForm = () => {
       etiqueta: item.etiqueta  || "",
     });
     setEditId(item.id);
-    setShowForm(true);
+    //setShowForm(true);
     setIsSubmitting(false);
   };
 

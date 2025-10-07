@@ -17,7 +17,10 @@ export const useResizable = (initialWidth = 20, minWidth = 20, maxWidth = 80) =>
       if (!isResizing || !containerRef.current) return;
 
       const containerRect = containerRef.current.getBoundingClientRect();
-      const newWidth = ((containerRect.right - e.clientX) / containerRect.width) * 100;
+      const parentRect = containerRef.current.parentElement.getBoundingClientRect();
+      
+      // Para un panel anclado al lado derecho, calcular desde el borde derecho
+      const newWidth = ((parentRect.right - e.clientX) / parentRect.width) * 100;
 
       // Aplicar límites mínimos y máximos
       if (newWidth >= minWidth && newWidth <= maxWidth) {

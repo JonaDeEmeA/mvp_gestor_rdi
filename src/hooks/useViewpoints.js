@@ -299,6 +299,23 @@ export const useViewpoints = (component, world) => {
     }
   };
 
+  const createViewpointFromSnapshot = ( snapshotData) => {  
+  const viewpoints = component.get(OBC.Viewpoints);  
+    
+    
+  // Crear el viewpoint usando los datos del snapshot  
+  const viewpoint = viewpoints.create(snapshotData.viewpointData);  
+    
+  // Asignar el snapshot (imagen) al viewpoint  
+  if (snapshotData.imageData) {  
+    // El sistema maneja snapshots como Uint8Array o similar  
+    viewpoints.snapshots.set(viewpoint.snapshot, snapshotData.imageData);  
+  }  
+    
+  return viewpoint;  
+};
+
+
   return {
     viewpoint,
     snapshotUrl: getCurrentSnapshotUrl(), // ✅ Usar función de precedencia

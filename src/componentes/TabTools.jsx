@@ -10,6 +10,9 @@ import {
   Typography,
   Alert,
   CircularProgress,
+  Paper,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material"
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"
@@ -21,6 +24,7 @@ import { useBCFTopics } from "../hooks/useBCFTopics"
 import { useViewpoints } from "../hooks/useViewpoints"
 import { useRDIForm } from "../hooks/useRDIForm"
 import { useRDIManager } from "../hooks/useRDIManager"
+import { useResizable } from "../hooks/useResizable"
 
 // Componentes especializados
 import TabPanel, { a11yProps } from "./TabTools/TabPanel"
@@ -29,26 +33,166 @@ import RDIForm from "./TabTools/RDIForm"
 import RDIList from "./TabTools/RDIList"
 import DashboardTab from "./TabTools/DashboardTab"
 
-export default function TabTools({ sx, exportBCF, topic, world, component }) {
+// Componente para el panel lateral de edición
+const EditPanel = ({
+  children,
+  show,
+  onClose,
+  initialWidth = 30,
+  minWidth = 20,
+  maxWidth = 60
+}) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  const {
+    width: panelWidth,
+    isResizing,
+    containerRef,
+    handleMouseDown
+  } = useResizable(initialWidth, minWidth, maxWidth);
+
+  if (!show) return null;
+
+  return (
+    <Box
+      ref={containerRef}
+      sx={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        height: '100%',
+        width: { 
+          xs: '100%', // En móviles ocupa toda la pantalla
+          sm: `${panelWidth}%` // En desktop usa el ancho redimensionable
+        },
+        zIndex: 1300,
+        pointerEvents: 'auto',
+        transition: isResizing ? "none" : "width 0.2s ease",
+      }}
+    >
+      <Paper
+        elevation={8}
+        sx={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header del panel */}
+        <Box sx={{
+          p: 2,
+          borderBottom: 1,
+          borderColor: 'divider',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Typography variant="h6">
+            Editar RDI
+          </Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={onClose}
+          >
+            Cerrar
+          </Button>
+        </Box>
+
+        {/* Contenido del panel */}
+        <Box sx={{
+          flex: 1,
+          overflow: 'auto',
+          p: 2
+        }}>
+          {children}
+        </Box>
+
+        {/* Handle de redimensionamiento - solo en desktop */}
+        <Box
+          onMouseDown={handleMouseDown}
+          sx={{
+            position: "absolute",
+            top: 0,
+            right: -2,
+            width: 4,
+            height: "100%",
+            cursor: "col-resize",
+            backgroundColor: "transparent",
+            display: { xs: "none", sm: "block" }, // Ocultar en móviles
+            "&:hover": {
+              backgroundColor: "primary.main",
+              opacity: 0.3,
+            },
+            "&:active": {
+              backgroundColor: "primary.main",
+              opacity: 0.5,
+            },
+            zIndex: 1000,
+          }}
+        />
+      </Paper>
+
+      {/* Overlay durante el redimensionamiento */}
+      {isResizing && (
+        <Box
+          sx={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            cursor: "col-resize",
+          }}
+        />
+      )}
+    </Box>
+  );
+};
+
+export default function TabTools({ sx,  topic, world, component }) {
   const [tabValue, setTabValue] = useState(0)
   const [filterTipo, setFilterTipo] = useState("")
+  const [showEditPanel, setShowEditPanel] = useState(false)
+  const [editingItem, setEditingItem] = useState(null);
+
+  // Detectar dispositivos móviles
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Hooks de base de datos y BCF
   const { db, loading: dbLoading, error: dbError } = useIndexedDB()
-  
-  const { 
-    bcfTopicSet, 
-    createBCFTopic, 
-    clearAllTopics 
+
+  const {
+    bcfTopicSet,
+    createBCFTopic,
+    clearAllTopics,
+    exportBCF,
+    importBCF,
   } = useBCFTopics(component, db)
-  
-  const { 
-    viewpoint, 
+
+    // Hooks para el formulario de AGREGAR
+  const addFormLogic = useRDIForm();
+  const addViewpointsLogic = useViewpoints(component, world);
+
+  // Hooks para el formulario de EDITAR
+  const editFormLogic = useRDIForm();
+  const editViewpointsLogic = useViewpoints(component, world);
+
+  // La función para actualizar la cámara es independiente del estado del hook
+  //const { updateCameraFromViewpoint } = addViewpointsLogic;
+
+  const {
+    viewpoint,
     viewpointsRef,
-    snapshotUrl, 
-    snapShotReady, 
-    createViewpoint, 
-    updateSnapshot, 
+    snapshotUrl,
+    snapShotReady,
+    createViewpoint,
+    updateSnapshot,
     resetViewpoint,
     getSnapshotData,
     restoreSnapshot,
@@ -66,27 +210,11 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
     updateRDIStatus,
     clearAllRDIs,
     getRDIStats,
+    getRDIById,
     convertRDIToBCFTopic,
     exportRDIToBCF,
     exportAllRDIsToBCF,
-  } = useRDIManager(db)
-  
-  // Hook del formulario
-  const {
-    formData,
-    showForm,
-    editId,
-    isSubmitting,
-    handleFormChange,
-    validateForm,
-    startNewForm,
-    startEdit,
-    cancelForm,
-    resetForm,
-    handleSubmit,
-    getBCFTopicData,
-    isEditing
-  } = useRDIForm()
+  } = useRDIManager(db);
 
   // Handlers del componente principal
   const handleTabChange = (event, newValue) => {
@@ -94,65 +222,96 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
   }
 
   const handleAgregarRDI = () => {
-    startNewForm()
+    //startNewForm()
+     addFormLogic.startNewForm();
+    addViewpointsLogic.resetViewpoint();
+    // Opcional: cerrar el panel de edición si está abierto para evitar confusiones
+    /*if (showEditPanel) {
+      setShowEditPanel(false);
+      setEditingItem(null);
+    }*/
     console.log('Iniciando nuevo RDI. BCF Topic Set:', bcfTopicSet)
   }
 
   // Manejar envío del formulario
-  const handleFormAccept = async () => {
+  const handleAddFormAccept = async () => {
     // Obtener datos del snapshot si existe
-    const snapshotData = getSnapshotData();
     
-    const success = await handleSubmit(
+      const snapshotData = addViewpointsLogic.getSnapshotData();
       // Función para crear nuevo RDI
+      const success = await addFormLogic.handleSubmit(
       async (rdiData) => {
         // Guardar en IndexedDB con snapshot
         const savedRDI = await saveRDI(rdiData, snapshotData)
-        
+
         return savedRDI
       },
       // Función para actualizar RDI existente
-      async (id, rdiData) => {
-        // Actualizar en IndexedDB con snapshot
-        const updatedRDI = await updateRDI(id, rdiData, snapshotData)
-        
-        // Actualizar topic BCF si es necesario
-        /*if (updatedRDI) {
-          const bcfTopicData = getBCFTopicData()
-          const topic = await createBCFTopic(bcfTopicData, viewpoint, id)
-          console.log('Topic BCF actualizado:', topic)
-        }*/
-        
-        return updatedRDI
-      }
-    )
+
+
+          () => Promise.resolve() // No se usa para agregar
+    );
 
     if (success) {
-      resetViewpoint()
+     
+      addViewpointsLogic.resetViewpoint();
       console.log('RDI guardado exitosamente con snapshot:', snapshotData ? 'Sí' : 'No')
     }
   }
 
-  const handleFormCancel = () => {
-    cancelForm()
-    resetViewpoint()
+
+
+    const handleAddFormCancel = () => {
+    addFormLogic.cancelForm();
+    addViewpointsLogic.resetViewpoint();
+  };
+
+    const handleEditFormAccept = async () => {
+    const snapshotData = editViewpointsLogic.getSnapshotData();
+    const success = await editFormLogic.handleSubmit(
+      () => Promise.resolve(), // No se usa para editar
+      async (id, rdiData) => {
+        await updateRDI(id, rdiData, snapshotData);
+      }
+    );
+    if (success) {
+      handleCloseEditPanel();
+    }
+  };
+
+  const handleCloseEditPanel = () => {
+    setShowEditPanel(false);
+    setEditingItem(null);
+    editFormLogic.cancelForm();
+    editViewpointsLogic.resetViewpoint();
+  }
+
+  const onVerSnapshotPV = () => {
+    if  (!editingItem || !editingItem.snapshot || !editingItem.snapshot.viewpointData ) {
+      console.warn('No hay datos de snapshot disponibles para este RDI.');
+      return;
+    }
+    
+    console.log("VER...", editingItem.id);
+    updateCameraFromViewpoint(editingItem.snapshot.viewpointData);
   }
 
   const handleEditRDI = (item) => {
-
-    updateCameraFromViewpoint(item.snapshot.viewpointData)
-    //let snapdata = getSnapshotData();
+    //updateCameraFromViewpoint(item.snapshot.viewpointData)
     console.log('Editando RDI:', item)
-    //console.log('snapshotdata:', snapdata)
-   
-    
-    
-    startEdit(item)
-    
+
+    // Mostrar panel de edición lateral
+    setEditingItem(item);
+    setShowEditPanel(true)
+    editFormLogic.startEdit(item)
+
+    //startEdit(item)
+
     // Restaurar snapshot si existe
     if (item.snapshot) {
       console.log('Restaurando snapshot para RDI:', item.id)
-      restoreSnapshot(item.snapshot)
+      //restoreSnapshot(item.snapshot)
+      editViewpointsLogic.restoreSnapshot(item.snapshot)
     } else {
       console.log('No hay snapshot para restaurar en RDI:', item.id)
     }
@@ -197,31 +356,25 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
     }
   }
 
-  const crearBCFTopic = async (rdiId) => {
-  try {
-    // 1. Obtener datos desde IndexedDB
-    const rdiData = await getRDIByIdFromDB(rdiId);
-    
-    if (!rdiData) {
-      console.error(`RDI con ID ${rdiId} no encontrado`);
-      return null;
+  // Este handler ahora se encarga de todo el proceso de exportación
+  const handleExportToBCF = async (rdiId) => {
+    try {
+      // 1. Obtener datos desde IndexedDB
+      const rdiData = await getRDIByIdFromDB(rdiId);
+      if (!rdiData) {
+        console.error(`RDI con ID ${rdiId} no encontrado`);
+        return;
+      }
+      // 2. Crear el objeto BCF Topic (incluyendo viewpoint si existe)
+      const topic = await createBCFTopic(rdiData, rdiData.snapshot);
+      console.log('BCF Topic creado:', topic);
+      
+      // 3. Exportar el topic a un archivo .bcfzip
+      if (topic) await exportBCF(topic);
+    } catch (error) {
+      console.error('Error:', error);
     }
-    
-    // 2. Almacenar los datos (opcional)
-    console.log('Datos del RDI:', rdiData);
-    
-    // 3. Convertir a BCF Topic
-    const bcfTopic = convertRDIToBCFTopic(rdiData);
-    
-    // 4. Usar el BCF Topic
-    console.log('BCF Topic creado:', bcfTopic);
-    return bcfTopic;
-    
-  } catch (error) {
-    console.error('Error:', error);
-    return null;
-  }
-};
+  };
 
   // Handler para exportar todos los RDIs a BCF
   const handleExportAllRDIsToBCF = async () => {
@@ -240,10 +393,9 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
   const getFilteredRDIList = () => {
     return filterTipo
       ? rdiList.filter((rdi) => (rdi.tipo || rdi.types) === filterTipo)
-      : rdiList
+      : rdiList;
   }
-  console.log(showForm, 'showForm');
-  
+
   // Mostrar loading si los datos no están listos
   const isLoading = dbLoading || rdiLoading || !bcfTopicSet.labels
   const hasError = dbError || rdiError
@@ -251,10 +403,10 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
   if (isLoading) {
     return (
       <ResizablePanel sx={sx}>
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center', 
+          alignItems: 'center',
           justifyContent: 'center',
           height: '100%',
           gap: 2
@@ -280,7 +432,43 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-      <ResizablePanel sx={sx}>
+      {/* Panel lateral de edición */}
+      
+      <EditPanel
+        show={showEditPanel}
+        
+        onClose={handleCloseEditPanel}
+      >
+        <RDIForm
+          showForm={true}
+          
+
+          formData={editFormLogic.formData}
+          onFormChange={editFormLogic.handleFormChange}
+          onAccept={handleEditFormAccept}
+          onCancel={handleCloseEditPanel}
+          bcfTopicSet={bcfTopicSet}
+          isEditing={editFormLogic.isEditing}
+          isSubmitting={editFormLogic.isSubmitting}
+          snapshotUrl={editViewpointsLogic.snapshotUrl}
+          snapShotReady={editViewpointsLogic.snapShotReady}
+          onCreateViewpoint={editViewpointsLogic.createViewpoint}
+          onUpdateSnapshot={editViewpointsLogic.updateSnapshot}
+          onVerSnapshotPV={onVerSnapshotPV}
+        />
+      </EditPanel>
+      
+
+      <ResizablePanel 
+        sx={{
+          ...sx,
+          // En móviles: ocultar ResizablePanel cuando EditPanel está activo
+          display: { 
+            xs: (isMobile && showEditPanel) ? "none" : "block",
+            sm: "block" // En desktop siempre visible
+          }
+        }}
+      >
         {/* Tabs Header */}
         <Tabs
           value={tabValue}
@@ -293,79 +481,132 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
         </Tabs>
 
         {/* Panel de RDI */}
-        <TabPanel value={tabValue} index={0} sx={{ overflowY: "auto" }}>
-          <Box sx={{ 
-            height: "100%", 
-            display: "flex", 
-            flexDirection: "column", 
-            overflowY: "auto" 
+        <TabPanel value={tabValue} index={0} sx={{ overflow: 'hidden' }}>
+          <Box sx={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column"
           }}>
-            
-            {/* Botón principal de acción */}
-            {!showForm && (
-              <Button 
-                variant="contained" 
-                color="primary" 
-                onClick={handleAgregarRDI} 
-                sx={{ mb: 2 }} 
-                fullWidth
-              >
-                AGREGAR RDI
-              </Button>
-            
+
+            {/* Sección fija superior - Botón */}
+            {!addFormLogic.showForm && (
+              <Box sx={{
+                flexShrink: 0,  // No se encoge
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                pb: 2,
+                mb: 2
+              }}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  onClick={handleAgregarRDI}
+                  
+                >
+                  AGREGAR RDI
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  onClick={importBCF}
+                  
+                  
+                >
+                  ABRIR BCF
+                </Button>
+              </Box>
             )}
 
-            <Divider sx={{ mb: 2 }} />
-
-            {/* Formulario RDI */}
-            <RDIForm
-              showForm={showForm}
-              formData={formData}
-              onFormChange={handleFormChange}
-              onAccept={handleFormAccept}
-              onCancel={handleFormCancel}
-              bcfTopicSet={bcfTopicSet}
-              isEditing={isEditing}
-              isSubmitting={isSubmitting}
-              snapshotUrl={snapshotUrl}
-              snapShotReady={snapShotReady}
-              onCreateViewpoint={createViewpoint}
-              onUpdateSnapshot={updateSnapshot}
-            />
-
-            {/* Lista de RDIs */}
-            {!showForm && (
-              <RDIList
-                
-                rdiList={getFilteredRDIList()}
-                filterTipo={filterTipo}
-                onFilterChange={setFilterTipo}
-                onEdit={handleEditRDI}
-                onStatusChange={handleStatusChange}
-                onInfo={handleInfoClick}
-                //onExportToBCF={handleExportRDIToBCF}
-                onExportToBCF={crearBCFTopic}
-                bcfTopicSet={bcfTopicSet}
-                totalCount={rdiList.length}
-              />
+            {/* Sección scrolleable - Formulario RDI */}
+            {addFormLogic.showForm && (
+              <Box sx={{
+                flex: 1,
+                overflow: 'auto',
+                minHeight: 0,
+                // Usar altura fija pero que se adapte al viewport
+                height: 'calc(100vh - 250px)'
+              }}>
+                <RDIForm
+                  showForm={addFormLogic.showForm}
+                  formData={addFormLogic.formData}
+                  onFormChange={addFormLogic.handleFormChange}
+                  onAccept={handleAddFormAccept}
+                  onCancel={handleAddFormCancel}
+                  bcfTopicSet={bcfTopicSet}
+                  isEditing={addFormLogic.isEditing}
+                  isSubmitting={addFormLogic.isSubmitting}
+                  snapshotUrl={addViewpointsLogic.snapshotUrl}
+                  snapShotReady={addViewpointsLogic.snapShotReady}
+                  onCreateViewpoint={addViewpointsLogic.createViewpoint}
+                  onUpdateSnapshot={addViewpointsLogic.updateSnapshot}
+                />
+              </Box>
             )}
 
-            {/* Botones de acción masiva */}
-            {!showForm && rdiList.length > 0 && (
-              <Box sx={{ mt: 2, display: 'flex', gap: 1, flexDirection: 'column' }}>
-                <Button 
-                  variant="contained" 
-                  color="success" 
-                  onClick={handleExportAllRDIsToBCF} 
+            {/* Sección scrolleable - Lista de RDIs */}
+            {!addFormLogic.showForm && (
+              <Box sx={{
+                flex: 1,           // Toma todo el espacio disponible
+                overflow: 'hidden', // Evita overflow del contenedor
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                <RDIList
+                  rdiList={getFilteredRDIList()}
+                  filterTipo={filterTipo}
+                  onFilterChange={setFilterTipo}
+                  onEdit={handleEditRDI}
+                  onStatusChange={handleStatusChange}
+                  onInfo={handleInfoClick}
+                  onExportToBCF={handleExportToBCF}
+                  bcfTopicSet={bcfTopicSet}
+                  totalCount={rdiList.length}
+                />
+              </Box>
+            )}
+
+            {/* Sección fija inferior - Botones de acción masiva */}
+            {!addFormLogic.showForm && rdiList.length > 0 && (
+              <Box sx={{
+                flexShrink: 0,  // No se encoge
+                borderTop: '1px solid',
+                borderColor: 'divider',
+                pt: 2,
+                mt: 2,
+                display: 'flex',
+                gap: 1,
+                flexDirection: 'row'
+              }}>
+                <Button
+                  sx={{
+                    fontSize: '0.60rem',
+                    padding: '2px 4px',
+                    minWidth: 'auto',         // Permite ancho automático
+                  }}
                   fullWidth
+                  size="small"
+                  variant="contained"
+                  color="success"
+                  onClick={handleExportAllRDIsToBCF}
+
                 >
                   EXPORTAR TODOS A BCF ({rdiList.length})
                 </Button>
-                <Button 
-                  variant="contained" 
-                  color="warning" 
-                  onClick={handleClearAllRDIs} 
+                <Button
+                  sx={{
+                    fontSize: '0.60rem',
+                    padding: '2px 4px',
+                    minWidth: 'auto',         // Permite ancho automático
+                    
+                  }}
                   fullWidth
+                  size="small"
+                  variant="contained"
+                  color="warning"
+                  onClick={handleClearAllRDIs}
+                  
                 >
                   ELIMINAR TODOS LOS RDIs
                 </Button>
@@ -376,7 +617,7 @@ export default function TabTools({ sx, exportBCF, topic, world, component }) {
 
         {/* Panel Dashboard */}
         <TabPanel value={tabValue} index={1}>
-          <DashboardTab 
+          <DashboardTab
             rdiList={rdiList}
             bcfTopicSet={bcfTopicSet}
             stats={getRDIStats()}

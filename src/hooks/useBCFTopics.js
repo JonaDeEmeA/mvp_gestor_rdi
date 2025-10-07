@@ -56,17 +56,51 @@ export const useBCFTopics = (component, db) => {
     };
   }, [db]);
 
+  const createViewpointFromSnapshot = (snapshotData) => {
+    const viewpoints = component.get(OBC.Viewpoints);
+
+
+    // Crear el viewpoint usando los datos del snapshot  
+    const viewpoint = viewpoints.create(snapshotData.viewpointData);
+
+    // Asignar el snapshot (imagen) al viewpoint  
+    if (snapshotData.imageData) {
+      // Convertir la imagen de base64 (desde la DB) a Uint8Array
+      const binaryString = atob(snapshotData.imageData);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // La librería BCF espera un Uint8Array, no un string base64
+      viewpoints.snapshots.set(viewpoint.snapshot, bytes);
+    }
+
+    return viewpoint;
+  };
+
   // Crear nuevo topic BCF
-  const createBCFTopic = async (topicData, viewpoint, editId = null) => {
+  const createBCFTopic = async (topicData, vpData, editId = null) => {
     if (!bcfTopicsRef.current) {
       console.warn('BCF Topics no está inicializado');
       return null;
     }
 
+    // Convertir fecha de string 'dd/mm/yyyy' a objeto Date si es necesario
+    let dueDate = null;
+    if (topicData.fecha) {
+      if (typeof topicData.fecha === 'string') {
+        const [day, month, year] = topicData.fecha.split('/');
+        dueDate = new Date(`${year}-${month}-${day}`);
+      } else if (topicData.fecha instanceof Date) {
+        dueDate = topicData.fecha;
+      }
+    }
     const bcfTopicData = {
       title: topicData.titulo,
       description: topicData.descripcion,
-      dueDate: topicData.fecha,
+      dueDate: dueDate,
       type: topicData.tipo,
       status: topicData.estado,
       labels: [topicData.estiqueta],
@@ -79,68 +113,86 @@ export const useBCFTopics = (component, db) => {
 
     const topic = bcfTopicsRef.current.create(bcfTopicData);
 
-    // Agregar viewpoint si existe
-    if (viewpoint) {
-      topic.viewpoints.add(viewpoint.guid);
-    }
-
-    // Guardar en IndexedDB
-    //await saveTopicToDB(topic, editId);
+    // 2. Crear el viewpoint desde tu snapshot  
+    const viewpoint = createViewpointFromSnapshot(vpData);
+    // 3. Asociar el viewpoint al topic  
+    topic.viewpoints.add(viewpoint.guid);
 
     return topic;
   };
 
-  // Guardar topic en IndexedDB
-  /*const saveTopicToDB = async (topic, editId = null) => {
-    if (!db) {
-      console.warn('IndexedDB no está listo, no se guardó el topic');
+  // Exportar un topic a un archivo BCF
+  const exportBCF = async (topic) => {
+    if (!bcfTopicsRef.current) {
+      console.error("BCF Topics no está inicializado.");
+      return;
+    }
+    // Verificar y añadir manualmente si es necesario  
+    if (!bcfTopicsRef.current.list.has(topic.guid)) {
+      bcfTopicsRef.current.list.set(topic.guid, topic);
+    }
+    console.log("Topic instance:", topic);
+    console.log("Topic constructor:", topic.constructor);
+    console.log("Topic prototype chain:", Object.getPrototypeOf(topic));
+    console.log("Has serialize method:", 'serialize' in topic);
+    console.log("Serialize method:", topic.serialize);
+
+    // Verificar si es realmente una instancia de Topic  
+    console.log("Is Topic instance:", topic instanceof OBC.Topic);
+
+
+    const blob = await bcfTopicsRef.current.export([topic]);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const safeTitle = topic.title.replace(/[^a-zA-Z0-9]/g, '_');
+    link.download = `RDI_${safeTitle}.bcf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    console.log(`Topic "${topic.title}" exportado a BCF.`);
+  }
+
+  // Importar topics desde un archivo BCF local
+  const importBCF = () => {
+    if (!bcfTopicsRef.current) {
+      console.error("BCF Topics no está inicializado.");
       return;
     }
 
-    try {
-      const transaction = db.transaction(['topics'], 'readwrite');
-      const store = transaction.objectStore('topics');
-      const topicToSave = topic.toJSON();
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.bcf,.bcfzip'; // Acepta ambos formatos BCF
+    input.style.display = 'none';
 
-      // Asignar ID apropiado
-      if (!topicToSave.id) {
-        topicToSave.id = Date.now();
-        console.log("Nuevo topic, asignando id:", topicToSave.id);
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      try {
+        const buffer = await file.arrayBuffer();
+        // Usar el método .load() para procesar el buffer del archivo
+        const { topics: loadedTopics, viewpoints } = await bcfTopicsRef.current.load(new Uint8Array(buffer));
+
+        // Añadir los topics cargados al estado actual, evitando duplicados  
+        setTopics(prevTopics => {
+          const existingGuids = new Set(prevTopics.map(t => t.guid));
+          const newTopics = loadedTopics.filter(t => !existingGuids.has(t.guid));
+          return [...prevTopics, ...newTopics];
+        });
+
+        console.log("Archivo BCF cargado exitosamente:", loadedTopics);
+      } catch (error) {
+        console.error("Error al cargar el archivo BCF:", error);
+      } finally {
+        // Limpiar para permitir la selección del mismo archivo de nuevo
+        document.body.removeChild(input);
       }
-
-      if (editId !== null) {
-        topicToSave.id = editId;
-        console.log("Editando topic, manteniendo id:", topicToSave.id);
-      }
-
-      store.put(topicToSave);
-
-      return new Promise((resolve, reject) => {
-        transaction.oncomplete = () => {
-          console.log('Topic guardado en IndexedDB');
-          // Actualizar lista local
-          setTopicsFromDB(prev => {
-            const index = prev.findIndex(t => t.id === topicToSave.id);
-            if (index >= 0) {
-              const updated = [...prev];
-              updated[index] = topicToSave;
-              return updated;
-            }
-            return [...prev, topicToSave];
-          });
-          resolve(topicToSave);
-        };
-
-        transaction.onerror = (event) => {
-          console.error('Error guardando topic en IndexedDB:', event.target.error);
-          reject(event.target.error);
-        };
-      });
-    } catch (error) {
-      console.error('Error en saveTopicToDB:', error);
-      throw error;
-    }
-  };*/
+    };
+    document.body.appendChild(input);
+    input.click();
+  };
 
   // Limpiar todos los topics de IndexedDB
   const clearAllTopics = () => {
@@ -169,7 +221,8 @@ export const useBCFTopics = (component, db) => {
     bcfTopicSet,
     bcfTopicsRef,
     createBCFTopic,
-    //saveTopicToDB,
+    exportBCF,
+    importBCF,
     clearAllTopics,
   };
 };

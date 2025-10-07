@@ -47,7 +47,7 @@ export default function TabStandar({ onCargarFile, onCloseBrowser, onCloseRdiMan
         <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
           <Tab  sx={{ color: 'gray' }} label="Archivos" {...a11yProps(0)} />
           <Tab sx={{ color: 'gray' }} label="ver" {...a11yProps(1)} />
-          <Tab sx={{ color: 'gray' }} label="ITEM TRES" {...a11yProps(2)} />
+          <Tab sx={{ color: 'gray' }} label="BROMITA..." {...a11yProps(2)} />
         </Tabs>
       </Box>
       <CustomTabPanel value={value} index={0}>

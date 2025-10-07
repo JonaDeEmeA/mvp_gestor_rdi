@@ -23,14 +23,14 @@ const ResizablePanel = ({
       <Paper
         elevation={elevation}
         sx={{
-          minWidth: { xs: "100%", sm: "400px" },
-          width: `${paperWidth}%`,
+          minWidth: { xs: "100%", sm: "350px" },
+          width: { xs: "100%", sm: `${paperWidth}%` },
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          position: "absolute",
-          right: 0,
-          top: { xs: "100%", sm: "auto" },
+          position: { xs: "static", sm: "absolute" },
+          right: { sm: 0 },
+          top: { xs: 0, sm: 0 },
           pointerEvents: "auto",
           transition: isResizing ? "none" : "width 0.2s ease",
         }}
@@ -38,7 +38,7 @@ const ResizablePanel = ({
       >
         {children}
 
-        {/* Handle de redimensionamiento */}
+        {/* Handle de redimensionamiento - solo en desktop */}
         <Box
           onMouseDown={handleMouseDown}
           sx={{
@@ -49,6 +49,7 @@ const ResizablePanel = ({
             height: "100%",
             cursor: "col-resize",
             backgroundColor: "transparent",
+            display: { xs: "none", sm: "block" }, // Ocultar en móviles
             "&:hover": {
               backgroundColor: "primary.main",
               opacity: 0.3,
@@ -62,7 +63,7 @@ const ResizablePanel = ({
         />
       </Paper>
 
-      {/* Overlay durante el redimensionamiento */}
+      {/* Overlay durante el redimensionamiento - solo desktop */}
       {isResizing && (
         <Box
           sx={{
@@ -73,6 +74,7 @@ const ResizablePanel = ({
             bottom: 0,
             zIndex: 9999,
             cursor: "col-resize",
+            display: { xs: "none", sm: "block" }, // Ocultar en móviles
           }}
         />
       )}
