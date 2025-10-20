@@ -56,26 +56,32 @@ export const useBCFTopics = (component, db) => {
     };
   }, [db]);
 
-  const createViewpointFromSnapshot = (snapshotData) => {
+  const createViewpointFromSnapshot = async (snapshotData) => {
     const viewpoints = component.get(OBC.Viewpoints);
 
 
     // Crear el viewpoint usando los datos del snapshot  
     const viewpoint = viewpoints.create(snapshotData.viewpointData);
+    // IMPORTANTE: Agregar a la lista manualmente  
+    viewpoints.list.set(viewpoint.guid, viewpoint);
 
-    // Asignar el snapshot (imagen) al viewpoint  
+    // Asignar el world  
+    viewpoint.world = viewpoints.world;
+
+    // Asignar el snapshot  
     if (snapshotData.imageData) {
-      // Convertir la imagen de base64 (desde la DB) a Uint8Array
-      const binaryString = atob(snapshotData.imageData);
+      // Remover prefijo si existe  
+      const base64Data = snapshotData.imageData.replace(/^data:image\/\w+;base64,/, '');
+      const binaryString = atob(base64Data);
       const len = binaryString.length;
       const bytes = new Uint8Array(len);
       for (let i = 0; i < len; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-
-      // La librería BCF espera un Uint8Array, no un string base64
       viewpoints.snapshots.set(viewpoint.snapshot, bytes);
     }
+    // Actualizar datos de cámara (sin tomar nuevo snapshot)  
+    await viewpoint.updateCamera(false);
 
     return viewpoint;
   };
@@ -103,7 +109,7 @@ export const useBCFTopics = (component, db) => {
       dueDate: dueDate,
       type: topicData.tipo,
       status: topicData.estado,
-      labels: [topicData.estiqueta],
+      labels: new Set([topicData.estiqueta]),
     };
 
     // Si es edición, agrega el id original

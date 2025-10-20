@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-export const useResizable = (initialWidth = 20, minWidth = 20, maxWidth = 80) => {
+export const useResizable = (initialWidth = 20, minWidth = 20, maxWidth = 80, anchor = 'right') => {
   const [width, setWidth] = useState(initialWidth);
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef(null);
@@ -16,18 +16,23 @@ export const useResizable = (initialWidth = 20, minWidth = 20, maxWidth = 80) =>
     (e) => {
       if (!isResizing || !containerRef.current) return;
 
-      const containerRect = containerRef.current.getBoundingClientRect();
       const parentRect = containerRef.current.parentElement.getBoundingClientRect();
       
-      // Para un panel anclado al lado derecho, calcular desde el borde derecho
-      const newWidth = ((parentRect.right - e.clientX) / parentRect.width) * 100;
+      let newWidth;
+      if (anchor === 'left') {
+        // Para un panel anclado a la izquierda, calcular desde el borde izquierdo.
+        newWidth = ((e.clientX - parentRect.left) / parentRect.width) * 100;
+      } else {
+        // Para un panel anclado al lado derecho, calcular desde el borde derecho.
+        newWidth = ((parentRect.right - e.clientX) / parentRect.width) * 100;
+      }
 
       // Aplicar límites mínimos y máximos
       if (newWidth >= minWidth && newWidth <= maxWidth) {
         setWidth(newWidth);
       }
     },
-    [isResizing, minWidth, maxWidth]
+    [isResizing, minWidth, maxWidth, anchor]
   );
 
   // Manejar fin del redimensionamiento

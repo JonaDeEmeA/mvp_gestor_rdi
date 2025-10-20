@@ -13,6 +13,11 @@ import {
   Paper,
   useTheme,
   useMediaQuery,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
 } from "@mui/material"
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"
@@ -30,6 +35,7 @@ import { useResizable } from "../hooks/useResizable"
 import TabPanel, { a11yProps } from "./TabTools/TabPanel"
 import ResizablePanel from "./TabTools/ResizablePanel"
 import RDIForm from "./TabTools/RDIForm"
+import RDIView from "./TabTools/RDIView"
 import RDIList from "./TabTools/RDIList"
 import DashboardTab from "./TabTools/DashboardTab"
 
@@ -39,8 +45,11 @@ const EditPanel = ({
   show,
   onClose,
   initialWidth = 30,
-  minWidth = 20,
-  maxWidth = 60
+  minWidth = 25,
+  maxWidth = 70,
+  rdi,
+  headerTitle,
+  headerActions,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -50,7 +59,7 @@ const EditPanel = ({
     isResizing,
     containerRef,
     handleMouseDown
-  } = useResizable(initialWidth, minWidth, maxWidth);
+  } = useResizable(initialWidth, minWidth, maxWidth, 'left');
 
   if (!show) return null;
 
@@ -58,15 +67,17 @@ const EditPanel = ({
     <Box
       ref={containerRef}
       sx={{
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        height: '100%',
+        // En desktop es un panel flotante, en móvil es un bloque normal
+        position: { xs: 'relative', sm: 'absolute' },
+        left: { xs: 'auto', sm: 0 },
+        top: { xs: 'auto', sm: 0 },
+        height: { xs: 'auto', sm: '100%' },
         width: { 
           xs: '100%', // En móviles ocupa toda la pantalla
           sm: `${panelWidth}%` // En desktop usa el ancho redimensionable
         },
-        zIndex: 1300,
+        // El zIndex solo es necesario en desktop
+        zIndex: { xs: 'auto', sm: 1300 },
         pointerEvents: 'auto',
         transition: isResizing ? "none" : "width 0.2s ease",
       }}
@@ -90,16 +101,8 @@ const EditPanel = ({
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <Typography variant="h6">
-            Editar RDI
-          </Typography>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={onClose}
-          >
-            Cerrar
-          </Button>
+          <Typography variant="h6">{headerTitle}</Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>{headerActions}</Box>
         </Box>
 
         {/* Contenido del panel */}
@@ -158,6 +161,8 @@ export default function TabTools({ sx,  topic, world, component }) {
   const [tabValue, setTabValue] = useState(0)
   const [filterTipo, setFilterTipo] = useState("")
   const [showEditPanel, setShowEditPanel] = useState(false)
+  const [editPanelMode, setEditPanelMode] = useState('view'); // 'view' o 'edit'
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
 
   // Detectar dispositivos móviles
@@ -271,20 +276,48 @@ export default function TabTools({ sx,  topic, world, component }) {
     const success = await editFormLogic.handleSubmit(
       () => Promise.resolve(), // No se usa para editar
       async (id, rdiData) => {
-        await updateRDI(id, rdiData, snapshotData);
+        // updateRDI ahora debería devolver el item actualizado
+        const updatedItem = await updateRDI(id, rdiData, snapshotData);
+        // Actualizamos el item que se está viendo en el panel
+        if (updatedItem) {
+          setEditingItem(updatedItem);
+        }
       }
     );
     if (success) {
-      handleCloseEditPanel();
+      setEditPanelMode('view'); // En lugar de cerrar, volvemos al modo vista
     }
   };
 
+  // Nuevo handler para cancelar solo la edición y volver a la vista
+  const handleCancelEdit = () => {
+    setEditPanelMode('view');
+    // Opcional: Restaurar los datos originales por si se hicieron cambios
+    if (editingItem) editFormLogic.startEdit(editingItem);
+  };
+
   const handleCloseEditPanel = () => {
+    // Si estamos en modo edición y hay cambios, mostrar confirmación
+    if (editPanelMode === 'edit' && editFormLogic.hasChanges) {
+      setShowConfirmDialog(true);
+      return;
+    }
+    // Si no, cerrar directamente
     setShowEditPanel(false);
     setEditingItem(null);
     editFormLogic.cancelForm();
     editViewpointsLogic.resetViewpoint();
-  }
+    setEditPanelMode('view'); // Resetear modo
+  };
+
+  const handleConfirmClose = () => {
+    setShowConfirmDialog(false);
+    setShowEditPanel(false);
+    setEditingItem(null);
+    editFormLogic.cancelForm();
+    editViewpointsLogic.resetViewpoint();
+    setEditPanelMode('view');
+  };
 
   const onVerSnapshotPV = () => {
     if  (!editingItem || !editingItem.snapshot || !editingItem.snapshot.viewpointData ) {
@@ -303,6 +336,7 @@ export default function TabTools({ sx,  topic, world, component }) {
     // Mostrar panel de edición lateral
     setEditingItem(item);
     setShowEditPanel(true)
+    setEditPanelMode('view'); // Iniciar siempre en modo vista
     editFormLogic.startEdit(item)
 
     //startEdit(item)
@@ -433,40 +467,92 @@ export default function TabTools({ sx,  topic, world, component }) {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       {/* Panel lateral de edición */}
-      
       <EditPanel
         show={showEditPanel}
-        
-        onClose={handleCloseEditPanel}
+        // Lógica condicional para el botón de cerrar/cancelar del panel
+        onClose={editPanelMode === 'edit' ? handleCancelEdit : handleCloseEditPanel}
+        headerTitle={editPanelMode === 'view' ? 'Detalles del RDI' : 'Editar RDI'}
+        headerActions={
+          editPanelMode === 'view' ? (
+            <>
+              <Button variant="contained" onClick={() => setEditPanelMode('edit')}>Editar</Button>
+              <Button variant="outlined" onClick={handleCloseEditPanel}>Cerrar</Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleEditFormAccept}
+                disabled={editFormLogic.isSubmitting}
+              >
+                {editFormLogic.isSubmitting ? <CircularProgress size={24} /> : 'Guardar'}
+              </Button>
+              <Button variant="outlined" onClick={handleCancelEdit}>Cancelar</Button>
+            </>
+          )
+        }
       >
-        <RDIForm
-          showForm={true}
-          
-
-          formData={editFormLogic.formData}
-          onFormChange={editFormLogic.handleFormChange}
-          onAccept={handleEditFormAccept}
-          onCancel={handleCloseEditPanel}
-          bcfTopicSet={bcfTopicSet}
-          isEditing={editFormLogic.isEditing}
-          isSubmitting={editFormLogic.isSubmitting}
-          snapshotUrl={editViewpointsLogic.snapshotUrl}
-          snapShotReady={editViewpointsLogic.snapShotReady}
-          onCreateViewpoint={editViewpointsLogic.createViewpoint}
-          onUpdateSnapshot={editViewpointsLogic.updateSnapshot}
-          onVerSnapshotPV={onVerSnapshotPV}
-        />
+        {editPanelMode === 'view' ? (
+          <RDIView
+            rdi={editingItem}
+            bcfTopicSet={bcfTopicSet}
+            onEdit={() => setEditPanelMode('edit')}
+            onVerSnapshot={onVerSnapshotPV}
+            snapshotUrl={editViewpointsLogic.snapshotUrl}
+          />
+        ) : (
+          <RDIForm
+            showForm={true}
+            formData={editFormLogic.formData}
+            onFormChange={editFormLogic.handleFormChange}
+            onAccept={handleEditFormAccept}
+            onCancel={handleCancelEdit} // <--- CAMBIO CLAVE
+            bcfTopicSet={bcfTopicSet}
+            isEditing={editFormLogic.isEditing}
+            isSubmitting={editFormLogic.isSubmitting}
+            snapshotUrl={editViewpointsLogic.snapshotUrl}
+            snapShotReady={editViewpointsLogic.snapShotReady}
+            onCreateViewpoint={editViewpointsLogic.createViewpoint}
+            onUpdateSnapshot={editViewpointsLogic.updateSnapshot}
+            onVerSnapshotPV={onVerSnapshotPV}
+          />
+        )}
       </EditPanel>
       
+      {/* Diálogo de confirmación para cambios sin guardar */}
+      <Dialog
+        open={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {"Descartar cambios"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Tienes cambios sin guardar. ¿Estás seguro de que quieres cerrar y descartarlos?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowConfirmDialog(false)}>Cancelar</Button>
+          <Button onClick={handleConfirmClose} autoFocus color="warning">
+            Descartar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <ResizablePanel 
         sx={{
           ...sx,
-          // En móviles: ocultar ResizablePanel cuando EditPanel está activo
-          display: { 
-            xs: (isMobile && showEditPanel) ? "none" : "block",
-            sm: "block" // En desktop siempre visible
-          }
+          // En móvil, se comporta como un bloque normal y no como un overlay
+          position: { xs: 'relative', sm: sx?.position || 'absolute' },
+          width: { xs: '100%', sm: sx?.width || 'auto' },
+          height: { xs: 'auto', sm: sx?.height || '100%' },
+          left: { xs: 'auto', sm: sx?.left || 0 },
+          top: { xs: 'auto', sm: sx?.top || 0 },
+          display: (isMobile && showEditPanel) ? "none" : "block",
         }}
       >
         {/* Tabs Header */}

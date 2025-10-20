@@ -39,7 +39,7 @@ export default function Home() {
   const handleToggleModelVisibility = createToggleModelVisibility(fragmentsRef);
 
   return (
-    <Box sx={STYLES.container}>
+    <Box  sx={STYLES.container}>
       {/* TabStandar siempre visible */}
       <TabStandar
         onCargarFile={openFileDialog}
@@ -49,16 +49,17 @@ export default function Home() {
       />
 
       {/* Contenedor principal que cambia según el estado */}
-      <Box sx={{ 
+      <Box data-testid="box-contenedor-principal" sx={{ 
         width: "100%", 
         height: "83vh",
         display: "flex",
         flexDirection: { xs: "column", sm: "row" },
-        position: "relative"
+        
+        position: { xs: "static", sm: "relative" }
       }}>
         
         {/* Escena 3D - Se oculta en móviles cuando TabTools está activo */}
-        <Box 
+        <Box data-testid="box-contenedor-UNO A"
           ref={containerRef} 
           sx={{
             ...STYLES.viewer,
@@ -98,7 +99,7 @@ export default function Home() {
 
         {/* TabTools - Ocupa toda la pantalla en móviles, panel lateral redimensionable en desktop */}
         {showRDIManager && (
-          <TabTools
+          <TabTools data-testid="DOS B"
             component={componentsRef.current}
             world={worldRef.current}
             topic={topicRef.current}
