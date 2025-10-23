@@ -62,11 +62,12 @@ export const useBCFTopics = (component, db) => {
 
     // Crear el viewpoint usando los datos del snapshot  
     const viewpoint = viewpoints.create(snapshotData.viewpointData);
-    // IMPORTANTE: Agregar a la lista manualmente  
-    viewpoints.list.set(viewpoint.guid, viewpoint);
 
     // Asignar el world  
     viewpoint.world = viewpoints.world;
+
+    // IMPORTANTE: Agregar a la lista manualmente  
+    viewpoints.list.set(viewpoint.guid, viewpoint);
 
     // Asignar el snapshot  
     if (snapshotData.imageData) {
@@ -120,7 +121,7 @@ export const useBCFTopics = (component, db) => {
     const topic = bcfTopicsRef.current.create(bcfTopicData);
 
     // 2. Crear el viewpoint desde tu snapshot  
-    const viewpoint = createViewpointFromSnapshot(vpData);
+    const viewpoint = await createViewpointFromSnapshot(vpData);
     // 3. Asociar el viewpoint al topic  
     topic.viewpoints.add(viewpoint.guid);
 

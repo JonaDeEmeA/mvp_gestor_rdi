@@ -12,11 +12,12 @@ import { useFileProcessor } from '../hooks/useFileProcessor';
 
 // Constantes
 import { STYLES, VIEWER_CONFIG } from '../constants/viewerConfig';
+import React from 'react';
 
 export default function Home() {
   // Hooks personalizados
   const { containerRef, componentsRef, worldRef, fragmentsRef, topicRef } = useViewer3D();
-  
+
   const {
     importedModels,
     setImportedModels,
@@ -26,7 +27,7 @@ export default function Home() {
     toggleBrowser,
     toggleRDIManager,
     createToggleModelVisibility,
-    
+
   } = useViewerState();
 
   const { fileInputRef, openFileDialog, handleFileSelection } = useFileProcessor(
@@ -39,44 +40,50 @@ export default function Home() {
   const handleToggleModelVisibility = createToggleModelVisibility(fragmentsRef);
 
   return (
-    <Box  sx={STYLES.container}>
+    <Box sx={STYLES.container}>
       {/* TabStandar siempre visible */}
       <TabStandar
         onCargarFile={openFileDialog}
         hideModel={handleToggleModelVisibility}
         onCloseBrowser={toggleBrowser}
-        onCloseRdiManager={toggleRDIManager} 
+        onCloseRdiManager={toggleRDIManager}
       />
 
       {/* Contenedor principal que cambia según el estado */}
-      <Box data-testid="box-contenedor-principal" sx={{ 
-        width: "100%", 
+      <Box data-testid="box-contenedor-principal" sx={{
+        width: "100%",
         height: "83vh",
         display: "flex",
         flexDirection: { xs: "column", sm: "row" },
-        
+
         position: { xs: "static", sm: "relative" }
       }}>
-        
+
         {/* Escena 3D - Se oculta en móviles cuando TabTools está activo */}
         <Box data-testid="box-contenedor-UNO A"
-          ref={containerRef} 
+          ref={containerRef}
           sx={{
             ...STYLES.viewer,
-            visibility: { 
+            visibility: {
               xs: showRDIManager ? "hidden" : "visible", // Ocultar en móviles si TabTools está activo
               sm: "visible" // Siempre visible en desktop
             },
-            position: { 
+            position: {
               xs: showRDIManager ? "absolute" : "static", // Posición absoluta cuando está oculto en móviles
-              sm: "relative" 
+              sm: "relative"
             },
-            zIndex: { 
+            zIndex: {
               xs: showRDIManager ? -1 : 1, // Enviar atrás cuando está oculto en móviles
-              sm: 1 
+              sm: 1
             },
-            flex: { sm: 1 }, // En desktop, toma el espacio disponible
-            height: { xs: "100%", sm: "83vh" }
+            // Ajustar ancho dinámicamente  
+            width: {
+              xs: "100%",
+              sm: showRDIManager ? `calc(100% - 350px)` : "100%"
+            },
+            flex: 1,
+            height: { xs: "100%", sm: "83vh" },
+            transition: "width 0.2s ease" 
           }}
         >
           <input
@@ -86,7 +93,7 @@ export default function Home() {
             style={{ display: "none" }}
             onChange={handleFileSelection}
           />
-          
+
           {showBrowser && (
             <Browser
               ocultarModelo={handleToggleModelVisibility}
@@ -106,15 +113,14 @@ export default function Home() {
             sx={{
               // Móviles: Posición estática, ocupa toda la pantalla
               position: { xs: "static", sm: "absolute" },
-              width: { xs: "100%", sm: "auto" },
+              width: { xs: "100%", sm: "350px" },
               height: { xs: "83vh", sm: "100%" },
               // Desktop: Posición absoluta para redimensionamiento
               right: { sm: 0 },
               top: { sm: 0 },
-              left: { sm: 0 },
-              bottom: { sm: 0 },
               zIndex: 20,
-              pointerEvents: "none"
+              pointerEvents: "none",
+              
             }}
           />
         )}

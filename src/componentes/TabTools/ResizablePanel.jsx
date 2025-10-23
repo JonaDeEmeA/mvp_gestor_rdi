@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Paper } from '@mui/material';
 import { useResizable } from '../../hooks/useResizable';
 
@@ -9,6 +9,7 @@ const ResizablePanel = ({
   maxWidth = 80,
   elevation = 3,
   sx = {},
+  onWidthChange,
   ...paperProps
 }) => {
   const {
@@ -17,6 +18,12 @@ const ResizablePanel = ({
     containerRef,
     handleMouseDown
   } = useResizable(initialWidth, minWidth, maxWidth);
+
+  useEffect(() => {
+    if (onWidthChange) {
+      onWidthChange(paperWidth);
+    }
+  }, [paperWidth, onWidthChange])
 
   return (
     <Box ref={containerRef} sx={{ ...sx }}>

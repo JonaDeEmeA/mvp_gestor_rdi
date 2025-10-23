@@ -27,7 +27,21 @@ export const useViewer3D = () => {
     // Inicializar el visor
     const setupViewer = async () => {
       try {
+        
         await initializeViewer(containerRef.current, refs);
+        
+        // Agregar event listener para resize
+        const handleResize = () => {
+          if (worldRef.current?.renderer) {
+            worldRef.current.renderer.resize();
+            // Opcional: actualizar también fragments si es necesario
+            if (fragmentsRef.current) {
+              fragmentsRef.current.core.update(true);
+            }
+          }
+        };
+
+        window.addEventListener('resize', handleResize);
       } catch (error) {
         showErrorMessage(ERROR_MESSAGES.VIEWER_INIT, error);
       }
@@ -37,9 +51,18 @@ export const useViewer3D = () => {
 
     // Cleanup al desmontar
     return () => {
+      // Eliminar event listener
+      const handleResize = () => {
+        if (worldRef.current?.renderer) {
+          worldRef.current.renderer.resize();
+        }
+      };
+      window.removeEventListener('resize', handleResize);
       cleanupViewer(refs);
     };
   }, []);
+
+
 
   return {
     containerRef,

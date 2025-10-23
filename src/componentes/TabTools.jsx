@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import {
   Tabs,
   Tab,
@@ -25,15 +25,14 @@ import { es } from "date-fns/locale"
 
 // Hooks personalizados
 import { useIndexedDB } from "../utilitario/useIndexedDB"
-import { useBCFTopics } from "../hooks/useBCFTopics"
 import { useViewpoints } from "../hooks/useViewpoints"
 import { useRDIForm } from "../hooks/useRDIForm"
 import { useRDIManager } from "../hooks/useRDIManager"
+import { useBCFTopics } from "../hooks/useBCFTopics"
 import { useResizable } from "../hooks/useResizable"
 
 // Componentes especializados
 import TabPanel, { a11yProps } from "./TabTools/TabPanel"
-import ResizablePanel from "./TabTools/ResizablePanel"
 import RDIForm from "./TabTools/RDIForm"
 import RDIView from "./TabTools/RDIView"
 import RDIList from "./TabTools/RDIList"
@@ -171,14 +170,7 @@ export default function TabTools({ sx,  topic, world, component }) {
 
   // Hooks de base de datos y BCF
   const { db, loading: dbLoading, error: dbError } = useIndexedDB()
-
-  const {
-    bcfTopicSet,
-    createBCFTopic,
-    clearAllTopics,
-    exportBCF,
-    importBCF,
-  } = useBCFTopics(component, db)
+  const { bcfTopicSet, createBCFTopic, clearAllTopics, importBCF } = useBCFTopics(component, db);
 
     // Hooks para el formulario de AGREGAR
   const addFormLogic = useRDIForm();
@@ -404,7 +396,7 @@ export default function TabTools({ sx,  topic, world, component }) {
       console.log('BCF Topic creado:', topic);
       
       // 3. Exportar el topic a un archivo .bcfzip
-      if (topic) await exportBCF(topic);
+      //if (topic) await exportBCF(topic);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -436,7 +428,7 @@ export default function TabTools({ sx,  topic, world, component }) {
 
   if (isLoading) {
     return (
-      <ResizablePanel sx={sx}>
+      <Paper sx={{ ...sx, width: { xs: '100%', sm: 350 }, p: 2 }}>
         <Box sx={{
           display: 'flex',
           flexDirection: 'column',
@@ -448,19 +440,19 @@ export default function TabTools({ sx,  topic, world, component }) {
           <CircularProgress />
           <Typography>Cargando datos...</Typography>
         </Box>
-      </ResizablePanel>
+      </Paper>
     )
   }
 
   if (hasError) {
     return (
-      <ResizablePanel sx={sx}>
+      <Paper sx={{ ...sx, width: { xs: '100%', sm: 350 }, p: 2 }}>
         <Box sx={{ p: 2 }}>
           <Alert severity="error">
             Error: {hasError.message || 'Error desconocido'}
           </Alert>
         </Box>
-      </ResizablePanel>
+      </Paper>
     )
   }
 
@@ -543,15 +535,16 @@ export default function TabTools({ sx,  topic, world, component }) {
         </DialogActions>
       </Dialog>
 
-      <ResizablePanel 
+      <Paper
+        elevation={3}
         sx={{
           ...sx,
-          // En móvil, se comporta como un bloque normal y no como un overlay
-          position: { xs: 'relative', sm: sx?.position || 'absolute' },
-          width: { xs: '100%', sm: sx?.width || 'auto' },
-          height: { xs: 'auto', sm: sx?.height || '100%' },
-          left: { xs: 'auto', sm: sx?.left || 0 },
-          top: { xs: 'auto', sm: sx?.top || 0 },
+          minWidth: { sm: "350px" },
+          width: { xs: "100%", sm: "350px" },
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          pointerEvents: "auto",
           display: (isMobile && showEditPanel) ? "none" : "block",
         }}
       >
@@ -709,7 +702,7 @@ export default function TabTools({ sx,  topic, world, component }) {
             stats={getRDIStats()}
           />
         </TabPanel>
-      </ResizablePanel>
+      </Paper>
     </LocalizationProvider>
   )
 }
