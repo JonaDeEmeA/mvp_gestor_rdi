@@ -170,7 +170,7 @@ export default function TabTools({ sx,  topic, world, component }) {
 
   // Hooks de base de datos y BCF
   const { db, loading: dbLoading, error: dbError } = useIndexedDB()
-  const { bcfTopicSet, createBCFTopic, clearAllTopics, importBCF } = useBCFTopics(component, db);
+  const { bcfTopicSet, createBCFTopic, clearAllTopics, importBCF, exportBCF, exportBCFWithCorrectXML } = useBCFTopics(component, db);
 
     // Hooks para el formulario de AGREGAR
   const addFormLogic = useRDIForm();
@@ -393,10 +393,10 @@ export default function TabTools({ sx,  topic, world, component }) {
       }
       // 2. Crear el objeto BCF Topic (incluyendo viewpoint si existe)
       const topic = await createBCFTopic(rdiData, rdiData.snapshot);
-      console.log('BCF Topic creado:', topic);
-      
+      console.log('BCF Topic creado:', rdiData.snapshot);
+
       // 3. Exportar el topic a un archivo .bcfzip
-      //if (topic) await exportBCF(topic);
+      //if (topic) await exportBCFWithCorrectXML(topic);
     } catch (error) {
       console.error('Error:', error);
     }
