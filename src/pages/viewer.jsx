@@ -8,6 +8,7 @@ import TabTools from "@/componentes/TabTools";
 // Hooks personalizados
 import { useViewer3D } from '../hooks/useViewer3D';
 import { useViewerState } from '../hooks/useViewerState';
+import { useVertexPicker } from '@/hooks/useVertexPicker';
 import { useFileProcessor } from '../hooks/useFileProcessor';
 
 // Constantes
@@ -26,9 +27,13 @@ export default function Home() {
     isMobile,
     toggleBrowser,
     toggleRDIManager,
+    showInfoCoordenada,
+    toggleInfoCoordenada,
     createToggleModelVisibility,
-
   } = useViewerState();
+
+  // Hook para coordenadas
+  const { pickedPoint, pickVertex } = useVertexPicker(componentsRef.current, worldRef.current);
 
   const { fileInputRef, openFileDialog, handleFileSelection } = useFileProcessor(
     worldRef,
@@ -47,6 +52,8 @@ export default function Home() {
         hideModel={handleToggleModelVisibility}
         onCloseBrowser={toggleBrowser}
         onCloseRdiManager={toggleRDIManager}
+        onToggleInfoCoordenada={toggleInfoCoordenada}
+        pickedPoint={pickedPoint}
       />
 
       {/* Contenedor principal que cambia según el estado */}
@@ -62,6 +69,7 @@ export default function Home() {
         {/* Escena 3D - Se oculta en móviles cuando TabTools está activo */}
         <Box data-testid="box-contenedor-UNO A"
           ref={containerRef}
+          onClick={showInfoCoordenada ? pickVertex : undefined}
           sx={{
             ...STYLES.viewer,
             visibility: {
@@ -82,6 +90,7 @@ export default function Home() {
               sm: showRDIManager ? `calc(100% - 350px)` : "100%"
             },
             flex: 1,
+            cursor: showInfoCoordenada ? 'crosshair' : 'default',
             height: { xs: "100%", sm: "83vh" },
             transition: "width 0.2s ease" 
           }}

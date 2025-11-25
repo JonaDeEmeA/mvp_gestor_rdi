@@ -10,6 +10,7 @@ export const useViewerState = () => {
   const [importedModels, setImportedModels] = useState([]);
   const [showBrowser, setShowBrowser] = useState(false);
   const [showRDIManager, setShowRDIManager] = useState(false);
+  const [showInfoCoordenada, setShowInfoCoordenada] = useState(false);
 
   // Hook para detectar dispositivos móviles
   const theme = useTheme();
@@ -22,6 +23,10 @@ export const useViewerState = () => {
   
   const toggleRDIManager = () => {
     setShowRDIManager(!showRDIManager);
+  };
+
+  const toggleInfoCoordenada = () => {
+    setShowInfoCoordenada(prevState => !prevState);
   };
 
   const createToggleModelVisibility = (fragmentsRef) => (modelId) => {
@@ -55,10 +60,11 @@ export const useViewerState = () => {
     setImportedModels,
     showBrowser,
     showRDIManager,
+    showInfoCoordenada,
     isMobile,
     toggleBrowser,
     toggleRDIManager,
+    toggleInfoCoordenada,
     createToggleModelVisibility,
-    
   };
 };

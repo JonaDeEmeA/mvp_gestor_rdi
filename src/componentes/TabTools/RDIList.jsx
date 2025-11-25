@@ -187,7 +187,7 @@ const RDIList = ({
                       <strong>Especialidad:</strong> {rdi.etiqueta || rdi.labels || "No definida"}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" component="div">
-                      <strong>Fecha:</strong> {rdi.fecha}
+                      <strong>Fecha:</strong> {rdi.fecha ? new Date(rdi.fecha).toLocaleDateString('es-ES') : 'No definida'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" component="div">
                       <strong>Estado:</strong> {rdi.estado || rdi.statuses || "No definido"}
