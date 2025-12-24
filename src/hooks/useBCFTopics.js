@@ -58,11 +58,43 @@ export const useBCFTopics = (component, db) => {
     };
   }, [db]);
 
+ 
+   // Función auxiliar de transformación ( estos son los datos de la cámara)  
+  const transformCoordinates = (cameraData) => { 
+   if (!cameraData) return cameraData;  
+    
+  const transformVector = (vector) => {  
+    // Transformación: Y-up -> Z-up para objetos {x, y, z}  
+    // {x, y, z} -> {x: x, y: z, z: -y}  
+    return {  
+      x: vector.x,  
+      y: vector.z,  
+      z: -vector.y  
+    };  
+  };  
+    
+  return {  
+    ...cameraData,  
+    camera_view_point: transformVector(cameraData.camera_view_point),  
+    camera_direction: transformVector(cameraData.camera_direction),  
+    camera_up_vector: transformVector(cameraData.camera_up_vector),  
+  };  
+     
+  };  
+
   const createViewpointFromSnapshot = async (snapshotData) => {
     const viewpoints = component.get(OBC.Viewpoints);
 
+    // Transformar coordenadas de Three.js a BCF estándar  
+  const transformedViewpointData = {  
+     ...snapshotData.viewpointData,  
+    camera: transformCoordinates(snapshotData.viewpointData.camera)
+  }; 
+
+  console.log("datos transformados" , transformedViewpointData);
+  
     // 1. Crear el viewpoint vacío primero  
-    const viewpoint = viewpoints.create();
+    const viewpoint = viewpoints.create(transformedViewpointData);
 
     // 2. Asignar el world ANTES de actualizar la cámara  
     viewpoint.world = viewpoints.world;
@@ -114,6 +146,8 @@ export const useBCFTopics = (component, db) => {
     console.log("Camera data:", snapshotData.viewpointData);
     return viewpoint;
   };
+
+  
 
   // Crear nuevo topic BCF
   const createBCFTopic = async (topicData, vpData, editId = null) => {

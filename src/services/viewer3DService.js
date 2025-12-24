@@ -1,4 +1,5 @@
 import * as OBC from "@thatopen/components";
+import * as THREE from 'three';
 import { VIEWER_CONFIG, ERROR_MESSAGES } from '../constants/viewerConfig';
 
 /**
@@ -53,6 +54,13 @@ export const initializeViewer = async (container, refs) => {
     // Crear grilla
     const grids = components.get(OBC.Grids);
     grids.create(world);
+
+        // Crear y agregar el gizmo en (0,0,0) 
+    const axesHelper = new THREE.AxesHelper( 5 );   
+    
+
+    // Agregar el gizmo a la escena    
+    world.scene.three.add(axesHelper);
 
     // Configurar gestor de fragmentos
     const fragmentsManager = components.get(OBC.FragmentsManager);
