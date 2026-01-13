@@ -396,7 +396,7 @@ export default function TabTools({ sx,  topic, world, component }) {
       console.log('BCF Topic creado:', rdiData.snapshot);
 
       // 3. Exportar el topic a un archivo .bcfzip
-      //if (topic) await exportBCFWithCorrectXML(topic);
+      if (topic) await exportBCFWithCorrectXML(topic);
     } catch (error) {
       console.error('Error:', error);
     }

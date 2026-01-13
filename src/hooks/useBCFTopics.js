@@ -58,41 +58,82 @@ export const useBCFTopics = (component, db) => {
     };
   }, [db]);
 
- 
-   // Función auxiliar de transformación ( estos son los datos de la cámara)  
-  const transformCoordinates = (cameraData) => { 
-   if (!cameraData) return cameraData;  
-    
-  const transformVector = (vector) => {  
-    // Transformación: Y-up -> Z-up para objetos {x, y, z}  
-    // {x, y, z} -> {x: x, y: z, z: -y}  
-    return {  
-      x: vector.x,  
-      y: vector.z,  
-      z: -vector.y  
-    };  
-  };  
-    
-  return {  
-    ...cameraData,  
-    camera_view_point: transformVector(cameraData.camera_view_point),  
-    camera_direction: transformVector(cameraData.camera_direction),  
-    camera_up_vector: transformVector(cameraData.camera_up_vector),  
-  };  
-     
-  };  
+
+  // Función auxiliar de transformación ( estos son los datos de la cámara)  
+  const transformCoordinates = (cameraData) => {
+    if (!cameraData) return cameraData;
+
+    console.log('🔍 DEBUG - Antes de transformar:', {
+      camera_view_point: cameraData.camera_view_point,
+      camera_direction: cameraData.camera_direction,
+      camera_up_vector: cameraData.camera_up_vector,
+      field_of_view: cameraData.field_of_view,
+      aspect_ratio: cameraData.aspect_ratio
+    });
+
+    const transformVector = (vector) => {
+      // Transformación: Y-up -> Z-up para objetos {x, y, z}  
+      // {x, y, z} -> {x: x, y: z, z: -y}  
+      return {
+        x: vector.x,
+        y: -vector.z,
+        z: vector.y
+      };
+    };
+
+
+    const transformed = {
+      ...cameraData,
+      camera_view_point: transformVector(cameraData.camera_view_point),
+      camera_direction: transformVector(cameraData.camera_direction),
+      camera_up_vector: transformVector(cameraData.camera_up_vector),
+    };
+
+    console.log('🔍 DEBUG - Después de transformar:', transformed);
+
+    return transformed;
+
+  };
 
   const createViewpointFromSnapshot = async (snapshotData) => {
     const viewpoints = component.get(OBC.Viewpoints);
 
     // Transformar coordenadas de Three.js a BCF estándar  
-  const transformedViewpointData = {  
-     ...snapshotData.viewpointData,  
-    camera: transformCoordinates(snapshotData.viewpointData.camera)
-  }; 
+    const transformedViewpointData = {
+      ...snapshotData.viewpointData,
+      camera: transformCoordinates(snapshotData.viewpointData.camera)
+    };
 
-  console.log("datos transformados" , transformedViewpointData);
-  
+    console.log("🔍 DEBUG - Viewpoint transformado completo:", transformedViewpointData);
+    // 🔧 NUEVO: Validar y ajustar parámetros de encuadre  
+    if (transformedViewpointData.camera) {
+      const camera = transformedViewpointData.camera;
+
+      // Asegurar que field_of_view esté presente y en grados si es necesario  
+      if (!camera.field_of_view) {
+        console.warn('⚠️ field_of_view no encontrado, usando valor por defecto');
+        camera.field_of_view = 45; // Valor típico para cámaras perspectiva  
+      }
+
+      // Asegurar aspect_ratio esté calculado correctamente  
+      if (!camera.aspect_ratio || camera.aspect_ratio <= 0) {
+        const viewport = world.renderer?.domElement;
+        if (viewport) {
+          camera.aspect_ratio = viewport.width / viewport.height;
+          console.log('🔍 DEBUG - aspect_ratio calculado:', camera.aspect_ratio);
+        }
+      }
+
+      // 🔧 AJUSTE EXPERIMENTAL: Algunos sistemas BCF pueden necesitar ajustes  
+      // en el campo de visión para compensar diferencias de proyección  
+      console.log('🔍 DEBUG - Parámetros de encuadre finales:', {
+        field_of_view: camera.field_of_view,
+        aspect_ratio: camera.aspect_ratio,
+        camera_view_point: camera.camera_view_point,
+        camera_direction: camera.camera_direction
+      });
+    }
+
     // 1. Crear el viewpoint vacío primero  
     const viewpoint = viewpoints.create(transformedViewpointData);
 
@@ -101,8 +142,8 @@ export const useBCFTopics = (component, db) => {
 
     // 3. Si tienes datos de viewpoint guardados, úsalos con set()  
     if (snapshotData.viewpointData) {
-      viewpoint.set(snapshotData.viewpointData);
-      viewpoint.camera = snapshotData.viewpointData.camera;
+      //viewpoint.set(snapshotData.viewpointData);
+      viewpoint.camera = transformCoordinates(snapshotData.viewpointData.camera);
       console.log("Camera después de set():", viewpoint.camera);
       console.log("¿Tiene field_of_view?", "field_of_view" in viewpoint.camera);
 
@@ -147,7 +188,7 @@ export const useBCFTopics = (component, db) => {
     return viewpoint;
   };
 
-  
+
 
   // Crear nuevo topic BCF
   const createBCFTopic = async (topicData, vpData, editId = null) => {
@@ -298,6 +339,7 @@ export const useBCFTopics = (component, db) => {
 
     // 3. Generar viewpoint.bcfv  
     const camera = viewpoint.camera;
+  
     const viewpointXml = `<?xml version="1.0" encoding="UTF-8"?>  
 <VisualizationInfo Guid="${viewpointGuid}"> 
   <Components>  
@@ -416,7 +458,7 @@ export const useBCFTopics = (component, db) => {
       console.log(topics, viewpoints);
     });
 
-    setLoadedTopicIds(topics.map(t => t.guid)); 
+    setLoadedTopicIds(topics.map(t => t.guid));
     // Acceder a los datos completos cuando sea necesario  
     //const topic = bcfTopics.list.get(topicId); 
 
