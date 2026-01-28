@@ -135,6 +135,18 @@ const RDIForm = ({
           }}
         />
 
+        {/* Campo Descripción */}
+        <TextField
+          size="small"
+          fullWidth
+          label="Descripción"
+          multiline
+          rows={3}
+          value={formData.descripcion}
+          onChange={(e) => onFormChange("descripcion", e.target.value)}
+          sx={{ mb: 2 }}
+        />
+
         {/* Select Tipo */}
         <FormControl fullWidth sx={{ mb: 2 }} size="small" required>
           <InputLabel sx={inputStyles}>Tipo</InputLabel>
@@ -183,18 +195,6 @@ const RDIForm = ({
             ))}
           </Select>
         </FormControl>
-
-        {/* Campo Descripción */}
-        <TextField
-          size="small"
-          fullWidth
-          label="Descripción"
-          multiline
-          rows={3}
-          value={formData.descripcion}
-          onChange={(e) => onFormChange("descripcion", e.target.value)}
-          sx={{ mb: 2 }}
-        />
 
         {/* DatePicker */}
         <DatePicker

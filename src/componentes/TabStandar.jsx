@@ -5,6 +5,8 @@ import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import { HomeIcon } from '@mui/icons-material';
+import { IconButton, Tooltip } from '@mui/material';
 
 
 function CustomTabPanel(props) {
@@ -36,7 +38,7 @@ function a11yProps(index) {
   };
 }
 
-export default function TabStandar({ onCargarFile, onCloseBrowser, onCloseRdiManager, onToggleInfoCoordenada, pickedPoint }) {
+export default function TabStandar({ onCargarFile, onCloseBrowser, onCloseRdiManager, onToggleInfoCoordenada, pickedPoint, onResetCamera }) {
   const [value, setValue] = React.useState(0);
 
   const handleChange = (event, newValue) => {
@@ -59,6 +61,8 @@ export default function TabStandar({ onCargarFile, onCloseBrowser, onCloseRdiMan
       <CustomTabPanel value={value} index={1}>
         <Button sx={{ fontSize: '0.675rem' }} size='small' variant="outlined" onClick={onCloseBrowser} >Explorador</Button>
         <Button size='small' variant="outlined" onClick={onCloseRdiManager} >Gestor RDI</Button>
+        <Button size='small' variant="outlined" onClick={onResetCamera} >HOME 3DVIEW</Button>
+       
       </CustomTabPanel>
       <CustomTabPanel value={value} index={2}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

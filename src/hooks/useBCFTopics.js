@@ -213,7 +213,7 @@ export const useBCFTopics = (component, db) => {
       dueDate: dueDate,
       type: topicData.tipo,
       status: topicData.estado,
-      labels: new Set([topicData.estiqueta]),
+      labels: new Set([topicData.etiqueta]),
     };
 
     // Si es edición, agrega el id original

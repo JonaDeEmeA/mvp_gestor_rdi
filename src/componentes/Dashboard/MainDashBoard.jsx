@@ -1,0 +1,470 @@
+// src/components/Dashboard/MainDashboard.jsx
+// Dashboard principal con useAuth importado directamente
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { useRouter } from 'next/router';
+
+export default function Dashboard({ userProjects = [] }) {
+  // ✅ PASO 0.1: Usar el hook de autenticación directamente
+  const authHook = useAuth();
+  const router = useRouter();
+  
+  const [projects, setProjects] = useState(userProjects);
+  const [currentProject, setCurrentProject] = useState(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+
+  // 🔍 DIAGNÓSTICO: Verificar que authHook esté disponible
+  console.log('═══════════════════════════════════════════');
+  console.log('🔍 PASO 0.1: Verificando useAuth hook');
+  console.log('═══════════════════════════════════════════');
+  console.log('  - useAuth disponible:', !!authHook);
+  console.log('  - Usuario:', authHook?.user?.email || 'No autenticado');
+  console.log('  - Funciones:', {
+    login: typeof authHook?.login === 'function',
+    logout: typeof authHook?.logout === 'function',
+    register: typeof authHook?.register === 'function'
+  });
+  console.log('═══════════════════════════════════════════');
+
+  const user = authHook?.user || {
+    email: 'user@example.com',
+    displayName: 'Usuario Demo'
+  };
+
+  // ✅ TEST PASO 1.1: Cargar proyectos al montar
+  useEffect(() => {
+    console.log('🔄 PASO 1.1: Cargando proyectos del usuario:', user.email);
+    loadProjects();
+  }, [user.email]);
+
+  const loadProjects = async () => {
+    console.log('📂 Cargando proyectos desde IndexedDB...');
+    setLoading(true);
+    
+    try {
+      // TODO: Implementar con IndexedDB real
+      const mockProjects = userProjects.length > 0 ? userProjects : [];
+      
+      console.log('✅ PASO 1.1 COMPLETADO: Proyectos cargados:', mockProjects.length);
+      setProjects(mockProjects);
+      
+      if (mockProjects.length > 0) {
+        setCurrentProject(mockProjects[0]);
+      }
+    } catch (error) {
+      console.error('❌ Error cargando proyectos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ TEST PASO 1.2: Crear nuevo proyecto
+  const handleCreateProject = async () => {
+    console.log('➕ PASO 1.2: Creando proyecto:', newProjectName);
+    
+    if (!newProjectName.trim()) {
+      console.warn('⚠️ Nombre de proyecto vacío');
+      return;
+    }
+
+    const newProject = {
+      id: Date.now(),
+      name: newProjectName,
+      userEmail: user.email,
+      createdAt: new Date().toISOString()
+    };
+
+    console.log('✅ PASO 1.2 COMPLETADO: Proyecto creado:', newProject);
+    setProjects(prev => [...prev, newProject]);
+    setCurrentProject(newProject);
+    setShowCreateDialog(false);
+    setNewProjectName('');
+  };
+
+  // ✅ TEST PASO 1.3: Seleccionar proyecto
+  const handleSelectProject = (project) => {
+    console.log('📌 PASO 1.3: Proyecto seleccionado:', project.name);
+    setCurrentProject(project);
+  };
+
+  // 🚪 PASO 1.4: Logout con Firebase
+  const handleLogout = async () => {
+    console.log('═══════════════════════════════════════════');
+    console.log('🚪 PASO 1.4: Iniciando proceso de logout');
+    console.log('═══════════════════════════════════════════');
+    
+    if (!authHook || !authHook.logout) {
+      console.error('❌ ERROR: authHook.logout no está disponible');
+      alert('Error: Función de logout no disponible');
+      return;
+    }
+
+    console.log('🔍 DIAGNÓSTICO:');
+    console.log('  - Usuario actual:', user.email);
+    console.log('  - Tipo de logout:', typeof authHook.logout);
+    
+    setLogoutLoading(true);
+    
+    try {
+      console.log('📡 PASO 1.4.1: Llamando a authHook.logout()...');
+      const result = await authHook.logout();
+      
+      console.log('📥 PASO 1.4.2: Resultado de logout:', result);
+      
+      if (result.success) {
+        console.log('✅ PASO 1.4 COMPLETADO: Logout exitoso');
+        console.log('🔄 Redirigiendo a página de inicio...');
+        router.push('/');
+      } else {
+        console.error('❌ Error en logout:', result.error);
+        alert('Error al cerrar sesión: ' + (result.error || 'Error desconocido'));
+      }
+    } catch (error) {
+      console.error('❌ EXCEPCIÓN en logout:', error);
+      alert('Error inesperado al cerrar sesión: ' + error.message);
+    } finally {
+      setLogoutLoading(false);
+    }
+    
+    console.log('═══════════════════════════════════════════');
+  };
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      {/* Drawer Lateral */}
+      <div style={{
+        width: drawerOpen ? '280px' : '0',
+        background: '#1e1e2f',
+        color: 'white',
+        transition: 'width 0.3s',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        {/* Header del Drawer */}
+        <div style={{
+          padding: '20px',
+          borderBottom: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>
+            📊 Proyectos
+          </h2>
+        </div>
+
+        {/* Lista de Proyectos */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '12px'
+        }}>
+          {loading ? (
+            <p style={{ textAlign: 'center', color: '#888' }}>Cargando...</p>
+          ) : projects.length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+              <p style={{ color: '#888', marginBottom: '12px' }}>
+                No tienes proyectos aún
+              </p>
+            </div>
+          ) : (
+            projects.map(project => (
+              <div
+                key={project.id}
+                onClick={() => handleSelectProject(project)}
+                style={{
+                  padding: '12px',
+                  marginBottom: '8px',
+                  background: currentProject?.id === project.id ? '#667eea' : 'rgba(255,255,255,0.05)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  border: currentProject?.id === project.id ? '2px solid #8899ff' : '1px solid transparent'
+                }}
+              >
+                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                  {project.name}
+                </div>
+                <div style={{ fontSize: '12px', color: '#aaa' }}>
+                  {new Date(project.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Botón Crear Proyecto */}
+        <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <button
+            onClick={() => setShowCreateDialog(true)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              background: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px'
+            }}
+          >
+            ➕ Crear Proyecto
+          </button>
+        </div>
+      </div>
+
+      {/* Contenido Principal */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* AppBar Superior */}
+        <div style={{
+          height: '64px',
+          background: '#ffffff',
+          borderBottom: '1px solid #e0e0e0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 24px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          {/* Botón Toggle Drawer */}
+          <button
+            onClick={() => setDrawerOpen(!drawerOpen)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              padding: '8px'
+            }}
+          >
+            ☰
+          </button>
+
+          {/* Título */}
+          <h1 style={{
+            margin: 0,
+            fontSize: '20px',
+            fontWeight: 'bold',
+            color: '#333'
+          }}>
+            {currentProject ? currentProject.name : 'Sistema de Gestión'}
+          </h1>
+
+          {/* Usuario y Logout */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: '#667eea',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 'bold'
+            }}>
+              {user.displayName?.[0] || user.email[0].toUpperCase()}
+            </div>
+            
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+                {user.displayName || 'Usuario'}
+              </div>
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                {user.email}
+              </div>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              disabled={logoutLoading}
+              style={{
+                padding: '8px 16px',
+                background: logoutLoading ? '#999' : '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: logoutLoading ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                transition: 'background 0.3s',
+                minWidth: '80px'
+              }}
+            >
+              {logoutLoading ? '...' : '🚪 Salir'}
+            </button>
+          </div>
+        </div>
+
+        {/* Área de Contenido */}
+        <div style={{
+          flex: 1,
+          padding: '24px',
+          overflowY: 'auto',
+          background: '#f5f5f5'
+        }}>
+          {!currentProject ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              gap: '24px'
+            }}>
+              <div style={{ fontSize: '64px' }}>📂</div>
+              <h2 style={{ color: '#666', margin: 0 }}>
+                No hay proyecto seleccionado
+              </h2>
+              <p style={{ color: '#999' }}>
+                Selecciona un proyecto del menú lateral o crea uno nuevo
+              </p>
+              <button
+                onClick={() => setShowCreateDialog(true)}
+                style={{
+                  padding: '12px 24px',
+                  background: '#667eea',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold'
+                }}
+              >
+                ➕ Crear Primer Proyecto
+              </button>
+            </div>
+          ) : (
+            <div>
+              <h2 style={{ marginTop: 0, color: '#333' }}>
+                Proyecto: {currentProject.name}
+              </h2>
+              <div style={{
+                background: 'white',
+                padding: '24px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <p style={{ color: '#666' }}>
+                  Aquí se mostrarán los issues del proyecto.
+                </p>
+                <p style={{ color: '#999', fontSize: '14px' }}>
+                  (Próximo paso: Implementar gestión de issues)
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Dialog Crear Proyecto */}
+      {showCreateDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '32px',
+            borderRadius: '8px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '24px' }}>
+              Crear Nuevo Proyecto
+            </h2>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#555'
+              }}>
+                Nombre del Proyecto
+              </label>
+              <input
+                type="text"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && newProjectName.trim()) {
+                    handleCreateProject();
+                  }
+                }}
+                placeholder="Ej: Proyecto ABC"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+                autoFocus
+              />
+            </div>
+
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={() => {
+                  setShowCreateDialog(false);
+                  setNewProjectName('');
+                }}
+                style={{
+                  padding: '10px 20px',
+                  background: '#e0e0e0',
+                  color: '#333',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateProject}
+                disabled={!newProjectName.trim()}
+                style={{
+                  padding: '10px 20px',
+                  background: newProjectName.trim() ? '#667eea' : '#ccc',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: newProjectName.trim() ? 'pointer' : 'not-allowed',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                Crear Proyecto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+console.log('✅ Dashboard actualizado - useAuth importado directamente');

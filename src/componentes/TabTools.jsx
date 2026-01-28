@@ -393,10 +393,10 @@ export default function TabTools({ sx,  topic, world, component }) {
       }
       // 2. Crear el objeto BCF Topic (incluyendo viewpoint si existe)
       const topic = await createBCFTopic(rdiData, rdiData.snapshot);
-      console.log('BCF Topic creado:', rdiData.snapshot);
+      console.log('BCF Topic creado:', topic);
 
       // 3. Exportar el topic a un archivo .bcfzip
-      if (topic) await exportBCFWithCorrectXML(topic);
+      //if (topic) await exportBCFWithCorrectXML(topic);
     } catch (error) {
       console.error('Error:', error);
     }

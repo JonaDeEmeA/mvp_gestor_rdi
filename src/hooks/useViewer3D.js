@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { initializeViewer, cleanupViewer } from '../services/viewer3DService';
 import { showErrorMessage } from '../utils/errorHandler';
 import { ERROR_MESSAGES } from '../constants/viewerConfig';
+import { VIEWER_CONFIG } from '../constants/viewerConfig';
 
 /**
  * Hook personalizado para manejar el visor 3D
@@ -52,6 +53,7 @@ export const useViewer3D = () => {
       }
     };
 
+
     const createLoadingSphere = () => {
       if (!worldRef.current) return;
 
@@ -99,11 +101,26 @@ export const useViewer3D = () => {
     };
   }, []);
 
+  
+  
+        
   // Función para remover la esfera cuando termina la carga  
   const removeLoadingSphere = () => {
     if (loadingSphereRef.current && worldRef.current) {
       worldRef.current.scene.three.remove(loadingSphereRef.current);
       loadingSphereRef.current = null;
+    }
+  };
+
+  const resetCamera = () => {
+    if (worldRef.current?.camera?.controls) {
+      const cameraControls = worldRef.current.camera.controls;
+      cameraControls.setLookAt(
+        VIEWER_CONFIG.camera.position.x,
+        VIEWER_CONFIG.camera.position.y,
+        VIEWER_CONFIG.camera.position.z,
+        ...VIEWER_CONFIG.camera.target
+      );
     }
   };
 
@@ -113,6 +130,7 @@ export const useViewer3D = () => {
     worldRef,
     fragmentsRef,
     topicRef,
-    removeLoadingSphere
+    removeLoadingSphere,
+    resetCamera,
   };
 };

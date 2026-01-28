@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
 
 import TabStandar from "@/componentes/TabStandar";
@@ -17,7 +18,7 @@ import React from 'react';
 
 export default function Home() {
   // Hooks personalizados
-  const { containerRef, componentsRef, worldRef, fragmentsRef, topicRef } = useViewer3D();
+  const { containerRef, componentsRef, worldRef, fragmentsRef, topicRef, resetCamera } = useViewer3D();
 
   const {
     importedModels,
@@ -44,6 +45,7 @@ export default function Home() {
   // Crear función de toggle de visibilidad con fragmentsRef
   const handleToggleModelVisibility = createToggleModelVisibility(fragmentsRef);
 
+ 
   return (
     <Box sx={STYLES.container}>
       {/* TabStandar siempre visible */}
@@ -54,6 +56,7 @@ export default function Home() {
         onCloseRdiManager={toggleRDIManager}
         onToggleInfoCoordenada={toggleInfoCoordenada}
         pickedPoint={pickedPoint}
+        onResetCamera={resetCamera}
       />
 
       {/* Contenedor principal que cambia según el estado */}
