@@ -82,13 +82,16 @@ const createProjectFromPending = async (projectName) => {
   console.log('➕ Creando proyecto pendiente:', projectName);
   
   try {
-    // TODO: Aquí irá la llamada real a IndexedDB cuando la implementemos
-    const newProject = {
+    // ✅ Usar IndexedDB en lugar de mock
+    const projectData = {
       id: Date.now(),
-      name: projectName,
+      name: "newProjectName",
       userEmail: user.email,
       createdAt: new Date().toISOString()
+
     };
+    
+    const newProject = await createProject(projectData);
     
     console.log('✅ Proyecto creado desde registro:', newProject);
     

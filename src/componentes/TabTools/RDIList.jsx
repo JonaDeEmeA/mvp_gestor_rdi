@@ -179,28 +179,28 @@ const RDIList = ({
                   </Box>
                 }
                 secondary={
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="body2" color="text.secondary" component="div">
+                  <Box component="span" sx={{ mt: 1, display: 'block'  }}>
+                    <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
                       <strong>ID:</strong> {rdi.id}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" component="div">
+                    <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
                       <strong>Especialidad:</strong> {rdi.etiqueta || rdi.labels || "No definida"}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" component="div">
+                    <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
                       <strong>Fecha:</strong> {rdi.fecha ? new Date(rdi.fecha).toLocaleDateString('es-ES') : 'No definida'}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" component="div">
+                    <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
                       <strong>Estado:</strong> {rdi.estado || rdi.statuses || "No definido"}
                     </Typography>
                     {rdi.descripcion && (
-                      <Typography variant="body2" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+                      <Typography variant="body2" color="text.secondary" component="span" sx={{ mt: 0.5, display: 'block' }}>
                         <strong>Descripción:</strong> {rdi.descripcion.length > 100 
                           ? `${rdi.descripcion.substring(0, 100)}...` 
                           : rdi.descripcion}
                       </Typography>
                     )}
                     {rdi.updatedAt && (
-                      <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+                      <Typography variant="caption" color="text.secondary" component="span" sx={{ mt: 0.5, display: 'block' }}>
                         Última actualización: {new Date(rdi.updatedAt).toLocaleString('es-ES')}
                       </Typography>
                     )}

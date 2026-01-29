@@ -5,18 +5,28 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useRouter } from 'next/router';
 
+import { createProject, updateProject, deleteProject } from '../../utilitario/indexedDBManager';
+import CreateProjectDialog from './CreateProjectDialog';
+import EditProjectDialog from './EditProjectDialog';
+
+import { IconButton, Tooltip, Button, Box, CircularProgress } from '@mui/material';
+import { Edit } from '@mui/icons-material';
+import { is } from 'date-fns/locale';
 export default function Dashboard({ userProjects = [] }) {
   // ✅ PASO 0.1: Usar el hook de autenticación directamente
   const authHook = useAuth();
   const router = useRouter();
-  
+
   const [projects, setProjects] = useState(userProjects);
   const [currentProject, setCurrentProject] = useState(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
   const [newProjectName, setNewProjectName] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // 🔍 DIAGNÓSTICO: Verificar que authHook esté disponible
   console.log('═══════════════════════════════════════════');
@@ -36,6 +46,20 @@ export default function Dashboard({ userProjects = [] }) {
     displayName: 'Usuario Demo'
   };
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar si es mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // ✅ TEST PASO 1.1: Cargar proyectos al montar
   useEffect(() => {
     console.log('🔄 PASO 1.1: Cargando proyectos del usuario:', user.email);
@@ -45,14 +69,14 @@ export default function Dashboard({ userProjects = [] }) {
   const loadProjects = async () => {
     console.log('📂 Cargando proyectos desde IndexedDB...');
     setLoading(true);
-    
+
     try {
       // TODO: Implementar con IndexedDB real
       const mockProjects = userProjects.length > 0 ? userProjects : [];
-      
+
       console.log('✅ PASO 1.1 COMPLETADO: Proyectos cargados:', mockProjects.length);
       setProjects(mockProjects);
-      
+
       if (mockProjects.length > 0) {
         setCurrentProject(mockProjects[0]);
       }
@@ -63,33 +87,82 @@ export default function Dashboard({ userProjects = [] }) {
     }
   };
 
-  // ✅ TEST PASO 1.2: Crear nuevo proyecto
-  const handleCreateProject = async () => {
-    console.log('➕ PASO 1.2: Creando proyecto:', newProjectName);
-    
-    if (!newProjectName.trim()) {
-      console.warn('⚠️ Nombre de proyecto vacío');
-      return;
-    }
 
-    const newProject = {
-      id: Date.now(),
-      name: newProjectName,
-      userEmail: user.email,
-      createdAt: new Date().toISOString()
-    };
-
-    console.log('✅ PASO 1.2 COMPLETADO: Proyecto creado:', newProject);
-    setProjects(prev => [...prev, newProject]);
-    setCurrentProject(newProject);
-    setShowCreateDialog(false);
-    setNewProjectName('');
-  };
 
   // ✅ TEST PASO 1.3: Seleccionar proyecto
   const handleSelectProject = (project) => {
     console.log('📌 PASO 1.3: Proyecto seleccionado:', project.name);
     setCurrentProject(project);
+
+    // 📱 Cerrar drawer automáticamente en mobile
+    if (isMobile) {
+      setDrawerOpen(false);
+      console.log('📱 Drawer cerrado automáticamente (mobile)');
+    }
+  };
+
+  // ✅ Crear nuevo proyecto
+  const handleCreateProject = async (projectName) => {
+    console.log('➕ Creando proyecto:', projectName);
+
+    try {
+      const projectData = {
+        name: projectName,
+        userEmail: user.email,
+      };
+
+      const savedProject = await createProject(projectData);
+      console.log('✅ Proyecto guardado en IndexedDB:', savedProject);
+
+      setProjects(prev => [...prev, savedProject]);
+      setCurrentProject(savedProject);
+
+    } catch (error) {
+      console.error('❌ Error creando proyecto:', error);
+      throw error;
+    }
+  };
+
+  // ✅ Actualizar proyecto existente
+  const handleUpdateProject = async (projectId, updates) => {
+    console.log('✏️ Actualizando proyecto:', projectId);
+
+    try {
+      const updatedProject = await updateProject(projectId, updates);
+      console.log('✅ Proyecto actualizado en IndexedDB:', updatedProject);
+
+      setProjects(prev =>
+        prev.map(p => p.id === projectId ? updatedProject : p)
+      );
+
+      if (currentProject?.id === projectId) {
+        setCurrentProject(updatedProject);
+      }
+
+    } catch (error) {
+      console.error('❌ Error actualizando proyecto:', error);
+      throw error;
+    }
+  };
+
+  // ✅ Eliminar proyecto
+  const handleDeleteProject = async (projectId) => {
+    console.log('🗑️ Eliminando proyecto:', projectId);
+
+    try {
+      await deleteProject(projectId);
+      console.log('✅ Proyecto eliminado de IndexedDB');
+
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+
+      if (currentProject?.id === projectId) {
+        setCurrentProject(null);
+      }
+
+    } catch (error) {
+      console.error('❌ Error eliminando proyecto:', error);
+      throw error;
+    }
   };
 
   // 🚪 PASO 1.4: Logout con Firebase
@@ -97,7 +170,7 @@ export default function Dashboard({ userProjects = [] }) {
     console.log('═══════════════════════════════════════════');
     console.log('🚪 PASO 1.4: Iniciando proceso de logout');
     console.log('═══════════════════════════════════════════');
-    
+
     if (!authHook || !authHook.logout) {
       console.error('❌ ERROR: authHook.logout no está disponible');
       alert('Error: Función de logout no disponible');
@@ -107,15 +180,15 @@ export default function Dashboard({ userProjects = [] }) {
     console.log('🔍 DIAGNÓSTICO:');
     console.log('  - Usuario actual:', user.email);
     console.log('  - Tipo de logout:', typeof authHook.logout);
-    
+
     setLogoutLoading(true);
-    
+
     try {
       console.log('📡 PASO 1.4.1: Llamando a authHook.logout()...');
       const result = await authHook.logout();
-      
+
       console.log('📥 PASO 1.4.2: Resultado de logout:', result);
-      
+
       if (result.success) {
         console.log('✅ PASO 1.4 COMPLETADO: Logout exitoso');
         console.log('🔄 Redirigiendo a página de inicio...');
@@ -130,21 +203,46 @@ export default function Dashboard({ userProjects = [] }) {
     } finally {
       setLogoutLoading(false);
     }
-    
+
     console.log('═══════════════════════════════════════════');
   };
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      {/* Drawer Lateral */}
+      {/* Overlay para mobile cuando el drawer está abierto */}
+      {drawerOpen && isMobile && (
+        <div
+          onClick={() => setDrawerOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 999
+          }}
+        />
+      )}
+
+      {/* Drawer Lateral - Responsive */}
       <div style={{
-        width: drawerOpen ? '280px' : '0',
+        // Mobile: Drawer flotante que cubre la pantalla
+        // Desktop: Drawer lateral fijo
+        position: isMobile ? 'fixed' : 'relative',
+        left: 0,
+        top: 0,
+        height: '100vh',
+        width: drawerOpen ? (isMobile ? '100%' : '280px') : '0',
+        maxWidth: isMobile ? '300px' : '280px',
         background: '#1e1e2f',
         color: 'white',
         transition: 'width 0.3s',
         overflow: 'hidden',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        zIndex: isMobile ? 1000 : 'auto',
+        boxShadow: isMobile && drawerOpen ? '2px 0 10px rgba(0,0,0,0.3)' : 'none'
       }}>
         {/* Header del Drawer */}
         <div style={{
@@ -174,23 +272,56 @@ export default function Dashboard({ userProjects = [] }) {
             projects.map(project => (
               <div
                 key={project.id}
-                onClick={() => handleSelectProject(project)}
                 style={{
                   padding: '12px',
                   marginBottom: '8px',
                   background: currentProject?.id === project.id ? '#667eea' : 'rgba(255,255,255,0.05)',
                   borderRadius: '6px',
-                  cursor: 'pointer',
                   transition: 'background 0.2s',
-                  border: currentProject?.id === project.id ? '2px solid #8899ff' : '1px solid transparent'
+                  border: currentProject?.id === project.id ? '2px solid #8899ff' : '1px solid transparent',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
                 }}
               >
-                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                  {project.name}
+                {/* Contenido del proyecto - clickeable */}
+                <div
+                  onClick={() => handleSelectProject(project)}
+                  style={{
+                    flex: 1,
+                    cursor: 'pointer',
+                    paddingRight: '8px'
+                  }}
+                >
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                    {project.name}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#aaa' }}>
+                    {new Date(project.createdAt).toLocaleDateString()}
+                  </div>
                 </div>
-                <div style={{ fontSize: '12px', color: '#aaa' }}>
-                  {new Date(project.createdAt).toLocaleDateString()}
-                </div>
+
+                {/* Botón de Editar */}
+                {/* Botón de Editar con Material UI */}
+                <Tooltip title="Editar proyecto">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('✏️ Abriendo edición para:', project.name);
+                      setEditingProject(project);
+                      setShowEditDialog(true);
+                    }}
+                    sx={{
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,0.2)'
+                      }
+                    }}
+                  >
+                    <Edit fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               </div>
             ))
           )}
@@ -238,21 +369,21 @@ export default function Dashboard({ userProjects = [] }) {
               border: 'none',
               fontSize: '24px',
               cursor: 'pointer',
-              padding: '8px'
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: 'black'
             }}
           >
             ☰
+            {/* Texto solo visible en desktop */}
+            {typeof window !== 'undefined' && !isMobile && (
+              <span style={{ fontSize: '14px' }}>Proyectos</span>
+            )}
           </button>
 
-          {/* Título */}
-          <h1 style={{
-            margin: 0,
-            fontSize: '20px',
-            fontWeight: 'bold',
-            color: '#333'
-          }}>
-            {currentProject ? currentProject.name : 'Sistema de Gestión'}
-          </h1>
+         
 
           {/* Usuario y Logout */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -269,7 +400,7 @@ export default function Dashboard({ userProjects = [] }) {
             }}>
               {user.displayName?.[0] || user.email[0].toUpperCase()}
             </div>
-            
+
             <div>
               <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
                 {user.displayName || 'Usuario'}
@@ -340,7 +471,7 @@ export default function Dashboard({ userProjects = [] }) {
               </button>
             </div>
           ) : (
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
               <h2 style={{ marginTop: 0, color: '#333' }}>
                 Proyecto: {currentProject.name}
               </h2>
@@ -348,7 +479,8 @@ export default function Dashboard({ userProjects = [] }) {
                 background: 'white',
                 padding: '24px',
                 borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                flex: 1
               }}>
                 <p style={{ color: '#666' }}>
                   Aquí se mostrarán los issues del proyecto.
@@ -357,6 +489,21 @@ export default function Dashboard({ userProjects = [] }) {
                   (Próximo paso: Implementar gestión de issues)
                 </p>
               </div>
+
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                <Button 
+                  variant="contained" 
+                  color="primary" 
+                  size="large"
+                  disabled={isNavigating}
+                  onClick={() => {
+                    setIsNavigating(true);
+                    router.push('/viewer');
+                  }}
+                >
+                  {isNavigating ? <CircularProgress size={24} color="inherit" /> : 'Gestionar'}
+                </Button>
+              </Box>
             </div>
           )}
         </div>
@@ -402,7 +549,7 @@ export default function Dashboard({ userProjects = [] }) {
                 type="text"
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                   if (e.key === 'Enter' && newProjectName.trim()) {
                     handleCreateProject();
                   }
@@ -463,6 +610,23 @@ export default function Dashboard({ userProjects = [] }) {
           </div>
         </div>
       )}
+      {/* Modales con Material UI */}
+      <CreateProjectDialog
+        isOpen={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        onCreate={handleCreateProject}
+      />
+
+      <EditProjectDialog
+        project={editingProject}
+        isOpen={showEditDialog}
+        onClose={() => {
+          setShowEditDialog(false);
+          setEditingProject(null);
+        }}
+        onSave={handleUpdateProject}
+        onDelete={handleDeleteProject}
+      />
     </div>
   );
 }
