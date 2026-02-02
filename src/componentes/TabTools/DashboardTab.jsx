@@ -1,23 +1,25 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { Paper, Box, Typography, Card, CardContent, Grid, Stack, Chip, Divider } from '@mui/material';
+import { HeaderSection, ContentSection } from './LayoutSections';
 
 const DashboardTab = ({ rdiList, bcfTopicSet }) => {
-  // Calcular estadísticas
+  console.log('📊 PASO 7: Renderizando DashboardTab reorganizado');
+  
   const totalRDIs = rdiList.length;
   
   const statusStats = Array.from(bcfTopicSet.statuses || []).map(status => ({
     status,
-    count: rdiList.filter(rdi => rdi.statuses === status).length
+    count: rdiList.filter(rdi => rdi.estado === status || rdi.statuses === status).length
   }));
 
   const typeStats = Array.from(bcfTopicSet.types || []).map(type => ({
     type,
-    count: rdiList.filter(rdi => rdi.types === type).length
+    count: rdiList.filter(rdi => rdi.tipo === type || rdi.types === type).length
   }));
 
   const labelStats = Array.from(bcfTopicSet.labels || []).map(label => ({
     label,
-    count: rdiList.filter(rdi => rdi.labels === label).length
+    count: rdiList.filter(rdi => rdi.etiqueta === label || rdi.labels === label).length
   }));
 
   if (totalRDIs === 0) {
@@ -26,127 +28,170 @@ const DashboardTab = ({ rdiList, bcfTopicSet }) => {
         height: "100%", 
         display: "flex", 
         alignItems: "center", 
-        justifyContent: "center" 
+        justifyContent: "center",
+        flexDirection: 'column',
+        gap: 2
       }}>
         <Typography variant="h6" color="text.secondary">
-          No hay datos para mostrar en el dashboard
+          📊
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          No hay datos para mostrar
+        </Typography>
+        <Typography variant="caption" color="text.disabled">
+          Crea tu primer RDI para ver estadísticas
         </Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ height: "100%", overflow: "auto" }}>
-      <Typography variant="h5" sx={{ mb: 3 }}>
-        Dashboard de RDIs
-      </Typography>
+    <Box sx={{ 
+      height: "100%", 
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }}>
+      {/* ✅ PASO 7.1: Header con resumen */}
+      <HeaderSection>
+        <Stack spacing={1} alignItems="center">
+          <Typography variant="h5" color="primary" fontWeight="bold">
+            {totalRDIs}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Total de RDIs
+          </Typography>
+        </Stack>
+      </HeaderSection>
 
-      <Grid container spacing={2}>
-        {/* Resumen General */}
-        <Grid item xs={12}>
-          <Card>
+      {/* ✅ PASO 7.2: Content scrollable con cards */}
+      <ContentSection>
+        <Stack spacing={2}>
+          {/* Card: Por Estado */}
+          <Card variant="outlined">
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Resumen General
+              <Typography variant="subtitle2" gutterBottom fontWeight="bold" color="text.secondary">
+                📌 Por Estado
               </Typography>
-              <Typography variant="h4" color="primary">
-                {totalRDIs}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total de RDIs creados
-              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Stack spacing={1}>
+                {statusStats.map(({ status, count }) => (
+                  <Box key={status} sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    p: 1,
+                    borderRadius: 1,
+                    '&:hover': { bgcolor: 'action.hover' }
+                  }}>
+                    <Typography variant="body2">{status}</Typography>
+                    <Chip 
+                      label={count} 
+                      size="small" 
+                      color={status === 'Resuelto' ? 'success' : 'default'}
+                    />
+                  </Box>
+                ))}
+              </Stack>
             </CardContent>
           </Card>
-        </Grid>
 
-        {/* Estadísticas por Estado */}
-        <Grid item xs={12} md={6}>
-          <Card>
+          {/* Card: Por Tipo */}
+          <Card variant="outlined">
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Por Estado
+              <Typography variant="subtitle2" gutterBottom fontWeight="bold" color="text.secondary">
+                🏷️ Por Tipo
               </Typography>
-              {statusStats.map(({ status, count }) => (
-                <Box key={status} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">{status}</Typography>
-                  <Typography variant="body2" fontWeight="bold">{count}</Typography>
-                </Box>
-              ))}
+              <Divider sx={{ mb: 2 }} />
+              <Stack spacing={1}>
+                {typeStats.map(({ type, count }) => (
+                  <Box key={type} sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    p: 1,
+                    borderRadius: 1,
+                    '&:hover': { bgcolor: 'action.hover' }
+                  }}>
+                    <Typography variant="body2">{type}</Typography>
+                    <Chip label={count} size="small" color="primary" variant="outlined" />
+                  </Box>
+                ))}
+              </Stack>
             </CardContent>
           </Card>
-        </Grid>
 
-        {/* Estadísticas por Tipo */}
-        <Grid item xs={12} md={6}>
-          <Card>
+          {/* Card: Por Especialidad */}
+          <Card variant="outlined">
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Por Tipo
+              <Typography variant="subtitle2" gutterBottom fontWeight="bold" color="text.secondary">
+                🎯 Por Especialidad
               </Typography>
-              {typeStats.map(({ type, count }) => (
-                <Box key={type} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">{type}</Typography>
-                  <Typography variant="body2" fontWeight="bold">{count}</Typography>
-                </Box>
-              ))}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Estadísticas por Especialidad */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Por Especialidad
-              </Typography>
+              <Divider sx={{ mb: 2 }} />
               <Grid container spacing={1}>
                 {labelStats.map(({ label, count }) => (
-                  <Grid item xs={6} sm={4} md={3} key={label}>
-                    <Box sx={{ 
-                      p: 1, 
-                      border: '1px solid', 
-                      borderColor: 'divider', 
-                      borderRadius: 1,
-                      textAlign: 'center'
-                    }}>
-                      <Typography variant="body2" noWrap>{label}</Typography>
-                      <Typography variant="h6" color="primary">{count}</Typography>
-                    </Box>
+                  <Grid item xs={6} key={label}>
+                    <Paper 
+                      variant="outlined" 
+                      sx={{ 
+                        p: 1.5, 
+                        textAlign: 'center',
+                        '&:hover': { 
+                          boxShadow: 2,
+                          borderColor: 'primary.main'
+                        }
+                      }}
+                    >
+                      <Typography variant="caption" display="block" noWrap>
+                        {label}
+                      </Typography>
+                      <Typography variant="h6" color="primary" fontWeight="bold">
+                        {count}
+                      </Typography>
+                    </Paper>
                   </Grid>
                 ))}
               </Grid>
             </CardContent>
           </Card>
-        </Grid>
 
-        {/* RDIs Recientes */}
-        <Grid item xs={12}>
-          <Card>
+          {/* Card: RDIs Recientes */}
+          <Card variant="outlined">
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                RDIs Recientes
+              <Typography variant="subtitle2" gutterBottom fontWeight="bold" color="text.secondary">
+                🕐 Recientes
               </Typography>
-              {rdiList.slice(-5).reverse().map((rdi) => (
-                <Box key={rdi.id} sx={{ 
-                  p: 1, 
-                  mb: 1, 
-                  border: '1px solid', 
-                  borderColor: 'divider', 
-                  borderRadius: 1 
-                }}>
-                  <Typography variant="subtitle2">{rdi.titulo}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {rdi.types} • {rdi.statuses} • {rdi.fecha}
-                  </Typography>
-                </Box>
-              ))}
+              <Divider sx={{ mb: 2 }} />
+              <Stack spacing={1}>
+                {rdiList.slice(-3).reverse().map((rdi) => (
+                  <Box 
+                    key={rdi.id} 
+                    sx={{ 
+                      p: 1.5, 
+                      border: '1px solid', 
+                      borderColor: 'divider', 
+                      borderRadius: 1,
+                      '&:hover': { bgcolor: 'action.hover' }
+                    }}
+                  >
+                    <Typography variant="body2" fontWeight="medium" gutterBottom>
+                      {rdi.titulo}
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                      <Chip label={rdi.tipo || rdi.types} size="small" />
+                      <Chip label={rdi.estado || rdi.statuses} size="small" color="secondary" />
+                    </Stack>
+                  </Box>
+                ))}
+              </Stack>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Stack>
+      </ContentSection>
     </Box>
   );
 };
 
 export default DashboardTab;
+
+console.log('✅ PASO 7 COMPLETADO: Dashboard reorganizado con cards');

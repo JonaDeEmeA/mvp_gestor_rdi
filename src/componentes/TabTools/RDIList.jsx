@@ -29,10 +29,10 @@ const RDIList = ({
 }) => {
   if (totalCount === 0) {
     return (
-      <Box sx={{ 
-        flex: 1, 
-        display: 'flex', 
-        alignItems: 'center', 
+      <Box sx={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         minHeight: '200px'
       }}>
@@ -44,25 +44,23 @@ const RDIList = ({
   }
 
   return (
-    <Box sx={{ 
+    <Box sx={{
       height: '100%',
       display: 'flex',
       flexDirection: 'column'
     }}>
       {/* Sección fija superior - Título y filtros */}
-      <Box sx={{ 
-        display: 'flex',
-        flexDirection: "row",
-        flexShrink: 0,  // No se encoge
+      <Box sx={{
+        flexShrink: 0,
         pb: 2,
         borderBottom: '1px solid',
         borderColor: 'divider',
         mb: 2
       }}>
-       
+
 
         {/* Selector de filtro */}
-        <FormControl  variant="standard" size="small" sx={{ mb: 2,  minWidth: 120 }}>
+        <FormControl variant="standard" size="small" fullWidth>
           <InputLabel>Filtrar por tipo</InputLabel>
           <Select
             value={filterTipo}
@@ -84,18 +82,18 @@ const RDIList = ({
         </FormControl>
 
         {/* Estadísticas del filtro */}
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Chip 
-            label={`Total: ${totalCount}`} 
-            size="small" 
-            color="primary" 
+        <Box sx={{ pt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Chip
+            label={`Total: ${totalCount}`}
+            size="small"
+            color="primary"
             variant="outlined"
           />
           {filterTipo && (
-            <Chip 
-              label={`Filtrados: ${rdiList.length}`} 
-              size="small" 
-              color="secondary" 
+            <Chip
+              label={`Filtrados: ${rdiList.length}`}
+              size="small"
+              color="secondary"
               variant="outlined"
             />
           )}
@@ -103,13 +101,13 @@ const RDIList = ({
       </Box>
 
       {/* Sección scrolleable - Lista de RDIs */}
-      <Box sx={{ 
+      <Box sx={{
         flex: 1,           // Toma todo el espacio disponible
         overflow: 'hidden', // Evita overflow del contenedor
         display: 'flex',
         flexDirection: 'column'
       }}>
-        <List sx={{ 
+        <List sx={{
           flex: 1,
           overflow: 'auto',  // Solo esta sección hace scroll
           '& .MuiListItem-root': {
@@ -170,16 +168,16 @@ const RDIList = ({
                     <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
                       {rdi.titulo}
                     </Typography>
-                    <Chip 
-                      label={rdi.tipo || rdi.types || "Sin tipo"} 
-                      size="small" 
-                      color="primary" 
+                    <Chip
+                      label={rdi.tipo || rdi.types || "Sin tipo"}
+                      size="small"
+                      color="primary"
                       variant="outlined"
                     />
                   </Box>
                 }
                 secondary={
-                  <Box component="span" sx={{ mt: 1, display: 'block'  }}>
+                  <Box component="span" sx={{ mt: 1, display: 'block' }}>
                     <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
                       <strong>ID:</strong> {rdi.id}
                     </Typography>
@@ -194,8 +192,8 @@ const RDIList = ({
                     </Typography>
                     {rdi.descripcion && (
                       <Typography variant="body2" color="text.secondary" component="span" sx={{ mt: 0.5, display: 'block' }}>
-                        <strong>Descripción:</strong> {rdi.descripcion.length > 100 
-                          ? `${rdi.descripcion.substring(0, 100)}...` 
+                        <strong>Descripción:</strong> {rdi.descripcion.length > 100
+                          ? `${rdi.descripcion.substring(0, 100)}...`
                           : rdi.descripcion}
                       </Typography>
                     )}
@@ -213,11 +211,11 @@ const RDIList = ({
       </Box>
 
       {/* Sección fija inferior - Resumen de estados */}
-      <Box sx={{ 
+      <Box sx={{
         flexShrink: 0,  // No se encoge
-        mt: 2, 
-        p: 1, 
-        backgroundColor: 'grey.50', 
+        mt: 2,
+        p: 1,
+        backgroundColor: 'grey.50',
         borderRadius: 1,
         borderTop: '1px solid',
         borderColor: 'divider'

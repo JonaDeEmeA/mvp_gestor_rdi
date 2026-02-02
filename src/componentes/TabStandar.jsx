@@ -195,7 +195,7 @@ export default function TabStandar({ onCargarFile, onCloseBrowser, onCloseRdiMan
 
   return (
 
-  <Box sx={{ width: '100%', height: '17vh', position: 'relative' }}>
+  <Box sx={{ width: '100%', height: { xs: "auto", sm: "15vh" }, position: 'relative' }}>
     {/* Tabs Header */}
     <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
       <Tabs 
@@ -204,7 +204,6 @@ export default function TabStandar({ onCargarFile, onCloseBrowser, onCloseRdiMan
         aria-label="herramientas tabs"
         variant="scrollable"
         scrollButtons="auto"
-        allowScrollButtonsMobile
         sx={{
           minHeight: '48px',
           '& .MuiTab-root': {

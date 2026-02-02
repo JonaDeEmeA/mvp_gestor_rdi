@@ -37,6 +37,10 @@ import RDIForm from "./TabTools/RDIForm"
 import RDIView from "./TabTools/RDIView"
 import RDIList from "./TabTools/RDIList"
 import DashboardTab from "./TabTools/DashboardTab"
+import { HeaderSection, ContentSection, FooterSection } from './TabTools/LayoutSections';
+import RDIHeader from './TabTools/RDIHeader';
+import RDIFooter from './TabTools/RDIFooter';
+import CloseButton from './CloseButton';
 
 // Componente para el panel lateral de edición
 const EditPanel = ({
@@ -156,7 +160,7 @@ const EditPanel = ({
   );
 };
 
-export default function TabTools({ sx,  topic, world, component }) {
+export default function TabTools({ sx,  topic, world, component, onClose }) {
   const [tabValue, setTabValue] = useState(0)
   const [filterTipo, setFilterTipo] = useState("")
   const [showEditPanel, setShowEditPanel] = useState(false)
@@ -217,6 +221,42 @@ export default function TabTools({ sx,  topic, world, component }) {
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue)
   }
+
+    // Handler para cerrar TabTools
+  const handleClose = () => {
+    console.log('🚪 PASO 5.2: Ejecutando handleClose');
+    
+    // Verificar si hay formulario sin guardar
+    if (addFormLogic.showForm && addFormLogic.formData.titulo) {
+      const confirmClose = window.confirm(
+        '¿Estás seguro de cerrar? Hay cambios sin guardar que se perderán.'
+      );
+      
+      if (!confirmClose) {
+        console.log('❌ Cierre cancelado');
+        return;
+      }
+    }
+    
+    // Limpiar estado
+    addFormLogic.cancelForm();
+    addViewpointsLogic.resetViewpoint();
+    
+    if (showEditPanel) {
+      setShowEditPanel(false);
+      setEditingItem(null);
+      editFormLogic.cancelForm();
+      editViewpointsLogic.resetViewpoint();
+    }
+    
+    // Llamar a la función de cierre del padre
+    if (typeof onClose === 'function') {
+      console.log('✅ Llamando a onClose del padre');
+      onClose();
+    } else {
+      console.warn('⚠️  onClose no es una función válida');
+    }
+  };
 
   const handleAgregarRDI = () => {
     //startNewForm()
@@ -546,153 +586,100 @@ export default function TabTools({ sx,  topic, world, component }) {
           flexDirection: "column",
           pointerEvents: "auto",
           display: (isMobile && showEditPanel) ? "none" : "block",
+          position: 'relative',
         }}
       >
+         <CloseButton 
+          onClose={handleClose}
+          tooltip="Cerrar gestor de RDI"
+        />
         {/* Tabs Header */}
         <Tabs
           value={tabValue}
           onChange={handleTabChange}
           variant="fullWidth"
-          sx={{ borderBottom: 1, borderColor: "divider" }}
+          sx={{ borderBottom: 1, borderColor: "divider",  paddingRight: '40px' }}
         >
           <Tab label={`RDI (${rdiList.length})`} {...a11yProps(0)} />
           <Tab label="DASHBOARD" {...a11yProps(1)} />
         </Tabs>
 
         {/* Panel de RDI */}
-        <TabPanel value={tabValue} index={0} sx={{ overflow: 'hidden' }}>
-          <Box sx={{
-            height: "100%",
-            display: "flex",
-            flexDirection: "column"
-          }}>
+        <TabPanel value={tabValue} index={0} sx={{ 
+  overflow: 'hidden',  // ✅ PASO 6.1
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100%',
+  padding: 0  // Eliminar padding del TabPanel
+}}>
+  {console.log('📋 PASO 6: Renderizando TabPanel RDI con nueva estructura')}
+  
+  <Box sx={{
+    height: "100%",
+    display: "flex",
+    flexDirection: "column",
+    overflow: 'hidden'
+  }}>
 
-            {/* Sección fija superior - Botón */}
-            {!addFormLogic.showForm && (
-              <Box sx={{
-                flexShrink: 0,  // No se encoge
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-                pb: 2,
-                mb: 2
-              }}>
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="primary"
-                  onClick={handleAgregarRDI}
-                  
-                >
-                  AGREGAR RDI
-                </Button>
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="primary"
-                  onClick={importBCF}
-                  
-                  
-                >
-                  ABRIR BCF
-                </Button>
-              </Box>
-            )}
+    {/* ✅ PASO 6.2: HEADER - Sección Superior Fija */}
+    <RDIHeader
+      showForm={addFormLogic.showForm}
+      onAddRDI={handleAgregarRDI}
+      onImportBCF={importBCF}
+      rdiCount={rdiList.length}
+    />
 
-            {/* Sección scrolleable - Formulario RDI */}
-            {addFormLogic.showForm && (
-              <Box sx={{
-                flex: 1,
-                overflow: 'auto',
-                minHeight: 0,
-                // Usar altura fija pero que se adapte al viewport
-                height: 'calc(100vh - 250px)'
-              }}>
-                <RDIForm
-                  showForm={addFormLogic.showForm}
-                  formData={addFormLogic.formData}
-                  onFormChange={addFormLogic.handleFormChange}
-                  onAccept={handleAddFormAccept}
-                  onCancel={handleAddFormCancel}
-                  bcfTopicSet={bcfTopicSet}
-                  isEditing={addFormLogic.isEditing}
-                  isSubmitting={addFormLogic.isSubmitting}
-                  snapshotUrl={addViewpointsLogic.snapshotUrl}
-                  snapShotReady={addViewpointsLogic.snapShotReady}
-                  onCreateViewpoint={addViewpointsLogic.createViewpoint}
-                  onUpdateSnapshot={addViewpointsLogic.updateSnapshot}
-                />
-              </Box>
-            )}
+    {/* ✅ PASO 6.3: CONTENT - Sección Media Scrollable */}
+    <ContentSection>
+      {console.log('📋 PASO 6.3: Renderizando contenido principal')}
+      
+      {/* Formulario RDI */}
+      {addFormLogic.showForm && (
+        <Box sx={{ mb: 2 }}>
+          <RDIForm
+            showForm={addFormLogic.showForm}
+            formData={addFormLogic.formData}
+            onFormChange={addFormLogic.handleFormChange}
+            onAccept={handleAddFormAccept}
+            onCancel={handleAddFormCancel}
+            bcfTopicSet={bcfTopicSet}
+            isEditing={addFormLogic.isEditing}
+            isSubmitting={addFormLogic.isSubmitting}
+            snapshotUrl={addViewpointsLogic.snapshotUrl}
+            snapShotReady={addViewpointsLogic.snapShotReady}
+            onCreateViewpoint={addViewpointsLogic.createViewpoint}
+            onUpdateSnapshot={addViewpointsLogic.updateSnapshot}
+          />
+        </Box>
+      )}
 
-            {/* Sección scrolleable - Lista de RDIs */}
-            {!addFormLogic.showForm && (
-              <Box sx={{
-                flex: 1,           // Toma todo el espacio disponible
-                overflow: 'hidden', // Evita overflow del contenedor
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                <RDIList
-                  rdiList={getFilteredRDIList()}
-                  filterTipo={filterTipo}
-                  onFilterChange={setFilterTipo}
-                  onEdit={handleEditRDI}
-                  onStatusChange={handleStatusChange}
-                  onInfo={handleInfoClick}
-                  onExportToBCF={handleExportToBCF}
-                  bcfTopicSet={bcfTopicSet}
-                  totalCount={rdiList.length}
-                />
-              </Box>
-            )}
+      {/* Lista de RDIs */}
+      {!addFormLogic.showForm && (
+        <RDIList
+          rdiList={getFilteredRDIList()}
+          filterTipo={filterTipo}
+          onFilterChange={setFilterTipo}
+          onEdit={handleEditRDI}
+          onStatusChange={handleStatusChange}
+          onInfo={handleInfoClick}
+          onExportToBCF={handleExportToBCF}
+          bcfTopicSet={bcfTopicSet}
+          totalCount={rdiList.length}
+        />
+      )}
+    </ContentSection>
 
-            {/* Sección fija inferior - Botones de acción masiva */}
-            {!addFormLogic.showForm && rdiList.length > 0 && (
-              <Box sx={{
-                flexShrink: 0,  // No se encoge
-                borderTop: '1px solid',
-                borderColor: 'divider',
-                pt: 2,
-                mt: 2,
-                display: 'flex',
-                gap: 1,
-                flexDirection: 'row'
-              }}>
-                <Button
-                  sx={{
-                    fontSize: '0.60rem',
-                    padding: '2px 4px',
-                    minWidth: 'auto',         // Permite ancho automático
-                  }}
-                  fullWidth
-                  size="small"
-                  variant="contained"
-                  color="success"
-                  onClick={handleExportAllRDIsToBCF}
-
-                >
-                  EXPORTAR TODOS A BCF ({rdiList.length})
-                </Button>
-                <Button
-                  sx={{
-                    fontSize: '0.60rem',
-                    padding: '2px 4px',
-                    minWidth: 'auto',         // Permite ancho automático
-                    
-                  }}
-                  fullWidth
-                  size="small"
-                  variant="contained"
-                  color="warning"
-                  onClick={handleClearAllRDIs}
-                  
-                >
-                  ELIMINAR TODOS LOS RDIs
-                </Button>
-              </Box>
-            )}
-          </Box>
-        </TabPanel>
+    {/* ✅ PASO 6.4: FOOTER - Sección Inferior Fija */}
+    {!addFormLogic.showForm && (
+      <RDIFooter
+        rdiList={rdiList}
+        bcfTopicSet={bcfTopicSet}
+        onExportAll={handleExportAllRDIsToBCF}
+        onDeleteAll={handleClearAllRDIs}
+      />
+    )}
+  </Box>
+</TabPanel>
 
         {/* Panel Dashboard */}
         <TabPanel value={tabValue} index={1}>

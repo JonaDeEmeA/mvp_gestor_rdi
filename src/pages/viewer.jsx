@@ -62,7 +62,7 @@ export default function Home() {
       {/* Contenedor principal que cambia según el estado */}
       <Box data-testid="box-contenedor-principal" sx={{
         width: "100%",
-        height: "83vh",
+        height: { xs: "100vh", sm: "85vh" },
         display: "flex",
         flexDirection: { xs: "column", sm: "row" },
 
@@ -92,9 +92,9 @@ export default function Home() {
               xs: "100%",
               sm: showRDIManager ? `calc(100% - 350px)` : "100%"
             },
-            flex: 1,
+            flex: { xs: "none", sm: 1 },
             cursor: showInfoCoordenada ? 'crosshair' : 'default',
-            height: { xs: "100%", sm: "83vh" },
+            height: { xs: "100%", sm: "85vh" },
             transition: "width 0.2s ease" 
           }}
         >
@@ -126,13 +126,20 @@ export default function Home() {
               // Móviles: Posición estática, ocupa toda la pantalla
               position: { xs: "static", sm: "absolute" },
               width: { xs: "100%", sm: "350px" },
-              height: { xs: "83vh", sm: "100%" },
+              height: "100%",
               // Desktop: Posición absoluta para redimensionamiento
               right: { sm: 0 },
               top: { sm: 0 },
               zIndex: 20,
               pointerEvents: "none",
-              
+            }}
+            onClose={() => {
+              console.log('═══════════════════════════════════════════');
+              console.log('🚪 PASO 4.1: Cerrando TabTools desde viewer');
+              console.log('═══════════════════════════════════════════');
+              toggleRDIManager(); // Función existente del hook useViewerState
+              console.log('✅ showRDIManager cambiado a false');
+              console.log('═══════════════════════════════════════════');
             }}
           />
         )}
