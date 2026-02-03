@@ -9,9 +9,31 @@ import { createProject, updateProject, deleteProject } from '../../utilitario/in
 import CreateProjectDialog from './CreateProjectDialog';
 import EditProjectDialog from './EditProjectDialog';
 
-import { IconButton, Tooltip, Button, Box, CircularProgress } from '@mui/material';
-import { Edit } from '@mui/icons-material';
-import { is } from 'date-fns/locale';
+import { 
+  IconButton, 
+  Tooltip, 
+  Button, 
+  Box, 
+  CircularProgress,
+  Drawer,
+  AppBar,
+  Toolbar,
+  Typography,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListItemIcon,
+  Avatar,
+  Divider,
+  useTheme,
+  useMediaQuery,
+  Paper
+} from '@mui/material';
+import { Edit, Menu as MenuIcon, Add as AddIcon, Logout as LogoutIcon, Dashboard as DashboardIcon, Folder as FolderIcon } from '@mui/icons-material';
+
+const DRAWER_WIDTH = 280;
+
 export default function Dashboard({ userProjects = [] }) {
   // ✅ PASO 0.1: Usar el hook de autenticación directamente
   const authHook = useAuth();
@@ -46,19 +68,10 @@ export default function Dashboard({ userProjects = [] }) {
     displayName: 'Usuario Demo'
   };
 
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Detectar si es mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  // Detectar si es mobile usando MUI
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  // Mantener drawerOpen en true por defecto en desktop, false en mobile
 
   // ✅ TEST PASO 1.1: Cargar proyectos al montar
   useEffect(() => {
@@ -207,409 +220,318 @@ export default function Dashboard({ userProjects = [] }) {
     console.log('═══════════════════════════════════════════');
   };
 
-  return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      {/* Overlay para mobile cuando el drawer está abierto */}
-      {drawerOpen && isMobile && (
-        <div
-          onClick={() => setDrawerOpen(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 999
-          }}
-        />
-      )}
-
-      {/* Drawer Lateral - Responsive */}
-      <div style={{
-        // Mobile: Drawer flotante que cubre la pantalla
-        // Desktop: Drawer lateral fijo
-        position: isMobile ? 'fixed' : 'relative',
-        left: 0,
-        top: 0,
-        height: '100vh',
-        width: drawerOpen ? (isMobile ? '100%' : '280px') : '0',
-        maxWidth: isMobile ? '300px' : '280px',
-        background: '#1e1e2f',
-        color: 'white',
-        transition: 'width 0.3s',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        zIndex: isMobile ? 1000 : 'auto',
-        boxShadow: isMobile && drawerOpen ? '2px 0 10px rgba(0,0,0,0.3)' : 'none'
+  // Contenido del Drawer (Sidebar)
+  const drawerContent = (
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#1F3A5F', color: 'white' }}>
+      {/* Header del Drawer */}
+      <Box sx={{ 
+        p: 3, 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 2,
+        borderBottom: '1px solid rgba(255,255,255,0.1)' 
       }}>
-        {/* Header del Drawer */}
-        <div style={{
-          padding: '20px',
-          borderBottom: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>
-            📊 Proyectos
-          </h2>
-        </div>
+        <DashboardIcon sx={{ color: '#4CAF50' }} />
+        <Typography variant="h6" fontWeight="bold">
+          Proyectos
+        </Typography>
+      </Box>
 
-        {/* Lista de Proyectos */}
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '12px'
-        }}>
-          {loading ? (
-            <p style={{ textAlign: 'center', color: '#888' }}>Cargando...</p>
-          ) : projects.length === 0 ? (
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-              <p style={{ color: '#888', marginBottom: '12px' }}>
-                No tienes proyectos aún
-              </p>
-            </div>
-          ) : (
-            projects.map(project => (
-              <div
-                key={project.id}
-                style={{
-                  padding: '12px',
-                  marginBottom: '8px',
-                  background: currentProject?.id === project.id ? '#667eea' : 'rgba(255,255,255,0.05)',
-                  borderRadius: '6px',
-                  transition: 'background 0.2s',
-                  border: currentProject?.id === project.id ? '2px solid #8899ff' : '1px solid transparent',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
+      {/* Lista de Proyectos */}
+      <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+            <CircularProgress size={24} sx={{ color: 'white' }} />
+          </Box>
+        ) : projects.length === 0 ? (
+          <Typography variant="body2" sx={{ textAlign: 'center', color: 'rgba(255,255,255,0.7)', mt: 2 }}>
+            No tienes proyectos aún
+          </Typography>
+        ) : (
+          <List disablePadding>
+            {projects.map(project => (
+              <ListItem 
+                key={project.id} 
+                disablePadding 
+                sx={{ mb: 1 }}
+                secondaryAction={
+                  <Tooltip title="Editar proyecto">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingProject(project);
+                        setShowEditDialog(true);
+                      }}
+                      sx={{ 
+                        color: 'rgba(255,255,255,0.7)',
+                        '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.1)' }
+                      }}
+                    >
+                      <Edit fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                }
               >
-                {/* Contenido del proyecto - clickeable */}
-                <div
+                <ListItemButton
+                  selected={currentProject?.id === project.id}
                   onClick={() => handleSelectProject(project)}
-                  style={{
-                    flex: 1,
-                    cursor: 'pointer',
-                    paddingRight: '8px'
+                  sx={{
+                    borderRadius: '8px',
+                    '&.Mui-selected': {
+                      bgcolor: '#2B5DAF',
+                      '&:hover': { bgcolor: '#1F4B8F' }
+                    },
+                    '&:hover': {
+                      bgcolor: 'rgba(255,255,255,0.05)'
+                    }
                   }}
                 >
-                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                    {project.name}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#aaa' }}>
-                    {new Date(project.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-
-                {/* Botón de Editar */}
-                {/* Botón de Editar con Material UI */}
-                <Tooltip title="Editar proyecto">
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log('✏️ Abriendo edición para:', project.name);
-                      setEditingProject(project);
-                      setShowEditDialog(true);
-                    }}
-                    sx={{
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <FolderIcon sx={{ 
+                      color: currentProject?.id === project.id ? '#4CAF50' : 'rgba(255,255,255,0.5)',
+                      fontSize: 20
+                    }} />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={project.name}
+                    secondary={new Date(project.createdAt).toLocaleDateString()}
+                    primaryTypographyProps={{ 
+                      fontWeight: currentProject?.id === project.id ? 'bold' : 'normal',
                       color: 'white',
-                      '&:hover': {
-                        backgroundColor: 'rgba(255,255,255,0.2)'
-                      }
+                      noWrap: true
                     }}
-                  >
-                    <Edit fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </div>
-            ))
-          )}
-        </div>
+                    secondaryTypographyProps={{ 
+                      color: 'rgba(255,255,255,0.5)',
+                      fontSize: '0.75rem'
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        )}
+      </Box>
 
-        {/* Botón Crear Proyecto */}
-        <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <button
-            onClick={() => setShowCreateDialog(true)}
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '14px'
-            }}
-          >
-            ➕ Crear Proyecto
-          </button>
-        </div>
-      </div>
+      {/* Botón Crear Proyecto */}
+      <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        <Button
+          fullWidth
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setShowCreateDialog(true)}
+          sx={{
+            bgcolor: '#4CAF50',
+            color: 'white',
+            fontWeight: 'bold',
+            textTransform: 'none',
+            py: 1.5,
+            '&:hover': { bgcolor: '#43A047' }
+          }}
+        >
+          Crear Proyecto
+        </Button>
+      </Box>
+    </Box>
+  );
 
-      {/* Contenido Principal */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* AppBar Superior */}
-        <div style={{
-          height: '64px',
-          background: '#ffffff',
-          borderBottom: '1px solid #e0e0e0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 24px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}>
-          {/* Botón Toggle Drawer */}
-          <button
+  return (
+    <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#F5F7FA' }}>
+      
+      {/* AppBar Superior */}
+      <AppBar 
+        position="fixed" 
+        sx={{
+          width: { md: drawerOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%' },
+          ml: { md: drawerOpen ? `${DRAWER_WIDTH}px` : 0 },
+          bgcolor: 'white',
+          color: '#1E1E1E',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+          transition: theme.transitions.create(['width', 'margin'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+        }}
+      >
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
             onClick={() => setDrawerOpen(!drawerOpen)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              padding: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: 'black'
-            }}
+            sx={{ mr: 2 }}
           >
-            ☰
-            {/* Texto solo visible en desktop */}
-            {typeof window !== 'undefined' && !isMobile && (
-              <span style={{ fontSize: '14px' }}>Proyectos</span>
-            )}
-          </button>
+            <MenuIcon />
+          </IconButton>
 
-         
+          <Box sx={{ flexGrow: 1 }} />
 
           {/* Usuario y Logout */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              background: '#667eea',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold'
-            }}>
-              {user.displayName?.[0] || user.email[0].toUpperCase()}
-            </div>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Avatar sx={{ bgcolor: '#1F3A5F', width: 36, height: 36, fontSize: '1rem' }}>
+                {user.displayName?.[0] || user.email[0].toUpperCase()}
+              </Avatar>
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#1E1E1E' }}>
+                  {user.displayName || 'Usuario'}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#5F6B7A' }}>
+                  {user.email}
+                </Typography>
+              </Box>
+            </Box>
 
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
-                {user.displayName || 'Usuario'}
-              </div>
-              <div style={{ fontSize: '12px', color: '#666' }}>
-                {user.email}
-              </div>
-            </div>
+            <Divider orientation="vertical" flexItem sx={{ height: 24, alignSelf: 'center' }} />
 
-            <button
+            <Button
               onClick={handleLogout}
               disabled={logoutLoading}
-              style={{
-                padding: '8px 16px',
-                background: logoutLoading ? '#999' : '#f44336',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: logoutLoading ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
+              variant="outlined"
+              startIcon={logoutLoading ? <CircularProgress size={16} /> : <LogoutIcon />}
+              sx={{
+                color: '#D32F2F',
+                borderColor: '#D32F2F',
+                textTransform: 'none',
                 fontWeight: 'bold',
-                transition: 'background 0.3s',
-                minWidth: '80px'
+                '&:hover': {
+                  bgcolor: '#FDECEA',
+                  borderColor: '#D32F2F'
+                }
               }}
             >
-              {logoutLoading ? '...' : '🚪 Salir'}
-            </button>
-          </div>
-        </div>
+              {logoutLoading ? 'Saliendo...' : 'Salir'}
+            </Button>
+          </Box>
+        </Toolbar>
+      </AppBar>
 
-        {/* Área de Contenido */}
-        <div style={{
-          flex: 1,
-          padding: '24px',
-          overflowY: 'auto',
-          background: '#f5f5f5'
-        }}>
+      {/* Drawer (Sidebar) */}
+      <Box
+        component="nav"
+        sx={{ width: { md: drawerOpen ? DRAWER_WIDTH : 0 }, flexShrink: { md: 0 }, transition: 'width 0.3s' }}
+      >
+        {/* Mobile Drawer */}
+        <Drawer
+          variant="temporary"
+          open={drawerOpen && isMobile}
+          onClose={() => setDrawerOpen(false)}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            display: { xs: 'block', md: 'none' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH, bgcolor: '#1F3A5F' },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+
+        {/* Desktop Drawer */}
+        <Drawer
+          variant="persistent"
+          open={drawerOpen && !isMobile}
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: DRAWER_WIDTH, 
+              bgcolor: '#1F3A5F',
+              borderRight: 'none'
+            },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+      </Box>
+
+      {/* Contenido Principal */}
+      <Box 
+        component="main" 
+        sx={{ 
+          flexGrow: 1, 
+          p: 3, 
+          mt: 8, 
+          width: { md: drawerOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%' },
+          transition: theme.transitions.create(['width', 'margin'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+          overflow: 'auto'
+        }}
+      >
           {!currentProject ? (
-            <div style={{
+            <Box sx={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '100%',
-              gap: '24px'
+              height: '80vh',
+              gap: 3
             }}>
-              <div style={{ fontSize: '64px' }}>📂</div>
-              <h2 style={{ color: '#666', margin: 0 }}>
+              <FolderIcon sx={{ fontSize: 80, color: '#D9DEE5' }} />
+              <Typography variant="h5" sx={{ color: '#5F6B7A', fontWeight: 'bold' }}>
                 No hay proyecto seleccionado
-              </h2>
-              <p style={{ color: '#999' }}>
+              </Typography>
+              <Typography variant="body1" sx={{ color: '#9AA4AF' }}>
                 Selecciona un proyecto del menú lateral o crea uno nuevo
-              </p>
-              <button
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
                 onClick={() => setShowCreateDialog(true)}
-                style={{
-                  padding: '12px 24px',
-                  background: '#667eea',
+                sx={{
+                  bgcolor: '#1F3A5F',
                   color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  textTransform: 'none',
+                  px: 4,
+                  py: 1.5,
+                  '&:hover': { bgcolor: '#2B5DAF' }
                 }}
               >
-                ➕ Crear Primer Proyecto
-              </button>
-            </div>
+                Crear Primer Proyecto
+              </Button>
+            </Box>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-              <h2 style={{ marginTop: 0, color: '#333' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+              <Typography variant="h4" sx={{ mb: 3, color: '#1E1E1E', fontWeight: 'bold' }}>
                 Proyecto: {currentProject.name}
-              </h2>
-              <div style={{
-                background: 'white',
-                padding: '24px',
-                borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                flex: 1
-              }}>
-                <p style={{ color: '#666' }}>
+              </Typography>
+              
+              <Paper sx={{ p: 4, borderRadius: 2, flex: 1, bgcolor: 'white' }}>
+                <Typography variant="body1" sx={{ color: '#5F6B7A' }}>
                   Aquí se mostrarán los issues del proyecto.
-                </p>
-                <p style={{ color: '#999', fontSize: '14px' }}>
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#9AA4AF', mt: 1, display: 'block' }}>
                   (Próximo paso: Implementar gestión de issues)
-                </p>
-              </div>
+                </Typography>
+              </Paper>
 
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
                 <Button 
                   variant="contained" 
-                  color="primary" 
                   size="large"
                   disabled={isNavigating}
                   onClick={() => {
                     setIsNavigating(true);
                     router.push('/viewer');
                   }}
+                  sx={{
+                    bgcolor: '#1F3A5F',
+                    px: 6,
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold',
+                    textTransform: 'none',
+                    '&:hover': { bgcolor: '#2B5DAF' }
+                  }}
                 >
                   {isNavigating ? <CircularProgress size={24} color="inherit" /> : 'Gestionar'}
                 </Button>
               </Box>
-            </div>
+            </Box>
           )}
-        </div>
-      </div>
+      </Box>
 
-      {/* Dialog Crear Proyecto */}
-      {showCreateDialog && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '32px',
-            borderRadius: '8px',
-            maxWidth: '500px',
-            width: '90%',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
-          }}>
-            <h2 style={{ marginTop: 0, marginBottom: '24px' }}>
-              Crear Nuevo Proyecto
-            </h2>
-
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#555'
-              }}>
-                Nombre del Proyecto
-              </label>
-              <input
-                type="text"
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && newProjectName.trim()) {
-                    handleCreateProject();
-                  }
-                }}
-                placeholder="Ej: Proyecto ABC"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '16px',
-                  boxSizing: 'border-box'
-                }}
-                autoFocus
-              />
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              justifyContent: 'flex-end'
-            }}>
-              <button
-                onClick={() => {
-                  setShowCreateDialog(false);
-                  setNewProjectName('');
-                }}
-                style={{
-                  padding: '10px 20px',
-                  background: '#e0e0e0',
-                  color: '#333',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 'bold'
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCreateProject}
-                disabled={!newProjectName.trim()}
-                style={{
-                  padding: '10px 20px',
-                  background: newProjectName.trim() ? '#667eea' : '#ccc',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: newProjectName.trim() ? 'pointer' : 'not-allowed',
-                  fontSize: '14px',
-                  fontWeight: 'bold'
-                }}
-              >
-                Crear Proyecto
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Modales con Material UI */}
       <CreateProjectDialog
         isOpen={showCreateDialog}
@@ -627,7 +549,7 @@ export default function Dashboard({ userProjects = [] }) {
         onSave={handleUpdateProject}
         onDelete={handleDeleteProject}
       />
-    </div>
+    </Box>
   );
 }
 
