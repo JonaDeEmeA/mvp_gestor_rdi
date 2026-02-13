@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { initializeViewer, cleanupViewer } from '../services/viewer3DService';
 import { showErrorMessage } from '../utils/errorHandler';
 import { ERROR_MESSAGES } from '../constants/viewerConfig';
@@ -16,6 +16,8 @@ export const useViewer3D = () => {
   const fragmentsRef = useRef(null);
   const topicRef = useRef(null);
   const loadingSphereRef = useRef(null);
+  const clipperRef = useRef(null);
+  const [isViewerReady, setIsViewerReady] = useState(false);
 
   // Efecto para inicializar el visor
   useEffect(() => {
@@ -24,7 +26,8 @@ export const useViewer3D = () => {
     const refs = {
       componentsRef,
       worldRef,
-      fragmentsRef
+      fragmentsRef,
+      clipperRef,
     };
 
     // Inicializar el visor
@@ -32,6 +35,7 @@ export const useViewer3D = () => {
       try {
 
         await initializeViewer(containerRef.current, refs);
+        setIsViewerReady(true);
 
         // Crear esfera de carga en el centro (0,0,0)  
         createLoadingSphere()
@@ -101,9 +105,10 @@ export const useViewer3D = () => {
     };
   }, []);
 
-  
-  
-        
+
+
+
+
   // Función para remover la esfera cuando termina la carga  
   const removeLoadingSphere = () => {
     if (loadingSphereRef.current && worldRef.current) {
@@ -130,6 +135,8 @@ export const useViewer3D = () => {
     worldRef,
     fragmentsRef,
     topicRef,
+    clipperRef,
+    isViewerReady,
     removeLoadingSphere,
     resetCamera,
   };

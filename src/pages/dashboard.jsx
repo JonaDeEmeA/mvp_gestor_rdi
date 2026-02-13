@@ -48,7 +48,7 @@ export default function DashboardPage() {
   const loadUserProjects = async () => {
     console.log('📂 PASO 2.2: Cargando proyectos para:', user.email);
     setProjectsLoading(true);
-    
+
     try {
       const userProjects = await getProjectsByUser(user.email);
       console.log('✅ PASO 2.2 COMPLETADO: Proyectos cargados:', userProjects.length);
@@ -62,45 +62,45 @@ export default function DashboardPage() {
   };
 
   // ✅ Manejar proyecto pendiente de creación
-useEffect(() => {
-  if (user && !projectsLoading) {
-    const pendingProject = localStorage.getItem('pendingProject');
-    
-    if (pendingProject) {
-      console.log('📂 Proyecto pendiente detectado:', pendingProject);
-      
-      // Crear el proyecto automáticamente
-      createProjectFromPending(pendingProject);
-      
-      // Limpiar localStorage
-      localStorage.removeItem('pendingProject');
+  useEffect(() => {
+    if (user && !projectsLoading) {
+      const pendingProject = localStorage.getItem('pendingProject');
+
+      if (pendingProject) {
+        console.log('📂 Proyecto pendiente detectado:', pendingProject);
+
+        // Crear el proyecto automáticamente
+        createProjectFromPending(pendingProject);
+
+        // Limpiar localStorage
+        localStorage.removeItem('pendingProject');
+      }
     }
-  }
-}, [user, projectsLoading]);
+  }, [user, projectsLoading]);
 
-const createProjectFromPending = async (projectName) => {
-  console.log('➕ Creando proyecto pendiente:', projectName);
-  
-  try {
-    // ✅ Usar IndexedDB en lugar de mock
-    const projectData = {
-      id: Date.now(),
-      name: "newProjectName",
-      userEmail: user.email,
-      createdAt: new Date().toISOString()
+  const createProjectFromPending = async (projectName) => {
+    console.log('➕ Creando proyecto pendiente:', projectName);
 
-    };
-    
-    const newProject = await createProject(projectData);
-    
-    console.log('✅ Proyecto creado desde registro:', newProject);
-    
-    // Recargar proyectos
-    await loadUserProjects();
-  } catch (error) {
-    console.error('❌ Error creando proyecto pendiente:', error);
-  }
-};
+    try {
+      // ✅ Usar IndexedDB en lugar de mock
+      const projectData = {
+        id: Date.now(),
+        name: "newProjectName",
+        userEmail: user.email,
+        createdAt: new Date().toISOString()
+
+      };
+
+      const newProject = await createProject(projectData);
+
+      console.log('✅ Proyecto creado desde registro:', newProject);
+
+      // Recargar proyectos
+      await loadUserProjects();
+    } catch (error) {
+      console.error('❌ Error creando proyecto pendiente:', error);
+    }
+  };
 
   // Mostrar loading mientras verifica autenticación
   if (loading || projectsLoading) {
@@ -121,10 +121,10 @@ const createProjectFromPending = async (projectName) => {
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }}></div>
-        <p style={{ 
-          marginTop: '20px', 
+        <p style={{
+          marginTop: '20px',
           color: '#666',
-          fontSize: '16px' 
+          fontSize: '16px'
         }}>
           {loading ? 'Verificando autenticación...' : 'Cargando proyectos...'}
         </p>

@@ -64,8 +64,8 @@ export default function LandingPage() {
     try {
       // 1. Registrar usuario
       const result = await register(
-        projectForm.email, 
-        projectForm.password, 
+        projectForm.email,
+        projectForm.password,
         projectForm.userName
       );
 
@@ -117,7 +117,7 @@ export default function LandingPage() {
     }
   };
 
-  if (loading) {
+  if (loading || user) {
     return (
       <div style={{
         display: 'flex',
@@ -189,7 +189,7 @@ export default function LandingPage() {
         }}>
           Sistema de Gestión de Proyectos
         </h1>
-        
+
         <p style={{
           color: 'rgba(255, 255, 255, 0.9)',
           fontSize: '20px',
@@ -210,7 +210,7 @@ export default function LandingPage() {
             borderRadius: '8px',
             fontSize: '16px',
             fontWeight: 'bold',
-            
+
             textTransform: 'none',
             transition: 'transform 0.2s',
             '&:hover': {
@@ -225,7 +225,7 @@ export default function LandingPage() {
 
       {/* Modal - Crear Proyecto */}
       {showCreateProjectModal && (
-        <div 
+        <div
           onClick={() => setShowCreateProjectModal(false)}
           style={{
             position: 'fixed',
@@ -241,7 +241,7 @@ export default function LandingPage() {
             padding: '20px'
           }}
         >
-          <Paper 
+          <Paper
             onClick={(e) => e.stopPropagation()}
             elevation={24}
             sx={{
@@ -254,149 +254,149 @@ export default function LandingPage() {
             }}
           >
             <Box sx={{ padding: '24px 24px 8px' }}>
-              <Typography variant="h6" component="h2" sx={{ 
-                color: '#1E1E1E', 
+              <Typography variant="h6" component="h2" sx={{
+                color: '#1E1E1E',
                 fontWeight: 'bold',
                 fontSize: '24px'
               }}>
                 Crear Nuevo Proyecto
               </Typography>
             </Box>
-            
+
             <Box sx={{ padding: '0 24px', overflowY: 'auto' }}>
-          {error && (
-            <Alert severity="error" sx={{ 
-              mb: 2, 
-              backgroundColor: '#FDECEA', 
-              color: '#D32F2F',
-              '& .MuiAlert-icon': { color: '#D32F2F' }
-            }}>
-              {error}
-            </Alert>
-          )}
-          
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Nombre del Proyecto"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={projectForm.projectName}
-            onChange={(e) => setProjectForm({...projectForm, projectName: e.target.value})}
-            required
-            sx={{
-              mb: 2,
-              '& label.Mui-focused': { color: '#1F3A5F' },
-              '& .MuiOutlinedInput-root': {
-                '&.Mui-focused fieldset': { borderColor: '#1F3A5F' }
-              },
-              '& input:-webkit-autofill': {
-                WebkitBoxShadow: '0 0 0 1000px white inset',
-                WebkitTextFillColor: '#1E1E1E',
-              }
-            }}
-          />
-          
-          <TextField
-            margin="dense"
-            label="Tu Nombre (opcional)"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={projectForm.userName}
-            onChange={(e) => setProjectForm({...projectForm, userName: e.target.value})}
-            sx={{
-              mb: 2,
-              '& label.Mui-focused': { color: '#1F3A5F' },
-              '& .MuiOutlinedInput-root': {
-                '&.Mui-focused fieldset': { borderColor: '#1F3A5F' }
-              },
-              '& input:-webkit-autofill': {
-                WebkitBoxShadow: '0 0 0 1000px white inset',
-                WebkitTextFillColor: '#1E1E1E',
-              }
-            }}
-          />
+              {error && (
+                <Alert severity="error" sx={{
+                  mb: 2,
+                  backgroundColor: '#FDECEA',
+                  color: '#D32F2F',
+                  '& .MuiAlert-icon': { color: '#D32F2F' }
+                }}>
+                  {error}
+                </Alert>
+              )}
 
-          <TextField
-            margin="dense"
-            label="Email"
-            type="email"
-            fullWidth
-            variant="outlined"
-            value={projectForm.email}
-            onChange={(e) => setProjectForm({...projectForm, email: e.target.value})}
-            required
-            sx={{
-              mb: 2,
-              '& label.Mui-focused': { color: '#1F3A5F' },
-              '& .MuiOutlinedInput-root': {
-                '&.Mui-focused fieldset': { borderColor: '#1F3A5F' }
-              },
-              '& input:-webkit-autofill': {
-                WebkitBoxShadow: '0 0 0 1000px white inset',
-                WebkitTextFillColor: '#1E1E1E',
-              }
-            }}
-          />
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Nombre del Proyecto"
+                type="text"
+                fullWidth
+                variant="outlined"
+                value={projectForm.projectName}
+                onChange={(e) => setProjectForm({ ...projectForm, projectName: e.target.value })}
+                required
+                sx={{
+                  mb: 2,
+                  '& label.Mui-focused': { color: '#1F3A5F' },
+                  '& .MuiOutlinedInput-root': {
+                    '&.Mui-focused fieldset': { borderColor: '#1F3A5F' }
+                  },
+                  '& input:-webkit-autofill': {
+                    WebkitBoxShadow: '0 0 0 1000px white inset',
+                    WebkitTextFillColor: '#1E1E1E',
+                  }
+                }}
+              />
 
-          <TextField
-            margin="dense"
-            label="Contraseña"
-            type="password"
-            fullWidth
-            variant="outlined"
-            value={projectForm.password}
-            onChange={(e) => setProjectForm({...projectForm, password: e.target.value})}
-            required
-            helperText="Mínimo 6 caracteres"
-            sx={{
-              '& label.Mui-focused': { color: '#1F3A5F' },
-              '& .MuiOutlinedInput-root': {
-                '&.Mui-focused fieldset': { borderColor: '#1F3A5F' }
-              },
-              '& input:-webkit-autofill': {
-                WebkitBoxShadow: '0 0 0 1000px white inset',
-                WebkitTextFillColor: '#1E1E1E',
-              }
-            }}
-          />
+              <TextField
+                margin="dense"
+                label="Tu Nombre (opcional)"
+                type="text"
+                fullWidth
+                variant="outlined"
+                value={projectForm.userName}
+                onChange={(e) => setProjectForm({ ...projectForm, userName: e.target.value })}
+                sx={{
+                  mb: 2,
+                  '& label.Mui-focused': { color: '#1F3A5F' },
+                  '& .MuiOutlinedInput-root': {
+                    '&.Mui-focused fieldset': { borderColor: '#1F3A5F' }
+                  },
+                  '& input:-webkit-autofill': {
+                    WebkitBoxShadow: '0 0 0 1000px white inset',
+                    WebkitTextFillColor: '#1E1E1E',
+                  }
+                }}
+              />
+
+              <TextField
+                margin="dense"
+                label="Email"
+                type="email"
+                fullWidth
+                variant="outlined"
+                value={projectForm.email}
+                onChange={(e) => setProjectForm({ ...projectForm, email: e.target.value })}
+                required
+                sx={{
+                  mb: 2,
+                  '& label.Mui-focused': { color: '#1F3A5F' },
+                  '& .MuiOutlinedInput-root': {
+                    '&.Mui-focused fieldset': { borderColor: '#1F3A5F' }
+                  },
+                  '& input:-webkit-autofill': {
+                    WebkitBoxShadow: '0 0 0 1000px white inset',
+                    WebkitTextFillColor: '#1E1E1E',
+                  }
+                }}
+              />
+
+              <TextField
+                margin="dense"
+                label="Contraseña"
+                type="password"
+                fullWidth
+                variant="outlined"
+                value={projectForm.password}
+                onChange={(e) => setProjectForm({ ...projectForm, password: e.target.value })}
+                required
+                helperText="Mínimo 6 caracteres"
+                sx={{
+                  '& label.Mui-focused': { color: '#1F3A5F' },
+                  '& .MuiOutlinedInput-root': {
+                    '&.Mui-focused fieldset': { borderColor: '#1F3A5F' }
+                  },
+                  '& input:-webkit-autofill': {
+                    WebkitBoxShadow: '0 0 0 1000px white inset',
+                    WebkitTextFillColor: '#1E1E1E',
+                  }
+                }}
+              />
             </Box>
 
             <Box sx={{ padding: '16px 24px 24px', display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-          <Button 
-            onClick={() => {
-              setShowCreateProjectModal(false);
-              setProjectForm({ projectName: '', userName: '', email: '', password: '' });
-              setError('');
-            }}
-            disabled={formLoading}
-            sx={{ 
-              color: '#5F6B7A',
-              fontWeight: 'bold',
-              textTransform: 'none',
-              '&:hover': { backgroundColor: '#F5F7FA' }
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleCreateProject}
-            disabled={formLoading}
-            variant="contained"
-            sx={{ 
-              backgroundColor: '#1F3A5F',
-              color: 'white',
-              fontWeight: 'bold',
-              textTransform: 'none',
-              padding: '8px 24px',
-              '&:hover': { backgroundColor: '#2B5DAF' },
-              '&:disabled': { backgroundColor: '#9AA4AF' }
-            }}
-          >
-            {formLoading ? 'Creando...' : 'Crear'}
-          </Button>
+              <Button
+                onClick={() => {
+                  setShowCreateProjectModal(false);
+                  setProjectForm({ projectName: '', userName: '', email: '', password: '' });
+                  setError('');
+                }}
+                disabled={formLoading}
+                sx={{
+                  color: '#5F6B7A',
+                  fontWeight: 'bold',
+                  textTransform: 'none',
+                  '&:hover': { backgroundColor: '#F5F7FA' }
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleCreateProject}
+                disabled={formLoading}
+                variant="contained"
+                sx={{
+                  backgroundColor: '#1F3A5F',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  textTransform: 'none',
+                  padding: '8px 24px',
+                  '&:hover': { backgroundColor: '#2B5DAF' },
+                  '&:disabled': { backgroundColor: '#9AA4AF' }
+                }}
+              >
+                {formLoading ? 'Creando...' : 'Crear'}
+              </Button>
             </Box>
           </Paper>
         </div>
@@ -404,7 +404,7 @@ export default function LandingPage() {
 
       {/* Modal - Login */}
       {showLoginModal && (
-        <div 
+        <div
           onClick={() => setShowLoginModal(false)}
           style={{
             position: 'fixed',
@@ -420,7 +420,7 @@ export default function LandingPage() {
             padding: '20px'
           }}
         >
-          <Paper 
+          <Paper
             onClick={(e) => e.stopPropagation()}
             elevation={24}
             sx={{
@@ -433,8 +433,8 @@ export default function LandingPage() {
             }}
           >
             <Box sx={{ padding: '24px 24px 8px' }}>
-              <Typography variant="h6" component="h2" sx={{ 
-                color: '#1E1E1E', 
+              <Typography variant="h6" component="h2" sx={{
+                color: '#1E1E1E',
                 fontWeight: 'bold',
                 fontSize: '24px'
               }}>
@@ -444,9 +444,9 @@ export default function LandingPage() {
 
             <Box sx={{ padding: '0 24px', overflowY: 'auto' }}>
               {error && (
-                <Alert severity="error" sx={{ 
-                  mb: 2, 
-                  backgroundColor: '#FDECEA', 
+                <Alert severity="error" sx={{
+                  mb: 2,
+                  backgroundColor: '#FDECEA',
                   color: '#D32F2F',
                   '& .MuiAlert-icon': { color: '#D32F2F' }
                 }}>
@@ -462,7 +462,7 @@ export default function LandingPage() {
                 fullWidth
                 variant="outlined"
                 value={loginForm.email}
-                onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
+                onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
                 sx={{
                   mb: 2,
                   '& label.Mui-focused': { color: '#1F3A5F' },
@@ -483,7 +483,7 @@ export default function LandingPage() {
                 fullWidth
                 variant="outlined"
                 value={loginForm.password}
-                onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
+                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') handleLogin();
                 }}

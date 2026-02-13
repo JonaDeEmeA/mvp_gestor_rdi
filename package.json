@@ -23,6 +23,7 @@
     "next": "15.4.1",
     "react": "^19",
     "react-dom": "^19",
+    "react-draggable": "^4.5.0",
     "stats.js": "^0.17.0",
     "three": "^0.178.0",
     "web-ifc": "^0.0.69",

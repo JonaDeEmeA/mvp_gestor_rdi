@@ -1,12 +1,12 @@
 import * as React from 'react';
 import PropTypes from 'prop-types';
-import { 
-  Tabs, 
-  Tab, 
-  Box, 
-  Button, 
-  Typography, 
-  IconButton, 
+import {
+  Tabs,
+  Tab,
+  Box,
+  Button,
+  Typography,
+  IconButton,
   Tooltip,
   Drawer,
   List,
@@ -16,9 +16,10 @@ import {
   ListItemText,
   useTheme,
   useMediaQuery,
-  Fab
+  Fab,
+  Slider
 } from '@mui/material';
-import { 
+import {
   Home as HomeIcon,
   Menu as MenuIcon,
   Close as CloseIcon,
@@ -59,7 +60,16 @@ function a11yProps(index) {
   };
 }
 
-export default function TabStandar({ onCargarFile, onCloseBrowser, onCloseRdiManager, onToggleInfoCoordenada, pickedPoint, onResetCamera }) {
+export default function TabStandar({
+  onCargarFile,
+  onCloseBrowser,
+  onCloseRdiManager,
+  onToggleInfoCoordenada,
+  pickedPoint,
+  onResetCamera,
+  sectionEnabled,
+  onToggleSection,
+  sectionPlanes, }) {
   const [value, setValue] = React.useState(0);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedTab, setSelectedTab] = React.useState(0);
@@ -195,118 +205,125 @@ export default function TabStandar({ onCargarFile, onCloseBrowser, onCloseRdiMan
 
   return (
 
-  <Box sx={{ width: '100%', height: { xs: "auto", sm: "15vh" }, position: 'relative' }}>
-    {/* Tabs Header */}
-    <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-      <Tabs 
-        value={value} 
-        onChange={handleChange} 
-        aria-label="herramientas tabs"
-        variant="scrollable"
-        scrollButtons="auto"
+    <Box sx={{ width: '100%', height: { xs: "auto", sm: "15vh" }, position: 'relative' }}>
+      {/* Tabs Header */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs
+          value={value}
+          onChange={handleChange}
+          aria-label="herramientas tabs"
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            minHeight: '48px',
+            '& .MuiTab-root': {
+              minWidth: { xs: 'auto', sm: 90 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              px: { xs: 1, sm: 2 }
+            }
+          }}
+        >
+          <Tab sx={{ color: 'gray' }} label="Archivos" {...a11yProps(0)} />
+          <Tab sx={{ color: 'gray' }} label="Ver" {...a11yProps(1)} />
+          <Tab sx={{ color: 'gray' }} label="Herramientas" {...a11yProps(2)} />
+          <Tab sx={{ color: 'gray' }} label="Capas" {...a11yProps(3)} />
+          <Tab sx={{ color: 'gray' }} label="Publicar" {...a11yProps(4)} />
+        </Tabs>
+      </Box>
+
+      {/* Contenido Desktop - Solo visible en pantallas grandes */}
+      {!isMobile && (
+        <>
+          <CustomTabPanel value={value} index={0}>
+            <Button size='small' variant="outlined" startIcon={<FolderOpenIcon />} onClick={onCargarFile}>
+              Cargar IFC
+            </Button>
+          </CustomTabPanel>
+          <CustomTabPanel value={value} index={1}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button sx={{ fontSize: '0.675rem' }} size='small' variant="outlined" startIcon={<VisibilityIcon />} onClick={onCloseBrowser}>
+                Explorador
+              </Button>
+              <Button size='small' variant="outlined" startIcon={<LayersIcon />} onClick={onCloseRdiManager}>
+                Gestor RDI
+              </Button>
+              <Button size='small' variant="outlined" startIcon={<HomeIcon />} onClick={onResetCamera}>
+                HOME 3DVIEW
+              </Button>
+            </Box>
+          </CustomTabPanel>
+          <CustomTabPanel value={value} index={2}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Button size='small' variant="outlined" startIcon={<BuildIcon />} onClick={onToggleInfoCoordenada}>
+                Info Coor
+              </Button>
+              <Button
+                size='small'
+                variant={sectionEnabled ? 'contained' : 'outlined'}
+                onClick={onToggleSection}
+              >
+                {sectionEnabled ? 'Desactivar Sección' : 'Activar Sección'}
+              </Button>
+              {pickedPoint && (
+                <Typography variant="body2" component="div">
+                  <strong>X:</strong> {pickedPoint.x.toFixed(2)} |
+                  <strong>Y:</strong> {pickedPoint.y.toFixed(2)} |
+                  <strong>Z:</strong> {pickedPoint.z.toFixed(2)}
+                </Typography>
+              )}
+            </Box>
+          </CustomTabPanel>
+          <CustomTabPanel value={value} index={3}>
+            <Typography variant="body2" color="text.secondary">
+              Panel de capas (Próximamente)
+            </Typography>
+          </CustomTabPanel>
+          <CustomTabPanel value={value} index={4}>
+            <Typography variant="body2" color="text.secondary">
+              Opciones de publicación (Próximamente)
+            </Typography>
+          </CustomTabPanel>
+        </>
+      )}
+
+      {/* Drawer Lateral - Solo en móvil */}
+      <Drawer
+        anchor="left"
+        open={isMobile && drawerOpen}
+        onClose={() => {
+          console.log('🚪 PASO 2.5: Cerrando drawer');
+          setDrawerOpen(false);
+        }}
         sx={{
-          minHeight: '48px',
-          '& .MuiTab-root': {
-            minWidth: { xs: 'auto', sm: 90 },
-            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-            px: { xs: 1, sm: 2 }
+          display: { xs: 'block', sm: 'none' },
+          '& .MuiDrawer-paper': {
+            width: 280,
+            boxSizing: 'border-box',
           }
         }}
       >
-        <Tab sx={{ color: 'gray' }} label="Archivos" {...a11yProps(0)} />
-        <Tab sx={{ color: 'gray' }} label="Ver" {...a11yProps(1)} />
-        <Tab sx={{ color: 'gray' }} label="Herramientas" {...a11yProps(2)} />
-        <Tab sx={{ color: 'gray' }} label="Capas" {...a11yProps(3)} />
-        <Tab sx={{ color: 'gray' }} label="Publicar" {...a11yProps(4)} />
-      </Tabs>
+        {/* Header del Drawer */}
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: 2,
+          borderBottom: '1px solid',
+          borderColor: 'divider'
+        }}>
+          <Typography variant="h6">
+            {['Archivos', 'Ver', 'Herramientas', 'Capas', 'Publicar'][selectedTab]}
+          </Typography>
+          <IconButton onClick={() => setDrawerOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
+
+        {/* Contenido del Drawer */}
+        <Box sx={{ overflow: 'auto' }}>
+          {getDrawerContent()}
+        </Box>
+      </Drawer>
     </Box>
-
-    {/* Contenido Desktop - Solo visible en pantallas grandes */}
-    {!isMobile && (
-      <>
-        <CustomTabPanel value={value} index={0}>
-          <Button size='small' variant="outlined" startIcon={<FolderOpenIcon />} onClick={onCargarFile}>
-            Cargar IFC
-          </Button>
-        </CustomTabPanel>
-        <CustomTabPanel value={value} index={1}>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button sx={{ fontSize: '0.675rem' }} size='small' variant="outlined" startIcon={<VisibilityIcon />} onClick={onCloseBrowser}>
-              Explorador
-            </Button>
-            <Button size='small' variant="outlined" startIcon={<LayersIcon />} onClick={onCloseRdiManager}>
-              Gestor RDI
-            </Button>
-            <Button size='small' variant="outlined" startIcon={<HomeIcon />} onClick={onResetCamera}>
-              HOME 3DVIEW
-            </Button>
-          </Box>
-        </CustomTabPanel>
-        <CustomTabPanel value={value} index={2}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button size='small' variant="outlined" startIcon={<BuildIcon />} onClick={onToggleInfoCoordenada}>
-              Info Coor
-            </Button>
-            {pickedPoint && (
-              <Typography variant="body2" component="div">
-                <strong>X:</strong> {pickedPoint.x.toFixed(2)} | 
-                <strong>Y:</strong> {pickedPoint.y.toFixed(2)} | 
-                <strong>Z:</strong> {pickedPoint.z.toFixed(2)}
-              </Typography>
-            )}
-          </Box>
-        </CustomTabPanel>
-        <CustomTabPanel value={value} index={3}>
-          <Typography variant="body2" color="text.secondary">
-            Panel de capas (Próximamente)
-          </Typography>
-        </CustomTabPanel>
-        <CustomTabPanel value={value} index={4}>
-          <Typography variant="body2" color="text.secondary">
-            Opciones de publicación (Próximamente)
-          </Typography>
-        </CustomTabPanel>
-      </>
-    )}
-
-    {/* Drawer Lateral - Solo en móvil */}
-    <Drawer
-      anchor="left"
-      open={isMobile && drawerOpen}
-      onClose={() => {
-        console.log('🚪 PASO 2.5: Cerrando drawer');
-        setDrawerOpen(false);
-      }}
-      sx={{
-        display: { xs: 'block', sm: 'none' },
-        '& .MuiDrawer-paper': {
-          width: 280,
-          boxSizing: 'border-box',
-        }
-      }}
-    >
-      {/* Header del Drawer */}
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        p: 2,
-        borderBottom: '1px solid',
-        borderColor: 'divider'
-      }}>
-        <Typography variant="h6">
-          {['Archivos', 'Ver', 'Herramientas', 'Capas', 'Publicar'][selectedTab]}
-        </Typography>
-        <IconButton onClick={() => setDrawerOpen(false)}>
-          <CloseIcon />
-        </IconButton>
-      </Box>
-
-      {/* Contenido del Drawer */}
-      <Box sx={{ overflow: 'auto' }}>
-        {getDrawerContent()}
-      </Box>
-    </Drawer>
-  </Box>
   );
 }

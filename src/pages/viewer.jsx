@@ -11,6 +11,8 @@ import { useViewer3D } from '../hooks/useViewer3D';
 import { useViewerState } from '../hooks/useViewerState';
 import { useVertexPicker } from '@/hooks/useVertexPicker';
 import { useFileProcessor } from '../hooks/useFileProcessor';
+import { useSection } from '@/hooks/useSection';
+import SectionManagerWindow from '@/componentes/SectionManagerWindow';
 
 // Constantes
 import { STYLES, VIEWER_CONFIG } from '../constants/viewerConfig';
@@ -18,7 +20,23 @@ import React from 'react';
 
 export default function Home() {
   // Hooks personalizados
-  const { containerRef, componentsRef, worldRef, fragmentsRef, topicRef, resetCamera } = useViewer3D();
+  const {
+    containerRef,
+    componentsRef,
+    worldRef,
+    fragmentsRef,
+    topicRef,
+    resetCamera,
+    isViewerReady
+  } = useViewer3D();
+
+  // Hook de sección  
+  const { enabled, planesList, toggle, deletePlane, togglePlane } = useSection(
+    componentsRef.current,
+    worldRef.current,
+    containerRef,
+    isViewerReady
+  );
 
   const {
     importedModels,
@@ -45,7 +63,7 @@ export default function Home() {
   // Crear función de toggle de visibilidad con fragmentsRef
   const handleToggleModelVisibility = createToggleModelVisibility(fragmentsRef);
 
- 
+
   return (
     <Box sx={STYLES.container}>
       {/* TabStandar siempre visible */}
@@ -57,6 +75,9 @@ export default function Home() {
         onToggleInfoCoordenada={toggleInfoCoordenada}
         pickedPoint={pickedPoint}
         onResetCamera={resetCamera}
+        sectionEnabled={enabled}
+        onToggleSection={toggle}
+        sectionPlanes={planesList}
       />
 
       {/* Contenedor principal que cambia según el estado */}
@@ -95,7 +116,7 @@ export default function Home() {
             flex: { xs: "none", sm: 1 },
             cursor: showInfoCoordenada ? 'crosshair' : 'default',
             height: { xs: "100%", sm: "85vh" },
-            transition: "width 0.2s ease" 
+            transition: "width 0.2s ease"
           }}
         >
           <input
@@ -114,6 +135,14 @@ export default function Home() {
               sx={STYLES.browser}
             />
           )}
+
+          <SectionManagerWindow
+            open={enabled}
+            onClose={toggle}
+            planes={planesList}
+            onDeletePlane={deletePlane}
+            onTogglePlane={togglePlane}
+          />
         </Box>
 
         {/* TabTools - Ocupa toda la pantalla en móviles, panel lateral redimensionable en desktop */}

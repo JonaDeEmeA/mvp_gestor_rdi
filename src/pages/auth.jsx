@@ -47,7 +47,7 @@ export default function AuthPage() {
   }, [user, loading, router]);
 
   // Mostrar loading mientras verifica autenticación
-  if (loading) {
+  if (loading || user) {
     return (
       <div style={{
         display: 'flex',

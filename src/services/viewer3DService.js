@@ -109,6 +109,11 @@ export const initializeViewer = async (container, refs) => {
     const fragmentsManager = components.get(OBC.FragmentsManager);
     fragmentsManager.init(VIEWER_CONFIG.workerUrl);
 
+    // Inicializar componente de sección (clipper)  
+    const clipper = components.get(OBC.Clipper);  
+    clipper.enabled = true; 
+    refs.clipperRef.current = clipper; 
+
     // Guardar referencias
     refs.worldRef.current = world;
     refs.fragmentsRef.current = fragmentsManager;
