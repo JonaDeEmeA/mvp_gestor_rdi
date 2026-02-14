@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef } from 'react';
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 import TabStandar from "@/componentes/TabStandar";
 import Browser from "@/componentes/Browser";
@@ -13,6 +13,7 @@ import { useVertexPicker } from '@/hooks/useVertexPicker';
 import { useFileProcessor } from '../hooks/useFileProcessor';
 import { useSection } from '@/hooks/useSection';
 import SectionManagerWindow from '@/componentes/SectionManagerWindow';
+import CoordinateInfoWindow from '@/componentes/CoordinateInfoWindow';
 
 // Constantes
 import { STYLES, VIEWER_CONFIG } from '../constants/viewerConfig';
@@ -48,6 +49,7 @@ export default function Home() {
     toggleRDIManager,
     showInfoCoordenada,
     toggleInfoCoordenada,
+    closeFloatingWindows,
     createToggleModelVisibility,
   } = useViewerState();
 
@@ -63,6 +65,30 @@ export default function Home() {
   // Crear función de toggle de visibilidad con fragmentsRef
   const handleToggleModelVisibility = createToggleModelVisibility(fragmentsRef);
 
+  // Manejadores locales para coordinar exclusividad con la herramienta de sección
+  const handleToggleSection = () => {
+    if (!enabled) {
+      // Si vamos a activar sección, cerramos Browser e Info Coor
+      closeFloatingWindows();
+    }
+    toggle();
+  };
+
+  const handleToggleBrowser = () => {
+    if (!showBrowser) {
+      // Si vamos a activar browser, cerramos sección
+      if (enabled) toggle();
+    }
+    toggleBrowser();
+  };
+
+  const handleToggleInfoCoordenada = () => {
+    if (!showInfoCoordenada) {
+      // Si vamos a activar info coor, cerramos sección
+      if (enabled) toggle();
+    }
+    toggleInfoCoordenada();
+  };
 
   return (
     <Box sx={STYLES.container}>
@@ -70,13 +96,13 @@ export default function Home() {
       <TabStandar
         onCargarFile={openFileDialog}
         hideModel={handleToggleModelVisibility}
-        onCloseBrowser={toggleBrowser}
-        onCloseRdiManager={toggleRDIManager}
-        onToggleInfoCoordenada={toggleInfoCoordenada}
+        onCloseBrowser={handleToggleBrowser}
+        onCloseRdiManager={toggleRDIManager} // RDI Manager sigue independiente
+        onToggleInfoCoordenada={handleToggleInfoCoordenada}
         pickedPoint={pickedPoint}
         onResetCamera={resetCamera}
         sectionEnabled={enabled}
-        onToggleSection={toggle}
+        onToggleSection={handleToggleSection}
         sectionPlanes={planesList}
       />
 
@@ -127,14 +153,12 @@ export default function Home() {
             onChange={handleFileSelection}
           />
 
-          {showBrowser && (
-            <Browser
-              ocultarModelo={handleToggleModelVisibility}
-              listaModelos={importedModels}
-              onCloseBrowser={toggleBrowser}
-              sx={STYLES.browser}
-            />
-          )}
+          <Browser
+            open={showBrowser}
+            onClose={toggleBrowser}
+            listaModelos={importedModels}
+            ocultarModelo={handleToggleModelVisibility}
+          />
 
           <SectionManagerWindow
             open={enabled}
@@ -142,6 +166,12 @@ export default function Home() {
             planes={planesList}
             onDeletePlane={deletePlane}
             onTogglePlane={togglePlane}
+          />
+
+          <CoordinateInfoWindow
+            open={showInfoCoordenada}
+            onClose={toggleInfoCoordenada}
+            point={pickedPoint}
           />
         </Box>
 

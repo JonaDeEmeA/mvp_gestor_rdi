@@ -1,77 +1,28 @@
 import React from 'react';
 import {
-  Paper,
   Typography,
   Box,
   IconButton,
   List,
   ListItem,
   ListItemText,
-  Divider,
-  useTheme,
-  useMediaQuery,
-  Button
+  Divider
 } from '@mui/material';
 import {
-  Close as CloseIcon,
   Delete as DeleteIcon,
-  DragIndicator as DragIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon
 } from '@mui/icons-material';
-import Draggable from 'react-draggable';
+import FloatingWindow from './FloatingWindow';
 
 const SectionManagerWindow = ({ open, onClose, planes = [], onDeletePlane, onTogglePlane }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const nodeRef = React.useRef(null);
-
-  if (!open) return null;
-
-  const content = (
-    <Paper
-      ref={nodeRef}
-      elevation={3}
-      sx={{
-        width: isMobile ? '100%' : '300px',
-        height: isMobile ? '30vh' : '500px',
-        position: 'absolute',
-        top: isMobile ? 60 : 0,
-        left: 0,
-        zIndex: 1000,
-        display: 'flex',
-        flexDirection: 'column',
-        bgcolor: 'background.paper',
-        borderRadius: isMobile ? 0 : 1,
-        overflow: 'hidden',
-        border: '1px solid',
-        borderColor: 'divider',
-        pointerEvents: 'auto'
-      }}
+  return (
+    <FloatingWindow
+      open={open}
+      onClose={onClose}
+      title="Gestor de Secciones"
     >
-      {/* Header */}
-      <Box
-        className="handle"
-        sx={{
-          p: 1,
-          display: 'flex',
-          alignItems: 'center',
-          bgcolor: '#1F3A5F',
-          color: 'white',
-          cursor: isMobile ? 'default' : 'move',
-          userSelect: 'none'
-        }}
-      >
-        {!isMobile && <DragIcon fontSize="small" sx={{ mr: 1, opacity: 0.5 }} />}
-        <Typography variant="subtitle1" sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: '0.9rem' }}>
-          Gestor de Secciones
-        </Typography>
-        <IconButton size="small" onClick={onClose} sx={{ color: 'white' }}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </Box>
-
-      <Box sx={{ p: 2, flexGrow: 1, overflowY: 'auto' }}>
+      <Box sx={{ flexGrow: 1 }}>
         <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
           {planes.length === 0
             ? 'No hay planos creados. Haz doble clic en el modelo.'
@@ -108,30 +59,16 @@ const SectionManagerWindow = ({ open, onClose, planes = [], onDeletePlane, onTog
             </React.Fragment>
           ))}
         </List>
+
+        <Box sx={{ mt: 2, p: 1, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
+          <Typography variant="caption" color="text.secondary">
+            Usa Delete o Backspace para borrar plano bajo el mouse
+          </Typography>
+        </Box>
       </Box>
-
-      <Box sx={{ p: 1, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
-        <Typography variant="caption" color="text.secondary">
-          Usa Delete o Backspace para borrar plano bajo el mouse
-        </Typography>
-      </Box>
-    </Paper>
-  );
-
-  if (isMobile) {
-    return content;
-  }
-
-  return (
-    <Draggable
-      handle=".handle"
-      nodeRef={nodeRef}
-      bounds="parent"
-      defaultPosition={{ x: 20, y: 20 }}
-    >
-      {content}
-    </Draggable>
+    </FloatingWindow>
   );
 };
 
 export default SectionManagerWindow;
+

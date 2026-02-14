@@ -16,16 +16,25 @@ export const useViewerState = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+  // Función para cerrar solo las ventanas flotantes (FloatingWindow)
+  const closeFloatingWindows = () => {
+    setShowBrowser(false);
+    setShowInfoCoordenada(false);
+  };
+
   // Manejadores de eventos para UI
   const toggleBrowser = () => {
+    if (!showBrowser) closeFloatingWindows();
     setShowBrowser(!showBrowser);
   };
-  
+
   const toggleRDIManager = () => {
+    // RDIManager es independiente, no cierra las otras ventanas
     setShowRDIManager(!showRDIManager);
   };
 
   const toggleInfoCoordenada = () => {
+    if (!showInfoCoordenada) closeFloatingWindows();
     setShowInfoCoordenada(prevState => !prevState);
   };
 
@@ -53,7 +62,7 @@ export const useViewerState = () => {
   };
 
   // Función placeholder para exportBCF
-  
+
 
   return {
     importedModels,
@@ -65,6 +74,7 @@ export const useViewerState = () => {
     toggleBrowser,
     toggleRDIManager,
     toggleInfoCoordenada,
+    closeFloatingWindows,
     createToggleModelVisibility,
   };
 };
