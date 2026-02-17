@@ -56,7 +56,7 @@ const EditPanel = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
+
   const {
     width: panelWidth,
     isResizing,
@@ -75,7 +75,7 @@ const EditPanel = ({
         left: { xs: 'auto', sm: 0 },
         top: { xs: 'auto', sm: 0 },
         height: { xs: 'auto', sm: '100%' },
-        width: { 
+        width: {
           xs: '100%', // En móviles ocupa toda la pantalla
           sm: `${panelWidth}%` // En desktop usa el ancho redimensionable
         },
@@ -160,9 +160,10 @@ const EditPanel = ({
   );
 };
 
-export default function TabTools({ sx,  topic, world, component, onClose }) {
+export default function TabTools({ sx, topic, world, component, onClose }) {
   const [tabValue, setTabValue] = useState(0)
   const [filterTipo, setFilterTipo] = useState("")
+  const [filterEstado, setFilterEstado] = useState("")
   const [showEditPanel, setShowEditPanel] = useState(false)
   const [editPanelMode, setEditPanelMode] = useState('view'); // 'view' o 'edit'
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -176,7 +177,7 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
   const { db, loading: dbLoading, error: dbError } = useIndexedDB()
   const { bcfTopicSet, createBCFTopic, clearAllTopics, importBCF, exportBCF, exportBCFWithCorrectXML } = useBCFTopics(component, db);
 
-    // Hooks para el formulario de AGREGAR
+  // Hooks para el formulario de AGREGAR
   const addFormLogic = useRDIForm();
   const addViewpointsLogic = useViewpoints(component, world);
 
@@ -208,6 +209,7 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
     getRDIByIdFromDB,
     saveRDI,
     updateRDI,
+    deleteRDI,
     updateRDIStatus,
     clearAllRDIs,
     getRDIStats,
@@ -222,33 +224,33 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
     setTabValue(newValue)
   }
 
-    // Handler para cerrar TabTools
+  // Handler para cerrar TabTools
   const handleClose = () => {
     console.log('🚪 PASO 5.2: Ejecutando handleClose');
-    
+
     // Verificar si hay formulario sin guardar
     if (addFormLogic.showForm && addFormLogic.formData.titulo) {
       const confirmClose = window.confirm(
         '¿Estás seguro de cerrar? Hay cambios sin guardar que se perderán.'
       );
-      
+
       if (!confirmClose) {
         console.log('❌ Cierre cancelado');
         return;
       }
     }
-    
+
     // Limpiar estado
     addFormLogic.cancelForm();
     addViewpointsLogic.resetViewpoint();
-    
+
     if (showEditPanel) {
       setShowEditPanel(false);
       setEditingItem(null);
       editFormLogic.cancelForm();
       editViewpointsLogic.resetViewpoint();
     }
-    
+
     // Llamar a la función de cierre del padre
     if (typeof onClose === 'function') {
       console.log('✅ Llamando a onClose del padre');
@@ -260,7 +262,7 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
 
   const handleAgregarRDI = () => {
     //startNewForm()
-     addFormLogic.startNewForm();
+    addFormLogic.startNewForm();
     addViewpointsLogic.resetViewpoint();
     // Opcional: cerrar el panel de edición si está abierto para evitar confusiones
     /*if (showEditPanel) {
@@ -273,10 +275,10 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
   // Manejar envío del formulario
   const handleAddFormAccept = async () => {
     // Obtener datos del snapshot si existe
-    
-      const snapshotData = addViewpointsLogic.getSnapshotData();
-      // Función para crear nuevo RDI
-      const success = await addFormLogic.handleSubmit(
+
+    const snapshotData = addViewpointsLogic.getSnapshotData();
+    // Función para crear nuevo RDI
+    const success = await addFormLogic.handleSubmit(
       async (rdiData) => {
         // Guardar en IndexedDB con snapshot
         const savedRDI = await saveRDI(rdiData, snapshotData)
@@ -286,11 +288,11 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
       // Función para actualizar RDI existente
 
 
-          () => Promise.resolve() // No se usa para agregar
+      () => Promise.resolve() // No se usa para agregar
     );
 
     if (success) {
-     
+
       addViewpointsLogic.resetViewpoint();
       console.log('RDI guardado exitosamente con snapshot:', snapshotData ? 'Sí' : 'No')
     }
@@ -298,12 +300,12 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
 
 
 
-    const handleAddFormCancel = () => {
+  const handleAddFormCancel = () => {
     addFormLogic.cancelForm();
     addViewpointsLogic.resetViewpoint();
   };
 
-    const handleEditFormAccept = async () => {
+  const handleEditFormAccept = async () => {
     const snapshotData = editViewpointsLogic.getSnapshotData();
     const success = await editFormLogic.handleSubmit(
       () => Promise.resolve(), // No se usa para editar
@@ -352,11 +354,11 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
   };
 
   const onVerSnapshotPV = () => {
-    if  (!editingItem || !editingItem.snapshot || !editingItem.snapshot.viewpointData ) {
+    if (!editingItem || !editingItem.snapshot || !editingItem.snapshot.viewpointData) {
       console.warn('No hay datos de snapshot disponibles para este RDI.');
       return;
     }
-    
+
     console.log("VER...", editingItem.id);
     updateCameraFromViewpoint(editingItem.snapshot.viewpointData);
   }
@@ -393,9 +395,15 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
     }
   }
 
-  const handleInfoClick = (rdi) => {
-    console.log('Información del RDI:', rdi)
-    // Aquí puedes implementar un modal o drawer con información detallada
+  const handleDeleteRDI = async (id) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este RDI?')) {
+      try {
+        await deleteRDI(id);
+        console.log('RDI eliminado exitosamente');
+      } catch (error) {
+        console.error('Error eliminando RDI:', error);
+      }
+    }
   }
 
   const handleClearAllRDIs = async () => {
@@ -436,7 +444,7 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
       console.log('BCF Topic creado:', topic);
 
       // 3. Exportar el topic a un archivo .bcfzip
-      //if (topic) await exportBCFWithCorrectXML(topic);
+      if (topic) await exportBCFWithCorrectXML(topic);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -457,9 +465,11 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
 
   // Filtrar lista según el filtro seleccionado
   const getFilteredRDIList = () => {
-    return filterTipo
-      ? rdiList.filter((rdi) => (rdi.tipo || rdi.types) === filterTipo)
-      : rdiList;
+    return rdiList.filter((rdi) => {
+      const matchTipo = filterTipo ? (rdi.tipo || rdi.types) === filterTipo : true;
+      const matchEstado = filterEstado ? (rdi.estado || rdi.statuses) === filterEstado : true;
+      return matchTipo && matchEstado;
+    });
   }
 
   // Mostrar loading si los datos no están listos
@@ -551,7 +561,7 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
           />
         )}
       </EditPanel>
-      
+
       {/* Diálogo de confirmación para cambios sin guardar */}
       <Dialog
         open={showConfirmDialog}
@@ -589,7 +599,7 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
           position: 'relative',
         }}
       >
-         <CloseButton 
+        <CloseButton
           onClose={handleClose}
           tooltip="Cerrar gestor de RDI"
         />
@@ -598,88 +608,90 @@ export default function TabTools({ sx,  topic, world, component, onClose }) {
           value={tabValue}
           onChange={handleTabChange}
           variant="fullWidth"
-          sx={{ borderBottom: 1, borderColor: "divider",  paddingRight: '40px' }}
+          sx={{ borderBottom: 1, borderColor: "divider", paddingRight: '40px' }}
         >
           <Tab label={`RDI (${rdiList.length})`} {...a11yProps(0)} />
           <Tab label="DASHBOARD" {...a11yProps(1)} />
         </Tabs>
 
         {/* Panel de RDI */}
-        <TabPanel value={tabValue} index={0} sx={{ 
-  overflow: 'hidden',  // ✅ PASO 6.1
-  display: 'flex',
-  flexDirection: 'column',
-  height: '100%',
-  padding: 0  // Eliminar padding del TabPanel
-}}>
-  {console.log('📋 PASO 6: Renderizando TabPanel RDI con nueva estructura')}
-  
-  <Box sx={{
-    height: "100%",
-    display: "flex",
-    flexDirection: "column",
-    overflow: 'hidden'
-  }}>
+        <TabPanel value={tabValue} index={0} sx={{
+          overflow: 'hidden',  // ✅ PASO 6.1
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          padding: 0  // Eliminar padding del TabPanel
+        }}>
+          {console.log('📋 PASO 6: Renderizando TabPanel RDI con nueva estructura')}
 
-    {/* ✅ PASO 6.2: HEADER - Sección Superior Fija */}
-    <RDIHeader
-      showForm={addFormLogic.showForm}
-      onAddRDI={handleAgregarRDI}
-      onImportBCF={importBCF}
-      rdiCount={rdiList.length}
-    />
+          <Box sx={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            overflow: 'hidden'
+          }}>
 
-    {/* ✅ PASO 6.3: CONTENT - Sección Media Scrollable */}
-    <ContentSection>
-      {console.log('📋 PASO 6.3: Renderizando contenido principal')}
-      
-      {/* Formulario RDI */}
-      {addFormLogic.showForm && (
-        <Box sx={{ mb: 2 }}>
-          <RDIForm
-            showForm={addFormLogic.showForm}
-            formData={addFormLogic.formData}
-            onFormChange={addFormLogic.handleFormChange}
-            onAccept={handleAddFormAccept}
-            onCancel={handleAddFormCancel}
-            bcfTopicSet={bcfTopicSet}
-            isEditing={addFormLogic.isEditing}
-            isSubmitting={addFormLogic.isSubmitting}
-            snapshotUrl={addViewpointsLogic.snapshotUrl}
-            snapShotReady={addViewpointsLogic.snapShotReady}
-            onCreateViewpoint={addViewpointsLogic.createViewpoint}
-            onUpdateSnapshot={addViewpointsLogic.updateSnapshot}
-          />
-        </Box>
-      )}
+            {/* ✅ PASO 6.2: HEADER - Sección Superior Fija */}
+            <RDIHeader
+              showForm={addFormLogic.showForm}
+              onAddRDI={handleAgregarRDI}
+              onImportBCF={importBCF}
+              rdiCount={rdiList.length}
+            />
 
-      {/* Lista de RDIs */}
-      {!addFormLogic.showForm && (
-        <RDIList
-          rdiList={getFilteredRDIList()}
-          filterTipo={filterTipo}
-          onFilterChange={setFilterTipo}
-          onEdit={handleEditRDI}
-          onStatusChange={handleStatusChange}
-          onInfo={handleInfoClick}
-          onExportToBCF={handleExportToBCF}
-          bcfTopicSet={bcfTopicSet}
-          totalCount={rdiList.length}
-        />
-      )}
-    </ContentSection>
+            {/* ✅ PASO 6.3: CONTENT - Sección Media Scrollable */}
+            <ContentSection>
+              {console.log('📋 PASO 6.3: Renderizando contenido principal')}
 
-    {/* ✅ PASO 6.4: FOOTER - Sección Inferior Fija */}
-    {!addFormLogic.showForm && (
-      <RDIFooter
-        rdiList={rdiList}
-        bcfTopicSet={bcfTopicSet}
-        onExportAll={handleExportAllRDIsToBCF}
-        onDeleteAll={handleClearAllRDIs}
-      />
-    )}
-  </Box>
-</TabPanel>
+              {/* Formulario RDI */}
+              {addFormLogic.showForm && (
+                <Box sx={{ mb: 2 }}>
+                  <RDIForm
+                    showForm={addFormLogic.showForm}
+                    formData={addFormLogic.formData}
+                    onFormChange={addFormLogic.handleFormChange}
+                    onAccept={handleAddFormAccept}
+                    onCancel={handleAddFormCancel}
+                    bcfTopicSet={bcfTopicSet}
+                    isEditing={addFormLogic.isEditing}
+                    isSubmitting={addFormLogic.isSubmitting}
+                    snapshotUrl={addViewpointsLogic.snapshotUrl}
+                    snapShotReady={addViewpointsLogic.snapShotReady}
+                    onCreateViewpoint={addViewpointsLogic.createViewpoint}
+                    onUpdateSnapshot={addViewpointsLogic.updateSnapshot}
+                  />
+                </Box>
+              )}
+
+              {/* Lista de RDIs */}
+              {!addFormLogic.showForm && (
+                <RDIList
+                  rdiList={getFilteredRDIList()}
+                  filterTipo={filterTipo}
+                  onFilterChange={setFilterTipo}
+                  filterEstado={filterEstado}
+                  onFilterEstadoChange={setFilterEstado}
+                  onEdit={handleEditRDI}
+                  onStatusChange={handleStatusChange}
+                  onDelete={handleDeleteRDI}
+                  onExportToBCF={handleExportToBCF}
+                  bcfTopicSet={bcfTopicSet}
+                  totalCount={rdiList.length}
+                />
+              )}
+            </ContentSection>
+
+            {/* ✅ PASO 6.4: FOOTER - Sección Inferior Fija */}
+            {!addFormLogic.showForm && (
+              <RDIFooter
+                rdiList={rdiList}
+                bcfTopicSet={bcfTopicSet}
+                onExportAll={handleExportAllRDIsToBCF}
+                onDeleteAll={handleClearAllRDIs}
+              />
+            )}
+          </Box>
+        </TabPanel>
 
         {/* Panel Dashboard */}
         <TabPanel value={tabValue} index={1}>

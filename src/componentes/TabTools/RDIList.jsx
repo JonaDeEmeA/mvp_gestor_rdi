@@ -12,17 +12,19 @@ import {
   IconButton,
   Chip,
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import InfoIcon from '@mui/icons-material/Info';
+import PreviewIcon from '@mui/icons-material/Preview';
+import DeleteIcon from '@mui/icons-material/Delete';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 const RDIList = ({
   rdiList,
   filterTipo,
   onFilterChange,
+  filterEstado,
+  onFilterEstadoChange,
   onEdit,
   onStatusChange,
-  onInfo,
+  onDelete,
   onExportToBCF,
   bcfTopicSet,
   totalCount,
@@ -59,27 +61,44 @@ const RDIList = ({
       }}>
 
 
-        {/* Selector de filtro */}
-        <FormControl variant="standard" size="small" fullWidth>
-          <InputLabel>Filtrar por tipo</InputLabel>
-          <Select
-            value={filterTipo}
-            label="Filtrar por tipo"
-            onChange={(e) => onFilterChange(e.target.value)}
-          >
-            <MenuItem value="">
-              <em>Todos ({totalCount})</em>
-            </MenuItem>
-            {Array.from(bcfTopicSet.types || []).map((tipo) => {
-              const count = rdiList.filter(rdi => (rdi.tipo || rdi.types) === tipo).length;
-              return (
+        {/* Selectores de filtro */}
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <FormControl variant="standard" size="small" fullWidth>
+            <InputLabel>Filtrar por tipo</InputLabel>
+            <Select
+              value={filterTipo}
+              label="Filtrar por tipo"
+              onChange={(e) => onFilterChange(e.target.value)}
+            >
+              <MenuItem value="">
+                <em>Todos</em>
+              </MenuItem>
+              {Array.from(bcfTopicSet.types || []).map((tipo) => (
                 <MenuItem key={tipo} value={tipo}>
-                  {tipo} ({count})
+                  {tipo}
                 </MenuItem>
-              );
-            })}
-          </Select>
-        </FormControl>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl variant="standard" size="small" fullWidth>
+            <InputLabel>Filtrar por estado</InputLabel>
+            <Select
+              value={filterEstado}
+              label="Filtrar por estado"
+              onChange={(e) => onFilterEstadoChange(e.target.value)}
+            >
+              <MenuItem value="">
+                <em>Todos</em>
+              </MenuItem>
+              {Array.from(bcfTopicSet.statuses || []).map((estado) => (
+                <MenuItem key={estado} value={estado}>
+                  {estado}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
 
         {/* Estadísticas del filtro */}
         <Box sx={{ pt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -89,7 +108,7 @@ const RDIList = ({
             color="primary"
             variant="outlined"
           />
-          {filterTipo && (
+          {(filterTipo || filterEstado) && (
             <Chip
               label={`Filtrados: ${rdiList.length}`}
               size="small"
@@ -123,41 +142,43 @@ const RDIList = ({
               key={rdi.id}
               divider
               secondaryAction={
-                <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Box sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 0,
+                  alignItems: 'center',
+                  ml: 2
+                }}>
                   {/* Botón Exportar a BCF */}
                   <IconButton
-                    edge="end"
                     aria-label="export-bcf"
                     onClick={() => onExportToBCF(rdi.id)}
                     size="small"
                     title="Exportar a formato BCF"
                     color="success"
                   >
-                    <FileDownloadIcon />
+                    <FileDownloadIcon fontSize="small" />
                   </IconButton>
 
-                  {/* Botón Info */}
+                  {/* Botón Eliminar */}
                   <IconButton
-                    edge="end"
-                    aria-label="info"
-                    onClick={() => onInfo(rdi)}
+                    aria-label="delete"
+                    onClick={() => onDelete(rdi.id)}
                     size="small"
-                    title="Ver información detallada"
-                    sx={{ ml: 1 }}
+                    title="Eliminar RDI"
+                    color="error"
                   >
-                    <InfoIcon />
+                    <DeleteIcon fontSize="small" />
                   </IconButton>
 
-                  {/* Botón Editar */}
+                  {/* Botón Editar / Preview */}
                   <IconButton
-                    edge="end"
                     aria-label="edit"
                     onClick={() => onEdit(rdi)}
                     size="small"
-                    sx={{ ml: 1 }}
-                    title="Editar RDI"
+                    title="Ver RDI"
                   >
-                    <EditIcon />
+                    <PreviewIcon fontSize="small" />
                   </IconButton>
                 </Box>
               }
@@ -179,29 +200,22 @@ const RDIList = ({
                 secondary={
                   <Box component="span" sx={{ mt: 1, display: 'block' }}>
                     <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
-                      <strong>ID:</strong> {rdi.id}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
                       <strong>Especialidad:</strong> {rdi.etiqueta || rdi.labels || "No definida"}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
-                      <strong>Fecha:</strong> {rdi.fecha ? new Date(rdi.fecha).toLocaleDateString('es-ES') : 'No definida'}
+                      <strong>Asignado a:</strong> {rdi.assignedTo || "No asignado"}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
+                      <strong>Fecha:</strong> {(() => {
+                        if (!rdi.fecha) return 'No definida';
+                        if (typeof rdi.fecha === 'string' && rdi.fecha.includes('/')) return rdi.fecha;
+                        const date = new Date(rdi.fecha);
+                        return isNaN(date.getTime()) ? 'Fecha inválida' : date.toLocaleDateString('es-ES');
+                      })()}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
                       <strong>Estado:</strong> {rdi.estado || rdi.statuses || "No definido"}
                     </Typography>
-                    {rdi.descripcion && (
-                      <Typography variant="body2" color="text.secondary" component="span" sx={{ mt: 0.5, display: 'block' }}>
-                        <strong>Descripción:</strong> {rdi.descripcion.length > 100
-                          ? `${rdi.descripcion.substring(0, 100)}...`
-                          : rdi.descripcion}
-                      </Typography>
-                    )}
-                    {rdi.updatedAt && (
-                      <Typography variant="caption" color="text.secondary" component="span" sx={{ mt: 0.5, display: 'block' }}>
-                        Última actualización: {new Date(rdi.updatedAt).toLocaleString('es-ES')}
-                      </Typography>
-                    )}
                   </Box>
                 }
               />

@@ -69,7 +69,10 @@ export default function TabStandar({
   onResetCamera,
   sectionEnabled,
   onToggleSection,
-  sectionPlanes, }) {
+  sectionPlanes,
+  browserEnabled,
+  rdiManagerEnabled,
+  infoCoordenadaEnabled, }) {
   const [value, setValue] = React.useState(0);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedTab, setSelectedTab] = React.useState(0);
@@ -128,7 +131,7 @@ export default function TabStandar({
                 <ListItemIcon>
                   <VisibilityIcon />
                 </ListItemIcon>
-                <ListItemText primary="Explorador" />
+                <ListItemText primary={browserEnabled ? "Cerrar Explorador" : "Explorador"} />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
@@ -139,18 +142,7 @@ export default function TabStandar({
                 <ListItemIcon>
                   <LayersIcon />
                 </ListItemIcon>
-                <ListItemText primary="Gestor RDI" />
-              </ListItemButton>
-            </ListItem>
-            <ListItem disablePadding>
-              <ListItemButton onClick={() => {
-                onResetCamera();
-                if (isMobile) setDrawerOpen(false);
-              }}>
-                <ListItemIcon>
-                  <HomeIcon />
-                </ListItemIcon>
-                <ListItemText primary="HOME 3D View" />
+                <ListItemText primary={rdiManagerEnabled ? "Cerrar Gestor RDI" : "Gestor RDI"} />
               </ListItemButton>
             </ListItem>
           </List>
@@ -168,7 +160,7 @@ export default function TabStandar({
                   <BuildIcon />
                 </ListItemIcon>
                 <ListItemText
-                  primary="Info Coordenadas"
+                  primary={infoCoordenadaEnabled ? "Cerrar Coordenadas" : "Info Coordenadas"}
                   secondary={pickedPoint ?
                     `X: ${pickedPoint.x.toFixed(2)} | Y: ${pickedPoint.y.toFixed(2)} | Z: ${pickedPoint.z.toFixed(2)}`
                     : 'No seleccionado'
@@ -241,21 +233,18 @@ export default function TabStandar({
           </CustomTabPanel>
           <CustomTabPanel value={value} index={1}>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button sx={{ fontSize: '0.675rem' }} size='small' variant="outlined" startIcon={<VisibilityIcon />} onClick={onCloseBrowser}>
-                Explorador
+              <Button sx={{ fontSize: '0.675rem' }} size='small' variant={browserEnabled ? 'contained' : 'outlined'} startIcon={<VisibilityIcon />} onClick={onCloseBrowser}>
+                {browserEnabled ? 'Cerrar Explorador' : 'Explorador'}
               </Button>
-              <Button size='small' variant="outlined" startIcon={<LayersIcon />} onClick={onCloseRdiManager}>
-                Gestor RDI
-              </Button>
-              <Button size='small' variant="outlined" startIcon={<HomeIcon />} onClick={onResetCamera}>
-                HOME 3DVIEW
+              <Button size='small' variant={rdiManagerEnabled ? 'contained' : 'outlined'} startIcon={<LayersIcon />} onClick={onCloseRdiManager}>
+                {rdiManagerEnabled ? 'Cerrar RDI' : 'Gestor RDI'}
               </Button>
             </Box>
           </CustomTabPanel>
           <CustomTabPanel value={value} index={2}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Button size='small' variant="outlined" startIcon={<BuildIcon />} onClick={onToggleInfoCoordenada}>
-                Info Coor
+              <Button size='small' variant={infoCoordenadaEnabled ? 'contained' : 'outlined'} startIcon={<BuildIcon />} onClick={onToggleInfoCoordenada}>
+                {infoCoordenadaEnabled ? 'Cerrar Coor' : 'Info Coor'}
               </Button>
               <Button
                 size='small'

@@ -214,6 +214,8 @@ export const useBCFTopics = (component, db) => {
       type: topicData.tipo,
       status: topicData.estado,
       labels: new Set([topicData.etiqueta]),
+      assignedTo: topicData.assignedTo,
+      creationAuthor: topicData.creationAuthor,
     };
 
     // Si es edición, agrega el id original
@@ -322,10 +324,11 @@ export const useBCFTopics = (component, db) => {
   <Header/>  
   <Topic Guid="${topic.guid}" TopicType="${topic.type}" TopicStatus="${topic.status}">  
     <Title>${topic.title}</Title>  
-    <CreationAuthor>${topic.creationAuthor}</CreationAuthor>  
+    <CreationAuthor>${topic.creationAuthor || 'signed.user@mail.com'}</CreationAuthor>  
     <CreationDate>${topic.creationDate.toISOString()}</CreationDate>  
     ${topic.dueDate ? `<DueDate>${topic.dueDate.toISOString()}</DueDate>` : ''}  
     <Description>${topic.description || ''}</Description>  
+    ${topic.assignedTo ? `<AssignedTo>${topic.assignedTo}</AssignedTo>` : ''}
     <DocumentReferences/>  
     <RelatedTopics/>  
     <Labels>${Array.from(topic.labels).map(l => `<Label>${l}</Label>`).join('')}</Labels>  
@@ -339,7 +342,7 @@ export const useBCFTopics = (component, db) => {
 
     // 3. Generar viewpoint.bcfv  
     const camera = viewpoint.camera;
-  
+
     const viewpointXml = `<?xml version="1.0" encoding="UTF-8"?>  
 <VisualizationInfo Guid="${viewpointGuid}"> 
   <Components>  

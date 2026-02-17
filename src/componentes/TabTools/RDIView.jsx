@@ -1,11 +1,11 @@
 import React from 'react';
-import { 
-  Box, 
-  Typography, 
-  Chip, 
-  Paper, 
-  Grid, 
-  Divider, 
+import {
+  Box,
+  Typography,
+  Chip,
+  Paper,
+  Grid,
+  Divider,
   Button,
   Card,
   CardContent,
@@ -28,65 +28,46 @@ import {
 
 // ✅ PASO 2.1: Componente para Cards de Información Principal
 const InfoCard = ({ icon: Icon, label, value, color = 'primary' }) => {
-  console.log('📋 PASO 2.1: Renderizando InfoCard:', label);
-  
   return (
-    <Card 
-      elevation={0} 
-      sx={{ 
-        border: '1px solid',
-        borderColor: 'divider',
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        p: 1.5,
         borderRadius: 2,
-        height: '100%',
-        transition: 'all 0.2s',
-        '&:hover': {
-          boxShadow: 2,
-          borderColor: `${color}.main`
-        }
+        bgcolor: `${color}.main`,
+        color: 'white',
+        boxShadow: `0 2px 4px ${color}40`,
+        flex: 1
       }}
     >
-      <CardContent sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center',
-        gap: 1,
-        p: 2
+      <Avatar sx={{
+        bgcolor: 'rgba(255,255,255,0.2)',
+        width: 32,
+        height: 32
       }}>
-        <Avatar sx={{ 
-          bgcolor: `${color}.main`, 
-          width: 40, 
-          height: 40 
-        }}>
-          <Icon fontSize="small" />
-        </Avatar>
-        <Typography 
-          variant="caption" 
-          color="text.secondary"
-          textAlign="center"
-          sx={{ fontWeight: 500 }}
-        >
+        <Icon sx={{ fontSize: 18, color: 'white' }} />
+      </Avatar>
+      <Box>
+        <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', lineHeight: 1 }}>
           {label}
         </Typography>
-        <Typography 
-          variant="body2" 
-          fontWeight="bold"
-          textAlign="center"
-          color={color}
-        >
+        <Typography variant="body2" fontWeight="bold">
           {value || 'No especificado'}
         </Typography>
-      </CardContent>
-    </Card>
+      </Box>
+    </Box>
   );
 };
 
 // ✅ PASO 2.2: Componente para Filas de Detalle
 const DetailRow = ({ icon: Icon, label, value, color = 'text.secondary' }) => {
   console.log('📋 PASO 2.2: Renderizando DetailRow:', label);
-  
+
   return (
-    <Box sx={{ 
-      display: 'flex', 
+    <Box sx={{
+      display: 'flex',
       alignItems: 'center',
       gap: 1.5,
       py: 1,
@@ -133,7 +114,13 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
   const formatDate = (dateString) => {
     if (!dateString) return 'No especificado';
     try {
-      return format(new Date(dateString), 'PPP', { locale: es });
+      // Si ya está en formato DD/MM/YYYY o similar con slash, retornarlo directamente o parsearlo
+      if (typeof dateString === 'string' && dateString.includes('/')) {
+        return dateString;
+      }
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString;
+      return format(date, 'PPP', { locale: es });
     } catch (error) {
       console.error('Error formateando fecha:', error);
       return dateString;
@@ -143,7 +130,13 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
   const formatDateTime = (dateString) => {
     if (!dateString) return 'No especificado';
     try {
-      return format(new Date(dateString), 'PPPp', { locale: es });
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        // Si falla el parseo normal pero tiene slash, es nuestra fecha personalizada
+        if (typeof dateString === 'string' && dateString.includes('/')) return dateString;
+        return dateString;
+      }
+      return format(date, 'PPPp', { locale: es });
     } catch (error) {
       console.error('Error formateando fecha/hora:', error);
       return dateString;
@@ -151,19 +144,19 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
   };
 
   return (
-    <Box sx={{ 
-      height: '100%', 
+    <Box sx={{
+      height: '100%',
       overflow: 'auto',
       '&::-webkit-scrollbar': { width: '8px' },
-      '&::-webkit-scrollbar-thumb': { 
-        backgroundColor: 'rgba(0,0,0,0.2)', 
-        borderRadius: '4px' 
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        borderRadius: '4px'
       }
     }}>
       {/* ═══════════════════════════════════════ */}
       {/* SECCIÓN 1: HEADER CON TÍTULO */}
       {/* ═══════════════════════════════════════ */}
-      <Box sx={{ 
+      <Box sx={{
         position: 'sticky',
         top: 0,
         bgcolor: 'background.paper',
@@ -173,11 +166,11 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
         borderColor: 'primary.main',
         mb: 3
       }}>
-        <Typography 
-          variant="h5" 
-          component="h2" 
+        <Typography
+          variant="h5"
+          component="h2"
           gutterBottom
-          sx={{ 
+          sx={{
             fontWeight: 'bold',
             color: 'primary.main',
             display: 'flex',
@@ -197,40 +190,28 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
       {/* SECCIÓN 2: INFORMACIÓN PRINCIPAL (CARDS) */}
       {/* ═══════════════════════════════════════ */}
       <Box sx={{ mb: 3 }}>
-        <Typography 
-          variant="subtitle2" 
-          color="text.secondary" 
+        <Typography
+          variant="subtitle2"
+          color="text.secondary"
           gutterBottom
           sx={{ fontWeight: 'bold', mb: 2 }}
         >
           Información Principal
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={4}>
-            <InfoCard
-              icon={LabelIcon}
-              label="Tipo"
-              value={getLabel(bcfTopicSet.types, rdi.tipo)}
-              color="primary"
-            />
-          </Grid>
-          <Grid item xs={4}>
-            <InfoCard
-              icon={FlagIcon}
-              label="Estado"
-              value={getLabel(bcfTopicSet.statuses, rdi.estado)}
-              color="secondary"
-            />
-          </Grid>
-          <Grid item xs={4}>
-            <InfoCard
-              icon={InfoIcon}
-              label="Prioridad"
-              value={getLabel(bcfTopicSet.priorities, rdi.prioridad)}
-              color="warning"
-            />
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <InfoCard
+            icon={LabelIcon}
+            label="Tipo"
+            value={getLabel(bcfTopicSet.types, rdi.tipo)}
+            color="primary"
+          />
+          <InfoCard
+            icon={FlagIcon}
+            label="Estado"
+            value={getLabel(bcfTopicSet.statuses, rdi.estado)}
+            color="secondary"
+          />
+        </Box>
       </Box>
 
       <Divider sx={{ my: 3 }} />
@@ -239,9 +220,9 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
       {/* SECCIÓN 3: DETALLES ORGANIZADOS */}
       {/* ═══════════════════════════════════════ */}
       <Box sx={{ mb: 3 }}>
-        <Typography 
-          variant="subtitle2" 
-          color="text.secondary" 
+        <Typography
+          variant="subtitle2"
+          color="text.secondary"
           gutterBottom
           sx={{ fontWeight: 'bold', mb: 2 }}
         >
@@ -258,28 +239,28 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
           <DetailRow
             icon={PersonIcon}
             label="Autor"
-            value={rdi.creationAuthor}
+            value={rdi.creationAuthor || rdi.creation_author || rdi.author}
             color="primary.main"
           />
           <Divider />
           <DetailRow
             icon={PersonIcon}
             label="Asignado a"
-            value={rdi.assignedTo}
+            value={rdi.assignedTo || rdi.assigned_to}
             color="primary.main"
           />
           <Divider />
           <DetailRow
             icon={CalendarIcon}
             label="Fecha de Creación"
-            value={formatDateTime(rdi.creationDate)}
+            value={formatDateTime(rdi.creationDate || rdi.creation_date || rdi.createdAt)}
             color="success.main"
           />
           <Divider />
           <DetailRow
             icon={CalendarIcon}
             label="Fecha Límite"
-            value={formatDate(rdi.dueDate)}
+            value={formatDate(rdi.dueDate || rdi.due_date)}
             color="error.main"
           />
         </Paper>
@@ -293,18 +274,18 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <DescriptionIcon sx={{ color: 'text.secondary' }} />
-          <Typography 
-            variant="subtitle2" 
+          <Typography
+            variant="subtitle2"
             color="text.secondary"
             sx={{ fontWeight: 'bold' }}
           >
             Descripción
           </Typography>
         </Box>
-        <Paper 
-          variant="outlined" 
-          sx={{ 
-            p: 2, 
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 2,
             borderRadius: 2,
             bgcolor: 'grey.50',
             minHeight: 80,
@@ -312,15 +293,15 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
             overflow: 'auto'
           }}
         >
-          <Typography 
-            variant="body2" 
-            sx={{ 
+          <Typography
+            variant="body2"
+            sx={{
               whiteSpace: 'pre-wrap',
               color: rdi.description ? 'text.primary' : 'text.secondary',
               fontStyle: rdi.description ? 'normal' : 'italic'
             }}
           >
-            {rdi.description || 'No hay descripción disponible.'}
+            {rdi.descripcion || rdi.description || 'No hay descripción disponible.'}
           </Typography>
         </Paper>
       </Box>
@@ -332,18 +313,18 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
         <Box sx={{ mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <CameraIcon sx={{ color: 'text.secondary' }} />
-            <Typography 
-              variant="subtitle2" 
+            <Typography
+              variant="subtitle2"
               color="text.secondary"
               sx={{ fontWeight: 'bold' }}
             >
               Vista 3D Guardada
             </Typography>
           </Box>
-          <Paper 
-            variant="outlined" 
-            sx={{ 
-              borderRadius: 2, 
+          <Paper
+            variant="outlined"
+            sx={{
+              borderRadius: 2,
               overflow: 'hidden',
               position: 'relative',
               '&:hover .snapshot-overlay': {
@@ -352,16 +333,16 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
             }}
           >
             <Box sx={{ position: 'relative' }}>
-              <img 
-                src={snapshotUrl} 
-                alt="Snapshot del RDI" 
-                style={{ 
-                  width: '100%', 
+              <img
+                src={snapshotUrl}
+                alt="Snapshot del RDI"
+                style={{
+                  width: '100%',
                   height: 'auto',
                   display: 'block',
                   maxHeight: '250px',
                   objectFit: 'cover'
-                }} 
+                }}
               />
               {/* Overlay con botón */}
               <Box
@@ -394,8 +375,8 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
               </Box>
             </Box>
           </Paper>
-          <Typography 
-            variant="caption" 
+          <Typography
+            variant="caption"
             color="text.secondary"
             sx={{ display: 'block', mt: 1, textAlign: 'center' }}
           >
@@ -408,12 +389,12 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
       {/* FOOTER: Información de Modificación */}
       {/* ═══════════════════════════════════════ */}
       {rdi.updatedAt && (
-        <Box sx={{ 
-          mt: 4, 
-          pt: 2, 
-          borderTop: 1, 
+        <Box sx={{
+          mt: 4,
+          pt: 2,
+          borderTop: 1,
           borderColor: 'divider',
-          textAlign: 'center' 
+          textAlign: 'center'
         }}>
           <Typography variant="caption" color="text.secondary">
             Última modificación: {formatDateTime(rdi.updatedAt)}

@@ -8,6 +8,8 @@ const initialFormData = {
   fecha: null,
   estado: "",
   etiqueta: "",
+  assignedTo: "",
+  dueDate: null,
 };
 
 export const useRDIForm = () => {
@@ -23,7 +25,7 @@ export const useRDIForm = () => {
       [field]: value,
     }));
     console.log(formData);
-    
+
   };
 
   // Validar formulario
@@ -33,12 +35,12 @@ export const useRDIForm = () => {
       const value = formData[field];
       return !value || (typeof value === 'string' && value.trim() === '');
     });
-    
+
     if (missingFields.length > 0) {
       console.warn('Campos requeridos faltantes:', missingFields);
       return false;
     }
-    
+
     return true;
   };
 
@@ -47,6 +49,8 @@ export const useRDIForm = () => {
     return {
       ...formData,
       fecha: formData.fecha ? formData.fecha.toLocaleDateString("es-ES") : null,
+      dueDate: formData.dueDate ? formData.dueDate.toLocaleDateString("es-ES") : null,
+      assignedTo: formData.assignedTo || "",
       // Limpiar campos vacíos
       descripcion: formData.descripcion?.trim() || "",
       comentario: formData.comentario?.trim() || "",
@@ -64,13 +68,15 @@ export const useRDIForm = () => {
   // Iniciar edición
   const startEdit = (item) => {
     setFormData({
-      tipo: item.tipo  || "",
+      tipo: item.tipo || "",
       titulo: item.titulo || "",
       descripcion: item.descripcion || "",
       comentario: item.comentario || "",
       fecha: parseDateFromString(item.fecha),
-      estado: item.estado  || "",
-      etiqueta: item.etiqueta  || "",
+      estado: item.estado || "",
+      etiqueta: item.etiqueta || "",
+      assignedTo: item.assignedTo || "",
+      dueDate: parseDateFromString(item.dueDate),
     });
     setEditId(item.id);
     //setShowForm(true);
@@ -96,7 +102,7 @@ export const useRDIForm = () => {
   // Helper para convertir "dd/mm/yyyy" a Date
   const parseDateFromString = (dateStr) => {
     if (!dateStr) return null;
-    
+
     try {
       const [day, month, year] = dateStr.split("/");
       return new Date(Number(year), Number(month) - 1, Number(day));
@@ -115,6 +121,8 @@ export const useRDIForm = () => {
       types: formData.tipo,
       statuses: formData.estado,
       labels: formData.etiqueta,
+      assignedTo: formData.assignedTo,
+      dueDate: formData.dueDate,
     };
   };
 
@@ -129,7 +137,7 @@ export const useRDIForm = () => {
 
     try {
       const preparedData = prepareFormDataForSave();
-      
+
       if (editId !== null) {
         // Actualizar existente
         console.log('Actualizando RDI:', editId, preparedData);
@@ -155,7 +163,7 @@ export const useRDIForm = () => {
     showForm,
     editId,
     isSubmitting,
-    
+
     // Acciones del formulario
     handleFormChange,
     validateForm,
@@ -165,7 +173,7 @@ export const useRDIForm = () => {
     cancelForm,
     resetForm,
     handleSubmit,
-    
+
     // Utilidades
     getBCFTopicData,
     isEditing: editId !== null,

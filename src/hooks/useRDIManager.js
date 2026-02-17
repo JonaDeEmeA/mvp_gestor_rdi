@@ -44,39 +44,39 @@ export const useRDIManager = (db) => {
   }, [db]);
 
   // Consultar RDI por ID directamente desde IndexedDB
-const getRDIByIdFromDB = useCallback(async (id) => {
-  if (!db) {
-    console.warn('IndexedDB no está listo');
-    return null;
-  }
+  const getRDIByIdFromDB = useCallback(async (id) => {
+    if (!db) {
+      console.warn('IndexedDB no está listo');
+      return null;
+    }
 
-  try {
-    const transaction = db.transaction(['topics'], 'readonly');
-    const store = transaction.objectStore('topics');
-    const request = store.get(id);
+    try {
+      const transaction = db.transaction(['topics'], 'readonly');
+      const store = transaction.objectStore('topics');
+      const request = store.get(id);
 
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => {
-        const result = request.result;
-        if (result) {
-          console.log('RDI encontrado en IndexedDB:', result);
-          resolve(result);
-        } else {
-          console.log(`RDI con ID ${id} no encontrado en IndexedDB`);
-          resolve(null);
-        }
-      };
+      return new Promise((resolve, reject) => {
+        request.onsuccess = () => {
+          const result = request.result;
+          if (result) {
+            console.log('RDI encontrado en IndexedDB:', result);
+            resolve(result);
+          } else {
+            console.log(`RDI con ID ${id} no encontrado en IndexedDB`);
+            resolve(null);
+          }
+        };
 
-      request.onerror = (event) => {
-        console.error('Error consultando RDI por ID:', event.target.error);
-        reject(event.target.error);
-      };
-    });
-  } catch (err) {
-    console.error('Error en getRDIByIdFromDB:', err);
-    throw err;
-  }
-}, [db]);
+        request.onerror = (event) => {
+          console.error('Error consultando RDI por ID:', event.target.error);
+          reject(event.target.error);
+        };
+      });
+    } catch (err) {
+      console.error('Error en getRDIByIdFromDB:', err);
+      throw err;
+    }
+  }, [db]);
 
   // Guardar nuevo RDI en IndexedDB y actualizar lista local
   // Solo guarda los datos del formulario (formData)
@@ -92,10 +92,9 @@ const getRDIByIdFromDB = useCallback(async (id) => {
     try {
       const transaction = db.transaction(['topics'], 'readwrite');
       const store = transaction.objectStore('topics');
-      
+
       // Preparar los datos del formulario para guardar
       const rdiToSave = {
-        // Solo datos del formulario
         tipo: formData.tipo,
         titulo: formData.titulo,
         descripcion: formData.descripcion,
@@ -103,10 +102,13 @@ const getRDIByIdFromDB = useCallback(async (id) => {
         fecha: formData.fecha,
         estado: formData.estado,
         etiqueta: formData.etiqueta,
+        assignedTo: formData.assignedTo,
+        dueDate: formData.dueDate,
         // Metadatos de gestión
         id: formData.id || Date.now(),
-        //createdAt: formData.createdAt || new Date().toISOString(),
-        //updatedAt: new Date().toISOString(),
+        creationAuthor: "signed.user@mail.com",
+        creationDate: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         // Datos del snapshot si existe
         ...(snapshotData && {
           snapshot: {
@@ -122,7 +124,7 @@ const getRDIByIdFromDB = useCallback(async (id) => {
       return new Promise((resolve, reject) => {
         request.onsuccess = () => {
           console.log('RDI (formData + snapshot) guardado en IndexedDB:', rdiToSave);
-          
+
           // Actualizar lista local
           setRdiList(prev => [...prev, rdiToSave]);
           setLoading(false);
@@ -157,14 +159,14 @@ const getRDIByIdFromDB = useCallback(async (id) => {
     try {
       const transaction = db.transaction(['topics'], 'readwrite');
       const store = transaction.objectStore('topics');
-      
+
       // Primero obtener el RDI existente
       const getRequest = store.get(id);
 
       return new Promise((resolve, reject) => {
         getRequest.onsuccess = () => {
           const existingRDI = getRequest.result;
-          
+
           if (!existingRDI) {
             const error = new Error(`RDI con ID ${id} no encontrado`);
             setError(error);
@@ -178,6 +180,8 @@ const getRDIByIdFromDB = useCallback(async (id) => {
             ...existingRDI,
             ...updatedData,
             id: id, // Mantener el ID original
+            creationAuthor: existingRDI.creationAuthor || existingRDI.creation_author || "signed.user@mail.com",
+            creationDate: existingRDI.creationDate || existingRDI.creation_date || existingRDI.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             // Actualizar snapshot si se proporciona
             ...(snapshotData && {
@@ -194,9 +198,9 @@ const getRDIByIdFromDB = useCallback(async (id) => {
 
           putRequest.onsuccess = () => {
             console.log('RDI actualizado en IndexedDB:', updatedRDI);
-            
+
             // Actualizar lista local
-            setRdiList(prev => 
+            setRdiList(prev =>
               prev.map(rdi => rdi.id === id ? updatedRDI : rdi)
             );
             setLoading(false);
@@ -244,7 +248,7 @@ const getRDIByIdFromDB = useCallback(async (id) => {
       return new Promise((resolve, reject) => {
         request.onsuccess = () => {
           console.log('RDI eliminado de IndexedDB:', id);
-          
+
           // Actualizar lista local
           setRdiList(prev => prev.filter(rdi => rdi.id !== id));
           setLoading(false);
@@ -327,7 +331,7 @@ const getRDIByIdFromDB = useCallback(async (id) => {
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {});
-    
+
     const byType = rdiList.reduce((acc, rdi) => {
       const type = rdi.tipo || rdi.types || 'Sin tipo';
       acc[type] = (acc[type] || 0) + 1;
@@ -346,10 +350,11 @@ const getRDIByIdFromDB = useCallback(async (id) => {
       topic_type: rdiData.tipo || rdiData.types || 'Información',
       topic_status: rdiData.estado || rdiData.statuses || 'Pendiente',
       labels: (rdiData.etiqueta || rdiData.labels) ? [rdiData.etiqueta || rdiData.labels] : [],
-      creation_date: rdiData.createdAt || new Date().toISOString(),
+      creation_date: rdiData.creationDate || new Date().toISOString(),
       modified_date: rdiData.updatedAt || new Date().toISOString(),
-      due_date: rdiData.fecha ? new Date(rdiData.fecha.split('/').reverse().join('-')).toISOString() : null,
-      assigned_to: 'coordinacion@gmail.com', // Usuario por defecto
+      due_date: rdiData.dueDate ? new Date(rdiData.dueDate.split('/').reverse().join('-')).toISOString() : null,
+      assigned_to: rdiData.assignedTo || 'coordinacion@gmail.com',
+      creation_author: rdiData.creationAuthor || 'signed.user@mail.com',
       stage: 'Diseño',
       // Campos adicionales para contexto
       priority: 'Normal',
@@ -375,7 +380,7 @@ const getRDIByIdFromDB = useCallback(async (id) => {
     }
 
     const bcfTopic = convertRDIToBCFTopic(rdi);
-    
+
     // Crear estructura BCF básica
     const bcfData = {
       version: '3.0',
@@ -389,7 +394,7 @@ const getRDIByIdFromDB = useCallback(async (id) => {
     // Convertir a JSON para descarga
     const jsonString = JSON.stringify(bcfData, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
-    
+
     // Crear enlace de descarga
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -411,7 +416,7 @@ const getRDIByIdFromDB = useCallback(async (id) => {
     }
 
     const bcfTopics = rdiList.map(rdi => convertRDIToBCFTopic(rdi));
-    
+
     // Crear estructura BCF completa
     const bcfData = {
       version: '3.0',
@@ -432,7 +437,7 @@ const getRDIByIdFromDB = useCallback(async (id) => {
     // Convertir a JSON para descarga
     const jsonString = JSON.stringify(bcfData, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
-    
+
     // Crear enlace de descarga
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -452,23 +457,23 @@ const getRDIByIdFromDB = useCallback(async (id) => {
     rdiList,
     loading,
     error,
-    
+
     // Operaciones CRUD
     saveRDI,
     updateRDI,
     deleteRDI,
     updateRDIStatus,
-    
+
     // Utilidades
     getRDIByIdFromDB,
     getRDIById,
     clearAllRDIs,
     refreshRDIs,
     getRDIStats,
-    
+
     // Operaciones de carga
     loadRDIsFromDB,
-    
+
     // Exportación BCF
     convertRDIToBCFTopic,
     exportRDIToBCF,

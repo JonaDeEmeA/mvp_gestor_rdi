@@ -42,8 +42,8 @@ const RDIForm = ({
 
   return (
     <Collapse in={showForm}>
-      <Box 
-        component="form" 
+      <Box
+        component="form"
         onSubmit={handleSubmit}
         sx={{ p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }}
       >
@@ -53,8 +53,8 @@ const RDIForm = ({
             <img
               src={snapshotUrl}
               alt="Viewpoint Snapshot"
-              style={{ 
-                maxWidth: '100%', 
+              style={{
+                maxWidth: '100%',
                 maxHeight: '200px',
                 borderRadius: '4px',
                 border: '1px solid #e0e0e0'
@@ -65,15 +65,15 @@ const RDIForm = ({
 
         {/* Snapshot Controls */}
         {showForm && (
-          <Box 
-          display="flex" 
-          flexDirection="row"
-          sx={{ mb: 2 }}>
+          <Box
+            display="flex"
+            flexDirection="row"
+            sx={{ mb: 2 }}>
             {!snapShotReady ? (
-              <Button 
-                variant="outlined" 
-                color="primary" 
-                onClick={onCreateViewpoint} 
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={onCreateViewpoint}
                 fullWidth
                 size="small"
               >
@@ -81,36 +81,36 @@ const RDIForm = ({
               </Button>
             ) : (
               <>
-              <Button 
-                 sx={{
+                <Button
+                  sx={{
                     fontSize: '0.60rem',
                     padding: '2px 4px',
                     minWidth: 'auto',         // Permite ancho automático
                   }}
-                variant="outlined" 
-                color="secondary" 
-                onClick={onUpdateSnapshot} 
-                fullWidth
-                size="small"
-              >
-                ACTUALIZAR SNAPSHOT
-              </Button>
-              <Button
-                sx={{
-                  fontSize: '0.60rem',
-                  padding: '2px 4px',
-                  minWidth: 'auto',         // Permite ancho automático
-                  ml: 1,                    // Margen izquierdo para separación
-                }} 
-                disabled={!isEditing}
-                variant="outlined" 
-                color="secondary" 
-                onClick={onVerSnapshotPV} 
-                fullWidth
-                size="small"
-              >
-                VER
-              </Button>
+                  variant="outlined"
+                  color="secondary"
+                  onClick={onUpdateSnapshot}
+                  fullWidth
+                  size="small"
+                >
+                  ACTUALIZAR SNAPSHOT
+                </Button>
+                <Button
+                  sx={{
+                    fontSize: '0.60rem',
+                    padding: '2px 4px',
+                    minWidth: 'auto',         // Permite ancho automático
+                    ml: 1,                    // Margen izquierdo para separación
+                  }}
+                  disabled={!isEditing}
+                  variant="outlined"
+                  color="secondary"
+                  onClick={onVerSnapshotPV}
+                  fullWidth
+                  size="small"
+                >
+                  VER
+                </Button>
               </>
             )}
           </Box>
@@ -130,7 +130,7 @@ const RDIForm = ({
           value={formData.titulo}
           onChange={(e) => onFormChange("titulo", e.target.value)}
           sx={{
-            mb: 2, 
+            mb: 2,
             '& .MuiInputLabel-root': { fontSize: '0.75rem' }
           }}
         />
@@ -196,7 +196,23 @@ const RDIForm = ({
           </Select>
         </FormControl>
 
-        {/* DatePicker */}
+        {/* Select Asignado a */}
+        <FormControl fullWidth sx={{ mb: 2 }} size="small">
+          <InputLabel>Asignado a</InputLabel>
+          <Select
+            value={formData.assignedTo}
+            label="Asignado a"
+            onChange={(e) => onFormChange("assignedTo", e.target.value)}
+          >
+            {Array.from(bcfTopicSet.users || []).map((user) => (
+              <MenuItem key={user} value={user}>
+                {user}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        {/* DatePicker Fecha */}
         <DatePicker
           label="Fecha"
           value={formData.fecha}
@@ -205,6 +221,19 @@ const RDIForm = ({
             textField: {
               fullWidth: true,
               required: true,
+              sx: { mb: 2 },
+            },
+          }}
+        />
+
+        {/* DatePicker Fecha Límite */}
+        <DatePicker
+          label="Fecha Límite"
+          value={formData.dueDate}
+          onChange={(newValue) => onFormChange("dueDate", newValue)}
+          slotProps={{
+            textField: {
+              fullWidth: true,
               sx: { mb: 2 },
             },
           }}
@@ -226,15 +255,15 @@ const RDIForm = ({
 
         {/* Botones */}
         <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-          <Button 
-            variant="outlined" 
+          <Button
+            variant="outlined"
             onClick={onCancel}
             type="button"
           >
             CANCELAR
           </Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             type="submit"
             disabled={!validateForm()}
           >

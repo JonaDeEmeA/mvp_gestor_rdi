@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Fab, Tooltip } from '@mui/material';
+import { Home as HomeIcon } from '@mui/icons-material';
 
 import TabStandar from "@/componentes/TabStandar";
 import Browser from "@/componentes/Browser";
@@ -104,6 +105,9 @@ export default function Home() {
         sectionEnabled={enabled}
         onToggleSection={handleToggleSection}
         sectionPlanes={planesList}
+        browserEnabled={showBrowser}
+        rdiManagerEnabled={showRDIManager}
+        infoCoordenadaEnabled={showInfoCoordenada}
       />
 
       {/* Contenedor principal que cambia según el estado */}
@@ -173,6 +177,28 @@ export default function Home() {
             onClose={toggleInfoCoordenada}
             point={pickedPoint}
           />
+
+          {/* Botón HOME flotante */}
+          <Tooltip title="Resetear Cámara (Home)" placement="left">
+            <Fab
+              color="primary"
+              size="small"
+              onClick={resetCamera}
+              sx={{
+                position: 'absolute',
+                top: { xs: 'auto', sm: 16 },
+                bottom: { xs: 16, sm: 'auto' },
+                right: 16,
+                zIndex: 10,
+                bgcolor: 'rgba(31, 58, 95, 0.8)',
+                '&:hover': {
+                  bgcolor: 'rgba(31, 58, 95, 1)',
+                }
+              }}
+            >
+              <HomeIcon />
+            </Fab>
+          </Tooltip>
         </Box>
 
         {/* TabTools - Ocupa toda la pantalla en móviles, panel lateral redimensionable en desktop */}
