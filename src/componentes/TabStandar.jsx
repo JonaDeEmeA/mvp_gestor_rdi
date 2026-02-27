@@ -27,7 +27,8 @@ import {
   Visibility as VisibilityIcon,
   Build as BuildIcon,
   Layers as LayersIcon,
-  Publish as PublishIcon
+  Publish as PublishIcon,
+  ContentCut as ContentCutIcon
 } from '@mui/icons-material';
 
 
@@ -91,10 +92,18 @@ export default function TabStandar({
     setValue(newValue);
     setSelectedTab(newValue);
 
-    // En móvil, abrir drawer automáticamente
+    // En móvil, abrir drawer automáticamente al cambiar
     if (isMobile) {
       setDrawerOpen(true);
-      console.log('📱 PASO 2.3: Abriendo drawer en móvil');
+    }
+  };
+
+  // Función para manejar el clic explícito (permite reabrir el drawer si ya estaba seleccionado)
+  const handleTabClick = (index) => {
+    if (isMobile) {
+      setSelectedTab(index);
+      setDrawerOpen(true);
+      console.log('📱 PASO 2.3: Reabriendo drawer por clic en tab:', index);
     }
   };
 
@@ -168,6 +177,17 @@ export default function TabStandar({
                 />
               </ListItemButton>
             </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => {
+                onToggleSection();
+                if (isMobile) setDrawerOpen(false);
+              }}>
+                <ListItemIcon>
+                  <ContentCutIcon />
+                </ListItemIcon>
+                <ListItemText primary={sectionEnabled ? "Desactivar Sección" : "Activar Sección"} />
+              </ListItemButton>
+            </ListItem>
           </List>
         );
 
@@ -215,11 +235,11 @@ export default function TabStandar({
             }
           }}
         >
-          <Tab sx={{ color: 'gray' }} label="Archivos" {...a11yProps(0)} />
-          <Tab sx={{ color: 'gray' }} label="Ver" {...a11yProps(1)} />
-          <Tab sx={{ color: 'gray' }} label="Herramientas" {...a11yProps(2)} />
-          <Tab sx={{ color: 'gray' }} label="Capas" {...a11yProps(3)} />
-          <Tab sx={{ color: 'gray' }} label="Publicar" {...a11yProps(4)} />
+          <Tab sx={{ color: 'gray' }} label="Archivos" {...a11yProps(0)} onClick={() => handleTabClick(0)} />
+          <Tab sx={{ color: 'gray' }} label="Ver" {...a11yProps(1)} onClick={() => handleTabClick(1)} />
+          <Tab sx={{ color: 'gray' }} label="Herramientas" {...a11yProps(2)} onClick={() => handleTabClick(2)} />
+          <Tab sx={{ color: 'gray' }} label="Capas" {...a11yProps(3)} onClick={() => handleTabClick(3)} />
+          <Tab sx={{ color: 'gray' }} label="Publicar" {...a11yProps(4)} onClick={() => handleTabClick(4)} />
         </Tabs>
       </Box>
 

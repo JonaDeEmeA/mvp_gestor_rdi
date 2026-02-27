@@ -1,3 +1,5 @@
+import { BIM_COLORS } from '../../constants/designTokens';
+
 // Configuración de layout
 export const LAYOUT_CONFIG = {
   sections: {
@@ -5,22 +7,23 @@ export const LAYOUT_CONFIG = {
       height: 'auto',
       maxHeight: '120px',
       padding: 2,
-      backgroundColor: 'background.paper',
+      backgroundColor: BIM_COLORS.neutral.background.main,
       borderBottom: '1px solid',
-      borderColor: 'divider'
+      borderColor: BIM_COLORS.neutral.border
     },
     content: {
       flex: 1,
       overflow: 'auto',
-      padding: 2
+      padding: 2,
+      backgroundColor: BIM_COLORS.neutral.background.main,
     },
     footer: {
       height: 'auto',
       maxHeight: '80px',
       padding: 1.5,
-      backgroundColor: 'grey.50',
+      backgroundColor: BIM_COLORS.neutral.background.secondary,
       borderTop: '1px solid',
-      borderColor: 'divider'
+      borderColor: BIM_COLORS.neutral.border
     }
   },
   spacing: {

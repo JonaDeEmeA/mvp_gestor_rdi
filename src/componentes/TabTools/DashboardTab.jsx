@@ -1,12 +1,11 @@
 import React from 'react';
 import { Paper, Box, Typography, Card, CardContent, Grid, Stack, Chip, Divider } from '@mui/material';
 import { HeaderSection, ContentSection } from './LayoutSections';
+import { BIM_COLORS } from '../../constants/designTokens';
 
 const DashboardTab = ({ rdiList, bcfTopicSet }) => {
-  console.log('📊 PASO 7: Renderizando DashboardTab reorganizado');
-  
   const totalRDIs = rdiList.length;
-  
+
   const statusStats = Array.from(bcfTopicSet.statuses || []).map(status => ({
     status,
     count: rdiList.filter(rdi => rdi.estado === status || rdi.statuses === status).length
@@ -24,21 +23,20 @@ const DashboardTab = ({ rdiList, bcfTopicSet }) => {
 
   if (totalRDIs === 0) {
     return (
-      <Box sx={{ 
-        height: "100%", 
-        display: "flex", 
-        alignItems: "center", 
+      <Box sx={{
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
         justifyContent: "center",
         flexDirection: 'column',
-        gap: 2
+        gap: 2,
+        bgcolor: BIM_COLORS.neutral.background.main
       }}>
-        <Typography variant="h6" color="text.secondary">
-          📊
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="h3" sx={{ opacity: 0.3 }}>📊</Typography>
+        <Typography variant="body1" sx={{ color: BIM_COLORS.neutral.text.secondary, fontWeight: 'medium' }}>
           No hay datos para mostrar
         </Typography>
-        <Typography variant="caption" color="text.disabled">
+        <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.disabled }}>
           Crea tu primer RDI para ver estadísticas
         </Typography>
       </Box>
@@ -46,49 +44,65 @@ const DashboardTab = ({ rdiList, bcfTopicSet }) => {
   }
 
   return (
-    <Box sx={{ 
-      height: "100%", 
+    <Box sx={{
+      height: "100%",
       display: 'flex',
       flexDirection: 'column',
+      bgcolor: BIM_COLORS.neutral.background.main,
       overflow: 'hidden'
     }}>
-      {/* ✅ PASO 7.1: Header con resumen */}
-      <HeaderSection>
-        <Stack spacing={1} alignItems="center">
-          <Typography variant="h5" color="primary" fontWeight="bold">
-            {totalRDIs}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Total de RDIs
-          </Typography>
+      {/* Header con resumen */}
+      <HeaderSection sx={{ bgcolor: BIM_COLORS.neutral.background.secondary, borderBottom: `1px solid ${BIM_COLORS.neutral.border}` }}>
+        <Stack direction="row" justifyContent="space-around" sx={{ width: '100%' }}>
+          <Stack spacing={0.5} alignItems="center">
+            <Typography variant="h4" sx={{ color: BIM_COLORS.primary.main, fontWeight: 'bold', lineHeight: 1 }}>
+              {totalRDIs}
+            </Typography>
+            <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, textTransform: 'uppercase', fontWeight: 'bold' }}>
+              Total RDIs
+            </Typography>
+          </Stack>
+          <Divider orientation="vertical" flexItem sx={{ borderColor: BIM_COLORS.neutral.border }} />
+          <Stack spacing={0.5} alignItems="center">
+            <Typography variant="h4" sx={{ color: BIM_COLORS.accent.main, fontWeight: 'bold', lineHeight: 1 }}>
+              {rdiList.filter(r => (r.estado || r.statuses) === 'Resuelto').length}
+            </Typography>
+            <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, textTransform: 'uppercase', fontWeight: 'bold' }}>
+              Resueltos
+            </Typography>
+          </Stack>
         </Stack>
       </HeaderSection>
 
-      {/* ✅ PASO 7.2: Content scrollable con cards */}
+      {/* Content scrollable con cards */}
       <ContentSection>
-        <Stack spacing={2}>
+        <Stack spacing={2} sx={{ pb: 2 }}>
           {/* Card: Por Estado */}
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="subtitle2" gutterBottom fontWeight="bold" color="text.secondary">
-                📌 Por Estado
+          <Card variant="outlined" sx={{ borderColor: BIM_COLORS.neutral.border, borderRadius: 1 }}>
+            <CardContent sx={{ p: '16px !important' }}>
+              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 'bold', color: BIM_COLORS.primary.main }}>
+                Distribución por Estado
               </Typography>
-              <Divider sx={{ mb: 2 }} />
               <Stack spacing={1}>
                 {statusStats.map(({ status, count }) => (
-                  <Box key={status} sx={{ 
-                    display: 'flex', 
+                  <Box key={status} sx={{
+                    display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     p: 1,
-                    borderRadius: 1,
-                    '&:hover': { bgcolor: 'action.hover' }
+                    borderRadius: 0.5,
+                    bgcolor: BIM_COLORS.neutral.background.secondary,
+                    border: `1px solid ${BIM_COLORS.neutral.border}`
                   }}>
-                    <Typography variant="body2">{status}</Typography>
-                    <Chip 
-                      label={count} 
-                      size="small" 
-                      color={status === 'Resuelto' ? 'success' : 'default'}
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{status}</Typography>
+                    <Chip
+                      label={count}
+                      size="small"
+                      sx={{
+                        fontWeight: 'bold',
+                        bgcolor: status === 'Resuelto' ? BIM_COLORS.accent.soft : BIM_COLORS.status.warning.soft,
+                        color: status === 'Resuelto' ? BIM_COLORS.accent.main : BIM_COLORS.status.warning.main,
+                      }}
                     />
                   </Box>
                 ))}
@@ -96,56 +110,29 @@ const DashboardTab = ({ rdiList, bcfTopicSet }) => {
             </CardContent>
           </Card>
 
-          {/* Card: Por Tipo */}
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="subtitle2" gutterBottom fontWeight="bold" color="text.secondary">
-                🏷️ Por Tipo
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Stack spacing={1}>
-                {typeStats.map(({ type, count }) => (
-                  <Box key={type} sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    p: 1,
-                    borderRadius: 1,
-                    '&:hover': { bgcolor: 'action.hover' }
-                  }}>
-                    <Typography variant="body2">{type}</Typography>
-                    <Chip label={count} size="small" color="primary" variant="outlined" />
-                  </Box>
-                ))}
-              </Stack>
-            </CardContent>
-          </Card>
-
           {/* Card: Por Especialidad */}
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="subtitle2" gutterBottom fontWeight="bold" color="text.secondary">
-                🎯 Por Especialidad
+          <Card variant="outlined" sx={{ borderColor: BIM_COLORS.neutral.border, borderRadius: 1 }}>
+            <CardContent sx={{ p: '16px !important' }}>
+              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 'bold', color: BIM_COLORS.primary.main }}>
+                Por Especialidad
               </Typography>
-              <Divider sx={{ mb: 2 }} />
               <Grid container spacing={1}>
                 {labelStats.map(({ label, count }) => (
                   <Grid item xs={6} key={label}>
-                    <Paper 
-                      variant="outlined" 
-                      sx={{ 
-                        p: 1.5, 
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p: 1.5,
                         textAlign: 'center',
-                        '&:hover': { 
-                          boxShadow: 2,
-                          borderColor: 'primary.main'
-                        }
+                        borderColor: BIM_COLORS.neutral.border,
+                        bgcolor: BIM_COLORS.neutral.background.secondary,
+                        '&:hover': { borderColor: BIM_COLORS.primary.main, bgcolor: 'white' }
                       }}
                     >
-                      <Typography variant="caption" display="block" noWrap>
+                      <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, display: 'block', mb: 0.5 }}>
                         {label}
                       </Typography>
-                      <Typography variant="h6" color="primary" fontWeight="bold">
+                      <Typography variant="h6" sx={{ color: BIM_COLORS.primary.main, fontWeight: 'bold', lineHeight: 1 }}>
                         {count}
                       </Typography>
                     </Paper>
@@ -156,30 +143,43 @@ const DashboardTab = ({ rdiList, bcfTopicSet }) => {
           </Card>
 
           {/* Card: RDIs Recientes */}
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="subtitle2" gutterBottom fontWeight="bold" color="text.secondary">
-                🕐 Recientes
+          <Card variant="outlined" sx={{ borderColor: BIM_COLORS.neutral.border, borderRadius: 1 }}>
+            <CardContent sx={{ p: '16px !important' }}>
+              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 'bold', color: BIM_COLORS.primary.main }}>
+                Registros Recientes
               </Typography>
-              <Divider sx={{ mb: 2 }} />
               <Stack spacing={1}>
                 {rdiList.slice(-3).reverse().map((rdi) => (
-                  <Box 
-                    key={rdi.id} 
-                    sx={{ 
-                      p: 1.5, 
-                      border: '1px solid', 
-                      borderColor: 'divider', 
+                  <Box
+                    key={rdi.id}
+                    sx={{
+                      p: 1.5,
+                      border: '1px solid',
+                      borderColor: BIM_COLORS.neutral.border,
                       borderRadius: 1,
-                      '&:hover': { bgcolor: 'action.hover' }
+                      bgcolor: 'white',
+                      '&:hover': { borderColor: BIM_COLORS.primary.main, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }
                     }}
                   >
-                    <Typography variant="body2" fontWeight="medium" gutterBottom>
-                      {rdi.titulo}
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: BIM_COLORS.neutral.text.primary, mb: 1 }}>
+                      {rdi.titulo || rdi.title}
                     </Typography>
-                    <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                      <Chip label={rdi.tipo || rdi.types} size="small" />
-                      <Chip label={rdi.estado || rdi.statuses} size="small" color="secondary" />
+                    <Stack direction="row" spacing={1}>
+                      <Chip
+                        label={rdi.tipo || rdi.types}
+                        size="small"
+                        sx={{ fontSize: '0.65rem', height: 20, bgcolor: BIM_COLORS.primary.soft, color: BIM_COLORS.primary.main }}
+                      />
+                      <Chip
+                        label={rdi.estado || rdi.statuses}
+                        size="small"
+                        sx={{
+                          fontSize: '0.65rem',
+                          height: 20,
+                          bgcolor: (rdi.estado || rdi.statuses) === 'Resuelto' ? BIM_COLORS.accent.soft : BIM_COLORS.status.warning.soft,
+                          color: (rdi.estado || rdi.statuses) === 'Resuelto' ? BIM_COLORS.accent.main : BIM_COLORS.status.warning.main
+                        }}
+                      />
                     </Stack>
                   </Box>
                 ))}
@@ -193,5 +193,3 @@ const DashboardTab = ({ rdiList, bcfTopicSet }) => {
 };
 
 export default DashboardTab;
-
-console.log('✅ PASO 7 COMPLETADO: Dashboard reorganizado con cards');

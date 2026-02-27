@@ -11,7 +11,7 @@ import CloseIcon from '@mui/icons-material/Close';
  */
 const CloseButton = ({ onClose, tooltip = "Cerrar panel" }) => {
 
-  
+
   return (
     <Tooltip title={tooltip} placement="left">
       <IconButton
@@ -21,18 +21,14 @@ const CloseButton = ({ onClose, tooltip = "Cerrar panel" }) => {
           position: 'absolute',
           top: 8,
           right: 8,
-          zIndex: 10,
-          width: 32,
-          height: 32,
-          padding: 0.5,
-          backgroundColor: 'background.paper',
-          border: '1px solid',
-          borderColor: 'divider',
+          zIndex: 110,
+          width: 30,
+          height: 30,
+          color: 'white',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
           transition: 'all 0.2s ease-in-out',
           '&:hover': {
-            backgroundColor: 'error.light',
-            borderColor: 'error.main',
-            color: 'error.contrastText',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
             transform: 'scale(1.1)',
           },
           '&:active': {

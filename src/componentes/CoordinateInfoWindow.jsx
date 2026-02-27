@@ -36,11 +36,11 @@ const CoordinateInfoWindow = ({ open, onClose, point }) => {
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="subtitle2" fontWeight="bold">Eje Y:</Typography>
-              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{point.y.toFixed(4)}</Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{point.z.toFixed(4)}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="subtitle2" fontWeight="bold">Eje Z:</Typography>
-              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{point.z.toFixed(4)}</Typography>
+              <Typography variant="subtitle2" fontWeight="bold">Eje Z (Elevación):</Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{point.y.toFixed(4)}</Typography>
             </Box>
           </Box>
         ) : (

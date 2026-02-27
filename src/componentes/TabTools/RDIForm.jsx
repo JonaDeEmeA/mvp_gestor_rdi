@@ -1,21 +1,7 @@
 import React from 'react';
-import {
-  Box,
-  Button,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Typography,
-  Collapse,
-} from '@mui/material';
+import { BIM_COLORS } from '../../constants/designTokens';
+import { Box, Typography, FormControl, InputLabel, Select, MenuItem, TextField, Button, Collapse } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-
-const inputStyles = {
-  fontSize: '0.75rem',
-  height: '32px'
-};
 
 const RDIForm = ({
   showForm,
@@ -40,24 +26,37 @@ const RDIForm = ({
     return formData.tipo && formData.titulo && formData.fecha && formData.estado;
   };
 
+  const textFieldStyles = {
+    mb: 2,
+    '& .MuiInputBase-root': { fontSize: '0.85rem' },
+    '& .MuiInputLabel-root': { fontSize: '0.85rem' },
+    bgcolor: 'white'
+  };
+
   return (
     <Collapse in={showForm}>
       <Box
         component="form"
         onSubmit={handleSubmit}
-        sx={{ p: 2, border: "1px solid #e0e0e0", borderRadius: 1 }}
+        sx={{
+          p: 2,
+          border: `1px solid ${BIM_COLORS.neutral.border}`,
+          borderRadius: 1,
+          bgcolor: BIM_COLORS.neutral.background.secondary
+        }}
       >
         {/* Snapshot Display */}
         {snapshotUrl && (
-          <Box sx={{ mb: 2, textAlign: 'center' }}>
+          <Box sx={{ mb: 2, textAlign: 'center', position: 'relative' }}>
             <img
               src={snapshotUrl}
               alt="Viewpoint Snapshot"
               style={{
                 maxWidth: '100%',
-                maxHeight: '200px',
+                maxHeight: '180px',
                 borderRadius: '4px',
-                border: '1px solid #e0e0e0'
+                border: `1px solid ${BIM_COLORS.neutral.border}`,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
               }}
             />
           </Box>
@@ -65,59 +64,62 @@ const RDIForm = ({
 
         {/* Snapshot Controls */}
         {showForm && (
-          <Box
-            display="flex"
-            flexDirection="row"
-            sx={{ mb: 2 }}>
+          <Box display="flex" gap={1} sx={{ mb: 3 }}>
             {!snapShotReady ? (
               <Button
-                variant="outlined"
-                color="primary"
+                variant="contained"
                 onClick={onCreateViewpoint}
                 fullWidth
                 size="small"
+                sx={{
+                  bgcolor: BIM_COLORS.primary.main,
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  '&:hover': { bgcolor: BIM_COLORS.primary.active }
+                }}
               >
-                AGREGAR SNAPSHOT
+                Agregar Captura
               </Button>
             ) : (
               <>
                 <Button
-                  sx={{
-                    fontSize: '0.60rem',
-                    padding: '2px 4px',
-                    minWidth: 'auto',         // Permite ancho automático
-                  }}
                   variant="outlined"
-                  color="secondary"
                   onClick={onUpdateSnapshot}
                   fullWidth
                   size="small"
+                  sx={{
+                    color: BIM_COLORS.primary.main,
+                    borderColor: BIM_COLORS.primary.main,
+                    textTransform: 'none',
+                    fontWeight: 'bold',
+                    fontSize: '0.75rem'
+                  }}
                 >
-                  ACTUALIZAR SNAPSHOT
+                  Actualizar
                 </Button>
                 <Button
-                  sx={{
-                    fontSize: '0.60rem',
-                    padding: '2px 4px',
-                    minWidth: 'auto',         // Permite ancho automático
-                    ml: 1,                    // Margen izquierdo para separación
-                  }}
                   disabled={!isEditing}
                   variant="outlined"
-                  color="secondary"
                   onClick={onVerSnapshotPV}
                   fullWidth
                   size="small"
+                  sx={{
+                    color: BIM_COLORS.primary.main,
+                    borderColor: BIM_COLORS.primary.main,
+                    textTransform: 'none',
+                    fontWeight: 'bold',
+                    fontSize: '0.75rem'
+                  }}
                 >
-                  VER
+                  Ver
                 </Button>
               </>
             )}
           </Box>
         )}
 
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          {isEditing ? "Editar RDI" : "Nuevo RDI"}
+        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold', color: BIM_COLORS.primary.main }}>
+          {isEditing ? "Editar Registro de Información" : "Nuevo Registro de Información"}
         </Typography>
 
         {/* Campo Título */}
@@ -126,13 +128,9 @@ const RDIForm = ({
           fullWidth
           label="Título"
           required
-          slotProps={{ input: { style: inputStyles } }}
           value={formData.titulo}
           onChange={(e) => onFormChange("titulo", e.target.value)}
-          sx={{
-            mb: 2,
-            '& .MuiInputLabel-root': { fontSize: '0.75rem' }
-          }}
+          sx={textFieldStyles}
         />
 
         {/* Campo Descripción */}
@@ -144,20 +142,20 @@ const RDIForm = ({
           rows={3}
           value={formData.descripcion}
           onChange={(e) => onFormChange("descripcion", e.target.value)}
-          sx={{ mb: 2 }}
+          sx={textFieldStyles}
         />
 
         {/* Select Tipo */}
-        <FormControl fullWidth sx={{ mb: 2 }} size="small" required>
-          <InputLabel sx={inputStyles}>Tipo</InputLabel>
+        <FormControl fullWidth sx={textFieldStyles} size="small" required variant="outlined">
+          <InputLabel>Tipo</InputLabel>
           <Select
-            sx={inputStyles}
             value={formData.tipo}
             label="Tipo"
             onChange={(e) => onFormChange("tipo", e.target.value)}
+            sx={{ fontSize: '0.85rem' }}
           >
             {Array.from(bcfTopicSet.types || []).map((tipo) => (
-              <MenuItem sx={inputStyles} key={tipo} value={tipo}>
+              <MenuItem key={tipo} value={tipo} sx={{ fontSize: '0.85rem' }}>
                 {tipo}
               </MenuItem>
             ))}
@@ -165,15 +163,16 @@ const RDIForm = ({
         </FormControl>
 
         {/* Select Especialidad */}
-        <FormControl fullWidth sx={{ mb: 2 }} size="small">
+        <FormControl fullWidth sx={textFieldStyles} size="small" variant="outlined">
           <InputLabel>Especialidad</InputLabel>
           <Select
             value={formData.etiqueta}
             label="Especialidad"
             onChange={(e) => onFormChange("etiqueta", e.target.value)}
+            sx={{ fontSize: '0.85rem' }}
           >
             {Array.from(bcfTopicSet.labels || []).map((esp) => (
-              <MenuItem key={esp} value={esp}>
+              <MenuItem key={esp} value={esp} sx={{ fontSize: '0.85rem' }}>
                 {esp}
               </MenuItem>
             ))}
@@ -181,32 +180,17 @@ const RDIForm = ({
         </FormControl>
 
         {/* Select Estado */}
-        <FormControl fullWidth sx={{ mb: 2 }} size="small" required>
+        <FormControl fullWidth sx={textFieldStyles} size="small" required variant="outlined">
           <InputLabel>Estado</InputLabel>
           <Select
             value={formData.estado}
             label="Estado"
             onChange={(e) => onFormChange("estado", e.target.value)}
+            sx={{ fontSize: '0.85rem' }}
           >
             {Array.from(bcfTopicSet.statuses || []).map((estado) => (
-              <MenuItem key={estado} value={estado}>
+              <MenuItem key={estado} value={estado} sx={{ fontSize: '0.85rem' }}>
                 {estado}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* Select Asignado a */}
-        <FormControl fullWidth sx={{ mb: 2 }} size="small">
-          <InputLabel>Asignado a</InputLabel>
-          <Select
-            value={formData.assignedTo}
-            label="Asignado a"
-            onChange={(e) => onFormChange("assignedTo", e.target.value)}
-          >
-            {Array.from(bcfTopicSet.users || []).map((user) => (
-              <MenuItem key={user} value={user}>
-                {user}
               </MenuItem>
             ))}
           </Select>
@@ -219,55 +203,43 @@ const RDIForm = ({
           onChange={(newValue) => onFormChange("fecha", newValue)}
           slotProps={{
             textField: {
+              size: 'small',
               fullWidth: true,
               required: true,
-              sx: { mb: 2 },
+              sx: textFieldStyles,
             },
           }}
         />
 
-        {/* DatePicker Fecha Límite */}
-        <DatePicker
-          label="Fecha Límite"
-          value={formData.dueDate}
-          onChange={(newValue) => onFormChange("dueDate", newValue)}
-          slotProps={{
-            textField: {
-              fullWidth: true,
-              sx: { mb: 2 },
-            },
-          }}
-        />
-
-        {/* Campo Comentario */}
-        <TextField
-          disabled
-          size="small"
-          fullWidth
-          label="Comentario"
-          multiline
-          rows={3}
-          value={formData.comentario}
-          onChange={(e) => onFormChange("comentario", e.target.value)}
-          sx={{ mb: 2 }}
-          helperText="Este campo se habilitará en futuras versiones"
-        />
-
-        {/* Botones */}
-        <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
+        {/* Botones de acción del formulario */}
+        <Box sx={{ display: "flex", gap: 1, mt: 3 }}>
           <Button
             variant="outlined"
             onClick={onCancel}
-            type="button"
+            fullWidth
+            sx={{
+              color: BIM_COLORS.neutral.text.secondary,
+              borderColor: BIM_COLORS.neutral.border,
+              textTransform: 'none',
+              fontWeight: 'bold',
+              '&:hover': { borderColor: BIM_COLORS.neutral.text.secondary, bgcolor: BIM_COLORS.neutral.background.main }
+            }}
           >
-            CANCELAR
+            Cancelar
           </Button>
           <Button
             variant="contained"
             type="submit"
             disabled={!validateForm()}
+            fullWidth
+            sx={{
+              bgcolor: BIM_COLORS.primary.main,
+              textTransform: 'none',
+              fontWeight: 'bold',
+              '&:hover': { bgcolor: BIM_COLORS.primary.active }
+            }}
           >
-            {isEditing ? "GUARDAR" : "ACEPTAR"}
+            {isEditing ? "Guardar" : "Crear RDI"}
           </Button>
         </Box>
       </Box>

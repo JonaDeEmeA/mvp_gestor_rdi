@@ -30,6 +30,7 @@ import { useRDIForm } from "../hooks/useRDIForm"
 import { useRDIManager } from "../hooks/useRDIManager"
 import { useBCFTopics } from "../hooks/useBCFTopics"
 import { useResizable } from "../hooks/useResizable"
+import { BIM_COLORS } from "../constants/designTokens"
 
 // Componentes especializados
 import TabPanel, { a11yProps } from "./TabTools/TabPanel"
@@ -97,15 +98,24 @@ const EditPanel = ({
       >
         {/* Header del panel */}
         <Box sx={{
+          bgcolor: BIM_COLORS.primary.main,
+          color: 'white',
           p: 2,
-          borderBottom: 1,
-          borderColor: 'divider',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center'
+          alignItems: 'center',
+          position: 'relative'
         }}>
-          <Typography variant="h6">{headerTitle}</Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>{headerActions}</Box>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
+            {headerTitle}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, pr: 4 }}>
+            {headerActions}
+          </Box>
+          <CloseButton
+            onClose={onClose}
+            tooltip="Cerrar panel de edición"
+          />
         </Box>
 
         {/* Contenido del panel */}
@@ -514,26 +524,7 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
         // Lógica condicional para el botón de cerrar/cancelar del panel
         onClose={editPanelMode === 'edit' ? handleCancelEdit : handleCloseEditPanel}
         headerTitle={editPanelMode === 'view' ? 'Detalles del RDI' : 'Editar RDI'}
-        headerActions={
-          editPanelMode === 'view' ? (
-            <>
-              <Button variant="contained" onClick={() => setEditPanelMode('edit')}>Editar</Button>
-              <Button variant="outlined" onClick={handleCloseEditPanel}>Cerrar</Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleEditFormAccept}
-                disabled={editFormLogic.isSubmitting}
-              >
-                {editFormLogic.isSubmitting ? <CircularProgress size={24} /> : 'Guardar'}
-              </Button>
-              <Button variant="outlined" onClick={handleCancelEdit}>Cancelar</Button>
-            </>
-          )
-        }
+        headerActions={null}
       >
         {editPanelMode === 'view' ? (
           <RDIView
@@ -597,22 +588,58 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
           pointerEvents: "auto",
           display: (isMobile && showEditPanel) ? "none" : "block",
           position: 'relative',
+          bgcolor: BIM_COLORS.neutral.background.main,
+          borderRadius: 0,
+          borderLeft: { sm: `1px solid ${BIM_COLORS.neutral.border}` }
         }}
       >
-        <CloseButton
-          onClose={handleClose}
-          tooltip="Cerrar gestor de RDI"
-        />
-        {/* Tabs Header */}
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          variant="fullWidth"
-          sx={{ borderBottom: 1, borderColor: "divider", paddingRight: '40px' }}
-        >
-          <Tab label={`RDI (${rdiList.length})`} {...a11yProps(0)} />
-          <Tab label="DASHBOARD" {...a11yProps(1)} />
-        </Tabs>
+        {/* Cabecera con Título y Botón Cerrar */}
+        <Box sx={{
+          bgcolor: BIM_COLORS.primary.main,
+          color: 'white',
+          p: 2,
+          pr: 1,
+          display: 'flex',
+          alignItems: 'center',
+          position: 'relative'
+        }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', fontSize: '1rem' }}>
+            Gestor de RDI
+          </Typography>
+          <CloseButton
+            onClose={handleClose}
+            tooltip="Cerrar gestor de RDI"
+          />
+        </Box>
+
+        {/* Pestañas de navegación */}
+        <Box sx={{ bgcolor: BIM_COLORS.primary.main }}>
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            variant="fullWidth"
+            textColor="inherit"
+            IndicatorProps={{
+              style: { backgroundColor: BIM_COLORS.accent.main, height: 3 }
+            }}
+            sx={{
+              minHeight: 40,
+              '& .MuiTab-root': {
+                minHeight: 40,
+                fontSize: '0.8rem',
+                fontWeight: 'bold',
+                color: 'white', // Color para inactivas (Verde Nodo)
+                transition: 'all 0.2s ease',
+                '&.Mui-selected': {
+                  color: 'white', // Color para activa
+                }
+              }
+            }}
+          >
+            <Tab label={`RDI (${rdiList.length})`} {...a11yProps(0)} />
+            <Tab label="DASHBOARD" {...a11yProps(1)} />
+          </Tabs>
+        </Box>
 
         {/* Panel de RDI */}
         <TabPanel value={tabValue} index={0} sx={{

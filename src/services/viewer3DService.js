@@ -96,10 +96,10 @@ export const initializeViewer = async (container, refs) => {
     };
 
 
-    // Crear etiquetas para cada eje  
+    // Crear etiquetas para cada eje (Mapeo visual para el usuario en escena Y-Up)
     const labelX = createAxisLabel('X', '#ff0000', new THREE.Vector3(6, 0, 0));
-    const labelY = createAxisLabel('Y', '#00ff00', new THREE.Vector3(0, 6, 0));
-    const labelZ = createAxisLabel('Z', '#0000ff', new THREE.Vector3(0, 0, 6));
+    const labelZ = createAxisLabel('Z', '#00ff00', new THREE.Vector3(0, 6, 0)); // Vertical en Three.js dice Z
+    const labelY = createAxisLabel('Y', '#0000ff', new THREE.Vector3(0, 0, 6)); // Profundidad en Three.js dice Y
 
     // Agregar etiquetas a la escena  
     world.scene.three.add(labelX);
@@ -110,9 +110,9 @@ export const initializeViewer = async (container, refs) => {
     fragmentsManager.init(VIEWER_CONFIG.workerUrl);
 
     // Inicializar componente de sección (clipper)  
-    const clipper = components.get(OBC.Clipper);  
-    clipper.enabled = true; 
-    refs.clipperRef.current = clipper; 
+    const clipper = components.get(OBC.Clipper);
+    clipper.enabled = true;
+    refs.clipperRef.current = clipper;
 
     // Guardar referencias
     refs.worldRef.current = world;

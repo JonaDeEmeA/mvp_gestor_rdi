@@ -1,20 +1,8 @@
-import React from 'react';
-import {
-  Box,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  List,
-  ListItem,
-  ListItemText,
-  Typography,
-  IconButton,
-  Chip,
-} from '@mui/material';
+import { BIM_COLORS } from '../../constants/designTokens';
+import { Box, Typography, FormControl, InputLabel, Select, MenuItem, ListItem, ListItemText, ListItemIcon, IconButton, Chip, List } from '@mui/material';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import PreviewIcon from '@mui/icons-material/Preview';
 import DeleteIcon from '@mui/icons-material/Delete';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 const RDIList = ({
   rdiList,
@@ -38,7 +26,7 @@ const RDIList = ({
         justifyContent: 'center',
         minHeight: '200px'
       }}>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" sx={{ color: BIM_COLORS.neutral.text.secondary }}>
           No hay RDIs creados aún
         </Typography>
       </Box>
@@ -55,65 +43,66 @@ const RDIList = ({
       <Box sx={{
         flexShrink: 0,
         pb: 2,
-        borderBottom: '1px solid',
-        borderColor: 'divider',
+        borderBottom: `1px solid ${BIM_COLORS.neutral.border}`,
         mb: 2
       }}>
-
-
         {/* Selectores de filtro */}
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <FormControl variant="standard" size="small" fullWidth>
-            <InputLabel>Filtrar por tipo</InputLabel>
+          <FormControl variant="outlined" size="small" fullWidth sx={{ bgcolor: 'white' }}>
+            <InputLabel sx={{ fontSize: '0.8rem' }}>Tipo</InputLabel>
             <Select
               value={filterTipo}
-              label="Filtrar por tipo"
+              label="Tipo"
               onChange={(e) => onFilterChange(e.target.value)}
+              sx={{ fontSize: '0.8rem' }}
             >
-              <MenuItem value="">
-                <em>Todos</em>
-              </MenuItem>
+              <MenuItem value="" sx={{ fontSize: '0.8rem' }}><em>Todos</em></MenuItem>
               {Array.from(bcfTopicSet.types || []).map((tipo) => (
-                <MenuItem key={tipo} value={tipo}>
-                  {tipo}
-                </MenuItem>
+                <MenuItem key={tipo} value={tipo} sx={{ fontSize: '0.8rem' }}>{tipo}</MenuItem>
               ))}
             </Select>
           </FormControl>
 
-          <FormControl variant="standard" size="small" fullWidth>
-            <InputLabel>Filtrar por estado</InputLabel>
+          <FormControl variant="outlined" size="small" fullWidth sx={{ bgcolor: 'white' }}>
+            <InputLabel sx={{ fontSize: '0.8rem' }}>Estado</InputLabel>
             <Select
               value={filterEstado}
-              label="Filtrar por estado"
+              label="Estado"
               onChange={(e) => onFilterEstadoChange(e.target.value)}
+              sx={{ fontSize: '0.8rem' }}
             >
-              <MenuItem value="">
-                <em>Todos</em>
-              </MenuItem>
+              <MenuItem value="" sx={{ fontSize: '0.8rem' }}><em>Todos</em></MenuItem>
               {Array.from(bcfTopicSet.statuses || []).map((estado) => (
-                <MenuItem key={estado} value={estado}>
-                  {estado}
-                </MenuItem>
+                <MenuItem key={estado} value={estado} sx={{ fontSize: '0.8rem' }}>{estado}</MenuItem>
               ))}
             </Select>
           </FormControl>
         </Box>
 
         {/* Estadísticas del filtro */}
-        <Box sx={{ pt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <Box sx={{ pt: 1.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Chip
             label={`Total: ${totalCount}`}
             size="small"
-            color="primary"
-            variant="outlined"
+            sx={{
+              bgcolor: BIM_COLORS.primary.soft,
+              color: BIM_COLORS.primary.main,
+              fontWeight: 'bold',
+              border: 'none',
+              fontSize: '0.7rem'
+            }}
           />
           {(filterTipo || filterEstado) && (
             <Chip
               label={`Filtrados: ${rdiList.length}`}
               size="small"
-              color="secondary"
-              variant="outlined"
+              sx={{
+                bgcolor: BIM_COLORS.accent.soft,
+                color: BIM_COLORS.accent.main,
+                fontWeight: 'bold',
+                border: 'none',
+                fontSize: '0.7rem'
+              }}
             />
           )}
         </Box>
@@ -121,100 +110,104 @@ const RDIList = ({
 
       {/* Sección scrolleable - Lista de RDIs */}
       <Box sx={{
-        flex: 1,           // Toma todo el espacio disponible
-        overflow: 'hidden', // Evita overflow del contenedor
+        flex: 1,
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column'
       }}>
         <List sx={{
           flex: 1,
-          overflow: 'auto',  // Solo esta sección hace scroll
+          overflow: 'auto',
+          p: 0,
           '& .MuiListItem-root': {
             borderRadius: 1,
-            mb: 1,
+            mb: 1.5,
+            border: `1px solid ${BIM_COLORS.neutral.border}`,
+            bgcolor: 'white',
+            transition: 'all 0.2s',
             '&:hover': {
-              backgroundColor: 'action.hover',
+              borderColor: BIM_COLORS.primary.main,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+              transform: 'translateY(-2px)'
             },
           }
         }}>
           {rdiList.map((rdi) => (
             <ListItem
               key={rdi.id}
-              divider
               secondaryAction={
                 <Box sx={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: 0,
+                  gap: 0.5,
                   alignItems: 'center',
-                  ml: 2
+                  ml: 1
                 }}>
-                  {/* Botón Exportar a BCF */}
                   <IconButton
-                    aria-label="export-bcf"
                     onClick={() => onExportToBCF(rdi.id)}
                     size="small"
-                    title="Exportar a formato BCF"
-                    color="success"
+                    title="Exportar BCF"
+                    sx={{ color: BIM_COLORS.accent.main }}
                   >
                     <FileDownloadIcon fontSize="small" />
                   </IconButton>
-
-                  {/* Botón Eliminar */}
                   <IconButton
-                    aria-label="delete"
-                    onClick={() => onDelete(rdi.id)}
-                    size="small"
-                    title="Eliminar RDI"
-                    color="error"
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-
-                  {/* Botón Editar / Preview */}
-                  <IconButton
-                    aria-label="edit"
                     onClick={() => onEdit(rdi)}
                     size="small"
-                    title="Ver RDI"
+                    title="Ver Detalles"
+                    sx={{ color: BIM_COLORS.primary.main }}
                   >
                     <PreviewIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => onDelete(rdi.id)}
+                    size="small"
+                    title="Eliminar"
+                    sx={{ color: BIM_COLORS.status.error.main }}
+                  >
+                    <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Box>
               }
             >
               <ListItemText
                 primary={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: 'column', gap: 0.5, mb: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: BIM_COLORS.neutral.text.primary, lineHeight: 1.2 }}>
                       {rdi.titulo}
                     </Typography>
                     <Chip
                       label={rdi.tipo || rdi.types || "Sin tipo"}
                       size="small"
-                      color="primary"
-                      variant="outlined"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.65rem',
+                        bgcolor: BIM_COLORS.primary.main,
+                        color: 'white',
+                        fontWeight: 'bold'
+                      }}
                     />
                   </Box>
                 }
                 secondary={
-                  <Box component="span" sx={{ mt: 1, display: 'block' }}>
-                    <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
-                      <strong>Especialidad:</strong> {rdi.etiqueta || rdi.labels || "No definida"}
+                  <Box component="span" sx={{ display: 'block' }}>
+                    <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, display: 'block' }}>
+                      <strong>Estado:</strong> <span style={{
+                        color: (rdi.estado || rdi.statuses) === 'Resuelto' ? BIM_COLORS.accent.main : BIM_COLORS.status.warning.main,
+                        fontWeight: 'bold'
+                      }}>
+                        {rdi.estado || rdi.statuses || "No definido"}
+                      </span>
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
-                      <strong>Asignado a:</strong> {rdi.assignedTo || "No asignado"}
+                    <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, display: 'block' }}>
+                      <strong>Asignado:</strong> {rdi.assignedTo || "No asignado"}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
+                    <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, display: 'block' }}>
                       <strong>Fecha:</strong> {(() => {
                         if (!rdi.fecha) return 'No definida';
-                        if (typeof rdi.fecha === 'string' && rdi.fecha.includes('/')) return rdi.fecha;
                         const date = new Date(rdi.fecha);
-                        return isNaN(date.getTime()) ? 'Fecha inválida' : date.toLocaleDateString('es-ES');
+                        return isNaN(date.getTime()) ? rdi.fecha : date.toLocaleDateString('es-ES');
                       })()}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
-                      <strong>Estado:</strong> {rdi.estado || rdi.statuses || "No definido"}
                     </Typography>
                   </Box>
                 }
@@ -226,16 +219,15 @@ const RDIList = ({
 
       {/* Sección fija inferior - Resumen de estados */}
       <Box sx={{
-        flexShrink: 0,  // No se encoge
-        mt: 2,
-        p: 1,
-        backgroundColor: 'grey.50',
+        flexShrink: 0,
+        mt: 1,
+        p: 1.5,
+        backgroundColor: BIM_COLORS.neutral.background.secondary,
         borderRadius: 1,
-        borderTop: '1px solid',
-        borderColor: 'divider'
+        border: `1px solid ${BIM_COLORS.neutral.border}`
       }}>
-        <Typography variant="caption" color="text.secondary">
-          Estados: {Array.from(bcfTopicSet.statuses || []).map(estado => {
+        <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, fontWeight: 'medium' }}>
+          Resumen: {Array.from(bcfTopicSet.statuses || []).map(estado => {
             const count = rdiList.filter(rdi => (rdi.estado || rdi.statuses) === estado).length;
             return count > 0 ? `${estado}: ${count}` : null;
           }).filter(Boolean).join(' | ') || 'Sin datos'}
