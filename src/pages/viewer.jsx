@@ -145,7 +145,7 @@ export default function Home() {
             },
             flex: { xs: "none", sm: 1 },
             cursor: showInfoCoordenada ? 'crosshair' : 'default',
-            height: { xs: "100%", sm: "85vh" },
+            height: { xs: "100%", sm: "100%" },
             transition: "width 0.2s ease"
           }}
         >

@@ -34,7 +34,7 @@ export const STYLES = {
   },
   viewer: {
     width: "100%",
-    height: "83vh",
+    height: "100%",
     borderRadius: 5,
     background: "#222",
     boxShadow: 3,

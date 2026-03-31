@@ -8,6 +8,8 @@ import { useRouter } from 'next/router';
 import { createProject, updateProject, deleteProject } from '../../utilitario/indexedDBManager';
 import CreateProjectDialog from './CreateProjectDialog';
 import EditProjectDialog from './EditProjectDialog';
+import RDIChartsPanel from './RDIChartsPanel';
+import { useRDIStats } from '../../hooks/useRDIStats';
 
 import { 
   IconButton, 
@@ -28,7 +30,6 @@ import {
   Divider,
   useTheme,
   useMediaQuery,
-  Paper
 } from '@mui/material';
 import { Edit, Menu as MenuIcon, Add as AddIcon, Logout as LogoutIcon, Dashboard as DashboardIcon, Folder as FolderIcon } from '@mui/icons-material';
 
@@ -49,6 +50,9 @@ export default function Dashboard({ userProjects = [] }) {
   const [loading, setLoading] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+
+  // Hook de estadísticas de RDIs
+  const { stats, loading: statsLoading, refresh: refreshStats } = useRDIStats();
 
   // 🔍 DIAGNÓSTICO: Verificar que authHook esté disponible
   console.log('═══════════════════════════════════════════');
@@ -492,42 +496,39 @@ export default function Dashboard({ userProjects = [] }) {
               </Button>
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-              <Typography variant="h4" sx={{ mb: 3, color: '#1E1E1E', fontWeight: 'bold' }}>
-                Proyecto: {currentProject.name}
-              </Typography>
-              
-              <Paper sx={{ p: 4, borderRadius: 2, flex: 1, bgcolor: 'white' }}>
-                <Typography variant="body1" sx={{ color: '#5F6B7A' }}>
-                  Aquí se mostrarán los issues del proyecto.
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#9AA4AF', mt: 1, display: 'block' }}>
-                  (Próximo paso: Implementar gestión de issues)
-                </Typography>
-              </Paper>
+            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%', gap: 3 }}>
 
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                <Button 
-                  variant="contained" 
+              {/* Cabecera del proyecto */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+                <Typography variant="h5" sx={{ color: '#1E1E1E', fontWeight: 'bold' }}>
+                  {currentProject.name}
+                </Typography>
+                <Button
+                  variant="contained"
                   size="large"
                   disabled={isNavigating}
                   onClick={() => {
                     setIsNavigating(true);
+                    refreshStats(); // refrescar stats antes de ir al visor
                     router.push('/viewer');
                   }}
                   sx={{
                     bgcolor: '#1F3A5F',
-                    px: 6,
-                    py: 1.5,
-                    fontSize: '1.1rem',
+                    px: 4,
+                    py: 1.2,
+                    fontSize: '1rem',
                     fontWeight: 'bold',
                     textTransform: 'none',
                     '&:hover': { bgcolor: '#2B5DAF' }
                   }}
                 >
-                  {isNavigating ? <CircularProgress size={24} color="inherit" /> : 'Gestionar'}
+                  {isNavigating ? <CircularProgress size={22} color="inherit" /> : 'Abrir Visor 3D'}
                 </Button>
               </Box>
+
+              {/* Panel de gráficos */}
+              <RDIChartsPanel stats={stats} loading={statsLoading} />
+
             </Box>
           )}
       </Box>

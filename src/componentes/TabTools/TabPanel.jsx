@@ -1,34 +1,30 @@
 import React from 'react';
 import { Box } from '@mui/material';
 
-const TabPanel = ({ 
-  children, 
-  value, 
-  index, 
+const TabPanel = ({
+  children,
+  value,
+  index,
   sx = {},
-  ...other 
+  ...other
 }) => {
   return (
-    <div
+    <Box
       role="tabpanel"
       hidden={value !== index}
       id={`tabpanel-${index}`}
       aria-labelledby={`tab-${index}`}
+      sx={{
+        display: value === index ? 'flex' : 'none',
+        flexDirection: 'column',
+        // Si se pasa flex en sx lo tomará, de lo contrario no crecerá por defecto
+        height: '100%', 
+        ...sx
+      }}
       {...other}
-      style={{ height: "90%" }}
     >
-      {value === index && (
-        <Box 
-          sx={{ 
-            p: 2, 
-            height: "100%",
-            ...sx
-          }}
-        >
-          {children}
-        </Box>
-      )}
-    </div>
+      {value === index && children}
+    </Box>
   );
 };
 

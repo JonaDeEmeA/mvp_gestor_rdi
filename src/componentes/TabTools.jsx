@@ -583,10 +583,9 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
           minWidth: { sm: "350px" },
           width: { xs: "100%", sm: "350px" },
           height: "100%",
-          display: "flex",
+          display: (isMobile && showEditPanel) ? "none" : "flex",
           flexDirection: "column",
           pointerEvents: "auto",
-          display: (isMobile && showEditPanel) ? "none" : "block",
           position: 'relative',
           bgcolor: BIM_COLORS.neutral.background.main,
           borderRadius: 0,
@@ -643,11 +642,12 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
 
         {/* Panel de RDI */}
         <TabPanel value={tabValue} index={0} sx={{
-          overflow: 'hidden',  // ✅ PASO 6.1
+          flex: 1,
+          minHeight: 0,
+          overflow: 'hidden',  
           display: 'flex',
           flexDirection: 'column',
-          height: '100%',
-          padding: 0  // Eliminar padding del TabPanel
+          padding: 0  
         }}>
           {console.log('📋 PASO 6: Renderizando TabPanel RDI con nueva estructura')}
 
@@ -721,7 +721,7 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
         </TabPanel>
 
         {/* Panel Dashboard */}
-        <TabPanel value={tabValue} index={1}>
+        <TabPanel value={tabValue} index={1} sx={{ flex: 1, minHeight: 0 }}>
           <DashboardTab
             rdiList={rdiList}
             bcfTopicSet={bcfTopicSet}
