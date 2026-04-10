@@ -509,7 +509,7 @@ export default function Dashboard({ userProjects = [] }) {
                   disabled={isNavigating}
                   onClick={() => {
                     setIsNavigating(true);
-                    refreshStats(); // refrescar stats antes de ir al visor
+                    // refreshStats(); // Se elimina para evitar el cambio de estado 'loading' y el parpadeo de charts antes de navegar
                     router.push('/viewer');
                   }}
                   sx={{

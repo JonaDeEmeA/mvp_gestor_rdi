@@ -17,6 +17,7 @@ export const useViewer3D = () => {
   const topicRef = useRef(null);
   const loadingSphereRef = useRef(null);
   const clipperRef = useRef(null);
+  const highlighterRef = useRef(null);
   const [isViewerReady, setIsViewerReady] = useState(false);
 
   // Efecto para inicializar el visor
@@ -28,6 +29,7 @@ export const useViewer3D = () => {
       worldRef,
       fragmentsRef,
       clipperRef,
+      highlighterRef,
     };
 
     // Inicializar el visor
@@ -136,6 +138,7 @@ export const useViewer3D = () => {
     fragmentsRef,
     topicRef,
     clipperRef,
+    highlighterRef,
     isViewerReady,
     removeLoadingSphere,
     resetCamera,

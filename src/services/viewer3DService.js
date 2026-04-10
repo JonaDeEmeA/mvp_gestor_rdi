@@ -1,4 +1,5 @@
 import * as OBC from "@thatopen/components";
+import * as OBF from "@thatopen/components-front";
 import * as THREE from 'three';
 import { VIEWER_CONFIG, ERROR_MESSAGES } from '../constants/viewerConfig';
 
@@ -114,6 +115,21 @@ export const initializeViewer = async (container, refs) => {
     clipper.enabled = true;
     refs.clipperRef.current = clipper;
 
+    // Configurar Raycasters y Highlighter (Selección)
+    components.get(OBC.Raycasters);
+    const highlighter = components.get(OBF.Highlighter);
+    highlighter.setup({
+      world,
+      selectMaterialDefinition: {
+        color: new THREE.Color("#bcf124"),
+        opacity: 1,
+        transparent: false,
+        renderedFaces: 0,
+      },
+    });
+    highlighter.enabled = true;
+    refs.highlighterRef.current = highlighter;
+
     // Guardar referencias
     refs.worldRef.current = world;
     refs.fragmentsRef.current = fragmentsManager;
@@ -128,7 +144,8 @@ export const initializeViewer = async (container, refs) => {
       components,
       world,
       fragmentsManager,
-      cameraControls
+      cameraControls,
+      highlighter
     };
 
   } catch (error) {

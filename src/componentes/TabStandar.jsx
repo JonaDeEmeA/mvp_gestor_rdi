@@ -28,7 +28,8 @@ import {
   Build as BuildIcon,
   Layers as LayersIcon,
   Publish as PublishIcon,
-  ContentCut as ContentCutIcon
+  ContentCut as ContentCutIcon,
+  ColorLens as ColorIcon
 } from '@mui/icons-material';
 
 
@@ -73,7 +74,9 @@ export default function TabStandar({
   sectionPlanes,
   browserEnabled,
   rdiManagerEnabled,
-  infoCoordenadaEnabled, }) {
+  infoCoordenadaEnabled,
+  onToggleCategoryColor,
+  categoryColorEnabled, }) {
   const [value, setValue] = React.useState(0);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedTab, setSelectedTab] = React.useState(0);
@@ -179,6 +182,17 @@ export default function TabStandar({
             </ListItem>
             <ListItem disablePadding>
               <ListItemButton onClick={() => {
+                onToggleCategoryColor();
+                if (isMobile) setDrawerOpen(false);
+              }}>
+                <ListItemIcon>
+                  <ColorIcon />
+                </ListItemIcon>
+                <ListItemText primary={categoryColorEnabled ? "Cerrar Categoría" : "Color por Categoría"} />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => {
                 onToggleSection();
                 if (isMobile) setDrawerOpen(false);
               }}>
@@ -265,6 +279,9 @@ export default function TabStandar({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Button size='small' variant={infoCoordenadaEnabled ? 'contained' : 'outlined'} startIcon={<BuildIcon />} onClick={onToggleInfoCoordenada}>
                 {infoCoordenadaEnabled ? 'Cerrar Coor' : 'Info Coor'}
+              </Button>
+              <Button size='small' variant={categoryColorEnabled ? 'contained' : 'outlined'} startIcon={<ColorIcon />} onClick={onToggleCategoryColor}>
+                {categoryColorEnabled ? 'Cerrar Cat' : 'Color Cat'}
               </Button>
               <Button
                 size='small'

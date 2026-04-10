@@ -11,16 +11,22 @@ import TabTools from "@/componentes/TabTools";
 import { useViewer3D } from '../hooks/useViewer3D';
 import { useViewerState } from '../hooks/useViewerState';
 import { useVertexPicker } from '@/hooks/useVertexPicker';
+import { usePropertySelection } from '@/hooks/usePropertySelection';
 import { useFileProcessor } from '../hooks/useFileProcessor';
 import { useSection } from '@/hooks/useSection';
 import SectionManagerWindow from '@/componentes/SectionManagerWindow';
 import CoordinateInfoWindow from '@/componentes/CoordinateInfoWindow';
+import CategoryColorWindow from '@/componentes/CategoryColorWindow';
+import PropertyWindow from '@/componentes/PropertyWindow';
+import { Assignment as PropertyIcon } from '@mui/icons-material';
 
 // Constantes
 import { STYLES, VIEWER_CONFIG } from '../constants/viewerConfig';
 import React from 'react';
 
 export default function Home() {
+  const clickPosRef = useRef({ x: 0, y: 0 });
+
   // Hooks personalizados
   const {
     containerRef,
@@ -28,6 +34,7 @@ export default function Home() {
     worldRef,
     fragmentsRef,
     topicRef,
+    highlighterRef,
     resetCamera,
     isViewerReady
   } = useViewer3D();
@@ -45,17 +52,31 @@ export default function Home() {
     setImportedModels,
     showBrowser,
     showRDIManager,
+    showInfoCoordenada,
+    showCategoryColor,
+    showProperties,
+    selectedEntityProps,
     isMobile,
     toggleBrowser,
     toggleRDIManager,
-    showInfoCoordenada,
     toggleInfoCoordenada,
+    toggleCategoryColor,
+    toggleProperties,
+    setSelectedEntityProps,
     closeFloatingWindows,
     createToggleModelVisibility,
   } = useViewerState();
 
   // Hook para coordenadas
   const { pickedPoint, pickVertex } = useVertexPicker(componentsRef.current, worldRef.current);
+
+  // Hook para propiedades
+  const { pickEntity } = usePropertySelection(
+    componentsRef.current,
+    worldRef.current,
+    highlighterRef.current,
+    setSelectedEntityProps
+  );
 
   const { fileInputRef, openFileDialog, handleFileSelection } = useFileProcessor(
     worldRef,
@@ -91,6 +112,40 @@ export default function Home() {
     toggleInfoCoordenada();
   };
 
+  const handleToggleCategoryColor = () => {
+    if (!showCategoryColor) closeFloatingWindows();
+    toggleCategoryColor();
+  };
+
+  const handleToggleProperties = () => {
+    if (!showProperties) closeFloatingWindows();
+    toggleProperties();
+  };
+
+  // Manejador unificado de clics en la escena
+  const handleSceneClick = () => {
+    if (showInfoCoordenada) {
+      pickVertex();
+    } else {
+      pickEntity();
+    }
+  };
+
+  const handlePointerDown = (e) => {
+    clickPosRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handlePointerUp = (e) => {
+    // Evitar disparar selección si hubo arrastre (órbita/pan)
+    const moveThreshold = 5;
+    const deltaX = Math.abs(e.clientX - clickPosRef.current.x);
+    const deltaY = Math.abs(e.clientY - clickPosRef.current.y);
+
+    if (deltaX < moveThreshold && deltaY < moveThreshold) {
+      handleSceneClick();
+    }
+  };
+
   return (
     <Box sx={STYLES.container}>
       {/* TabStandar siempre visible */}
@@ -108,6 +163,8 @@ export default function Home() {
         browserEnabled={showBrowser}
         rdiManagerEnabled={showRDIManager}
         infoCoordenadaEnabled={showInfoCoordenada}
+        onToggleCategoryColor={handleToggleCategoryColor}
+        categoryColorEnabled={showCategoryColor}
       />
 
       {/* Contenedor principal que cambia según el estado */}
@@ -123,7 +180,8 @@ export default function Home() {
         {/* Escena 3D - Se oculta en móviles cuando TabTools está activo */}
         <Box data-testid="box-contenedor-UNO A"
           ref={containerRef}
-          onClick={showInfoCoordenada ? pickVertex : undefined}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
           sx={{
             ...STYLES.viewer,
             visibility: {
@@ -178,27 +236,68 @@ export default function Home() {
             point={pickedPoint}
           />
 
-          {/* Botón HOME flotante */}
-          <Tooltip title="Resetear Cámara (Home)" placement="left">
-            <Fab
-              color="primary"
-              size="small"
-              onClick={resetCamera}
-              sx={{
-                position: 'absolute',
-                top: { xs: 'auto', sm: 16 },
-                bottom: { xs: 16, sm: 'auto' },
-                right: 16,
-                zIndex: 10,
-                bgcolor: 'rgba(31, 58, 95, 0.8)',
-                '&:hover': {
-                  bgcolor: 'rgba(31, 58, 95, 1)',
-                }
-              }}
-            >
-              <HomeIcon />
-            </Fab>
-          </Tooltip>
+          <CategoryColorWindow
+            open={showCategoryColor}
+            onClose={toggleCategoryColor}
+            components={componentsRef.current}
+          />
+
+          <PropertyWindow
+            open={showProperties}
+            onClose={toggleProperties}
+            properties={selectedEntityProps}
+          />
+
+          {/* Grupo de botones flotantes */}
+          <Box 
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            sx={{
+              position: 'absolute',
+              top: { xs: 'auto', sm: 16 },
+              bottom: { xs: 16, sm: 'auto' },
+              right: 16,
+              zIndex: 10,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2
+            }}
+          >
+            {/* Botón HOME flotante */}
+            <Tooltip title="Resetear Cámara (Home)" placement="left">
+              <Fab
+                color="primary"
+                size="small"
+                onClick={resetCamera}
+                sx={{
+                  bgcolor: 'rgba(31, 58, 95, 0.8)',
+                  '&:hover': {
+                    bgcolor: 'rgba(31, 58, 95, 1)',
+                  }
+                }}
+              >
+                <HomeIcon />
+              </Fab>
+            </Tooltip>
+
+            {/* Botón PROPIEDADES flotante */}
+            <Tooltip title="Ver Propiedades" placement="left">
+              <Fab
+                color="primary"
+                size="small"
+                onClick={handleToggleProperties}
+                sx={{
+                  bgcolor: showProperties ? '#4CAF50' : 'rgba(31, 58, 95, 0.8)',
+                  '&:hover': {
+                    bgcolor: showProperties ? '#43A047' : 'rgba(31, 58, 95, 1)',
+                  }
+                }}
+              >
+                <PropertyIcon />
+              </Fab>
+            </Tooltip>
+          </Box>
         </Box>
 
         {/* TabTools - Ocupa toda la pantalla en móviles, panel lateral redimensionable en desktop */}

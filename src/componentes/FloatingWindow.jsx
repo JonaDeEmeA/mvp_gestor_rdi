@@ -41,6 +41,9 @@ const FloatingWindow = ({
     <Paper
       ref={nodeRef}
       elevation={3}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       sx={{
         width: isMobile ? '100%' : width,
         height: isMobile ? '30vh' : height,

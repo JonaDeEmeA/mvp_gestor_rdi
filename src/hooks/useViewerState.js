@@ -11,6 +11,9 @@ export const useViewerState = () => {
   const [showBrowser, setShowBrowser] = useState(false);
   const [showRDIManager, setShowRDIManager] = useState(false);
   const [showInfoCoordenada, setShowInfoCoordenada] = useState(false);
+  const [showCategoryColor, setShowCategoryColor] = useState(false);
+  const [showProperties, setShowProperties] = useState(false);
+  const [selectedEntityProps, setSelectedEntityProps] = useState(null);
 
   // Hook para detectar dispositivos móviles
   const theme = useTheme();
@@ -20,6 +23,8 @@ export const useViewerState = () => {
   const closeFloatingWindows = () => {
     setShowBrowser(false);
     setShowInfoCoordenada(false);
+    setShowCategoryColor(false);
+    setShowProperties(false);
   };
 
   // Manejadores de eventos para UI
@@ -36,6 +41,16 @@ export const useViewerState = () => {
   const toggleInfoCoordenada = () => {
     if (!showInfoCoordenada) closeFloatingWindows();
     setShowInfoCoordenada(prevState => !prevState);
+  };
+
+  const toggleCategoryColor = () => {
+    if (!showCategoryColor) closeFloatingWindows();
+    setShowCategoryColor(prevState => !prevState);
+  };
+
+  const toggleProperties = () => {
+    if (!showProperties) closeFloatingWindows();
+    setShowProperties(prevState => !prevState);
   };
 
   const createToggleModelVisibility = (fragmentsRef) => (modelId) => {
@@ -69,11 +84,12 @@ export const useViewerState = () => {
     setImportedModels,
     showBrowser,
     showRDIManager,
-    showInfoCoordenada,
-    isMobile,
-    toggleBrowser,
-    toggleRDIManager,
     toggleInfoCoordenada,
+    toggleCategoryColor,
+    showProperties,
+    toggleProperties,
+    selectedEntityProps,
+    setSelectedEntityProps,
     closeFloatingWindows,
     createToggleModelVisibility,
   };

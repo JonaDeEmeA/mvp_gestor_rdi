@@ -3,6 +3,7 @@
 // Componente de presentación puro: recibe `stats` como prop, no tiene estado propio.
 // Usa react-chartjs-2 con registro explícito de los elementos necesarios de Chart.js.
 
+import React, { memo } from 'react';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -116,128 +117,129 @@ const EmptyChartState = ({ message = 'Sin datos disponibles' }) => (
 // ─── Gráfico 1: Doughnut — Por Estado ────────────────────────────────────────
 const StatusDoughnut = ({ byStatus }) => {
   const labels = Object.keys(byStatus);
-  const data = Object.values(byStatus);
+  const dataValues = Object.values(byStatus);
+
+  const data = {
+    labels,
+    datasets: [{
+      data: dataValues,
+      backgroundColor: STATUS_COLORS.slice(0, labels.length),
+      borderWidth: 2,
+      borderColor: '#fff',
+      hoverBorderColor: '#fff',
+    }],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '62%',
+    plugins: {
+      legend: BASE_LEGEND_OPTS,
+      tooltip: BASE_TOOLTIP,
+    },
+    // Desactivar animaciones si ya se cargó inicialmente para suavizar re-renders
+    animation: {
+        duration: 500
+    }
+  };
 
   if (labels.length === 0) {
     return <EmptyChartState message="Crea RDIs para ver la distribución por estado" />;
   }
 
-  return (
-    <Doughnut
-      data={{
-        labels,
-        datasets: [{
-          data,
-          backgroundColor: STATUS_COLORS.slice(0, labels.length),
-          borderWidth: 2,
-          borderColor: '#fff',
-          hoverBorderColor: '#fff',
-        }],
-      }}
-      options={{
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '62%',
-        plugins: {
-          legend: BASE_LEGEND_OPTS,
-          tooltip: BASE_TOOLTIP,
-        },
-      }}
-    />
-  );
+  return <Doughnut data={data} options={options} />;
 };
 
 // ─── Gráfico 2: Bar — Por Tipo ────────────────────────────────────────────────
 const TypeBar = ({ byType }) => {
   const labels = Object.keys(byType);
-  const data = Object.values(byType);
+  const dataValues = Object.values(byType);
+
+  const data = {
+    labels,
+    datasets: [{
+      label: 'Cantidad',
+      data: dataValues,
+      backgroundColor: TYPE_COLORS.slice(0, labels.length).map(c => c + 'CC'),
+      borderColor: TYPE_COLORS.slice(0, labels.length),
+      borderWidth: 1.5,
+      borderRadius: 4,
+    }],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: BASE_TOOLTIP,
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1, font: { size: 11 } },
+        grid: { color: '#F0F2F5' },
+      },
+      x: {
+        ticks: { font: { size: 10 } },
+        grid: { display: false },
+      },
+    },
+  };
 
   if (labels.length === 0) {
     return <EmptyChartState message="Crea RDIs para ver la distribución por tipo" />;
   }
 
-  return (
-    <Bar
-      data={{
-        labels,
-        datasets: [{
-          label: 'Cantidad',
-          data,
-          backgroundColor: TYPE_COLORS.slice(0, labels.length).map(c => c + 'CC'),
-          borderColor: TYPE_COLORS.slice(0, labels.length),
-          borderWidth: 1.5,
-          borderRadius: 4,
-        }],
-      }}
-      options={{
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: BASE_TOOLTIP,
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: { stepSize: 1, font: { size: 11 } },
-            grid: { color: '#F0F2F5' },
-          },
-          x: {
-            ticks: { font: { size: 10 } },
-            grid: { display: false },
-          },
-        },
-      }}
-    />
-  );
+  return <Bar data={data} options={options} />;
 };
 
 // ─── Gráfico 3: Line — Evolución temporal ────────────────────────────────────
 const MonthlyLine = ({ byMonth }) => {
   const hasData = byMonth.some(m => m.count > 0);
 
+  const data = {
+    labels: byMonth.map(m => m.label),
+    datasets: [{
+      label: 'RDIs creadas',
+      data: byMonth.map(m => m.count),
+      borderColor: PALETTE.primary,
+      backgroundColor: PALETTE.primary + '18',
+      borderWidth: 2,
+      pointBackgroundColor: PALETTE.primary,
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      fill: true,
+      tension: 0.35,
+    }],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: BASE_TOOLTIP,
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1, font: { size: 11 } },
+        grid: { color: '#F0F2F5' },
+      },
+      x: {
+        ticks: { font: { size: 11 } },
+        grid: { display: false },
+      },
+    },
+  };
+
   if (!hasData) {
     return <EmptyChartState message="No hay RDIs registradas en los últimos 6 meses" />;
   }
 
-  return (
-    <Line
-      data={{
-        labels: byMonth.map(m => m.label),
-        datasets: [{
-          label: 'RDIs creadas',
-          data: byMonth.map(m => m.count),
-          borderColor: PALETTE.primary,
-          backgroundColor: PALETTE.primary + '18',
-          borderWidth: 2,
-          pointBackgroundColor: PALETTE.primary,
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          fill: true,
-          tension: 0.35,
-        }],
-      }}
-      options={{
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: BASE_TOOLTIP,
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: { stepSize: 1, font: { size: 11 } },
-            grid: { color: '#F0F2F5' },
-          },
-          x: {
-            ticks: { font: { size: 11 } },
-            grid: { display: false },
-          },
-        },
-      }}
-    />
-  );
+  return <Line data={data} options={options} />;
 };
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -246,9 +248,10 @@ const MonthlyLine = ({ byMonth }) => {
  * @param {Object}  stats    - Métricas calculadas por useRDIStats
  * @param {boolean} loading  - Mostrar skeletons mientras carga
  */
-export default function RDIChartsPanel({ stats, loading }) {
+const RDIChartsPanel = memo(function RDIChartsPanel({ stats, loading }) {
   // ─── Estado de carga ───────────────────────────────────────────────────────
-  if (loading) {
+  // Solo mostramos Skeleton si es la carga inicial (no hay stats)
+  if (loading && !stats) {
     return (
       <Grid container spacing={3}>
         {[1, 2, 3].map(i => (
@@ -312,4 +315,6 @@ export default function RDIChartsPanel({ stats, loading }) {
       </Grid>
     </Box>
   );
-}
+});
+
+export default RDIChartsPanel;
