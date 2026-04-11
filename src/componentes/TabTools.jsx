@@ -31,6 +31,7 @@ import { useRDIManager } from "../hooks/useRDIManager"
 import { useBCFTopics } from "../hooks/useBCFTopics"
 import { useResizable } from "../hooks/useResizable"
 import { BIM_COLORS } from "../constants/designTokens"
+import { mapBCFTopicToRDI } from "../utilitario/bcfMapper"
 
 // Componentes especializados
 import TabPanel, { a11yProps } from "./TabTools/TabPanel"
@@ -227,6 +228,7 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
     convertRDIToBCFTopic,
     exportRDIToBCF,
     exportAllRDIsToBCF,
+    refreshRDIs,
   } = useRDIManager(db);
 
   // Handlers del componente principal
@@ -473,6 +475,60 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
     }
   }
 
+  // Handler para importar BCF y guardar en IndexedDB (Re-implementado)
+  const handleImportBCF = () => {
+    console.log("🚀 Iniciando importación BCF...");
+    importBCF(async (topics, viewpoints) => {
+      console.log(`📥 BCF cargado. Temas encontrados: ${topics?.length || 0}`);
+      
+      if (!topics || topics.length === 0) {
+        alert("⚠️ El archivo BCF no contiene temas válidos.");
+        return;
+      }
+
+      let successCount = 0;
+      let duplicateCount = 0;
+      
+      // Asegurar que iteramos sobre los temas, ya sea Map o Array
+      const topicsToProcess = topics.values ? Array.from(topics.values()) : topics;
+      
+      for (const topic of topicsToProcess) {
+        try {
+          // 1. Mapear topic a formato RDI usando el componente Viewpoints global
+          // Pasamos el componente global Y los viewpoints recién cargados como respaldo
+          const rdiMapped = mapBCFTopicToRDI(topic, viewpointsRef.current, viewpoints);
+          console.log(`🔍 Procesando topic: ${rdiMapped.titulo} (${rdiMapped.id})`);
+          
+          // 2. Verificar si ya existe en la lista actual por ID
+          const exists = rdiList.some(r => r.id === rdiMapped.id);
+          
+          if (exists) {
+            console.log(`⏭️ Topic ${rdiMapped.id} ya existe, saltando...`);
+            duplicateCount++;
+            continue;
+          }
+          
+          // 3. Guardar en IndexedDB
+          console.log(`💾 Guardando RDI importado ${rdiMapped.id} con snapshot:`, !!rdiMapped.snapshot);
+          await saveRDI(rdiMapped, rdiMapped.snapshot);
+          successCount++;
+        } catch (err) {
+          console.error(`❌ Error al procesar topic ${topic.guid}:`, err);
+        }
+      }
+      
+      if (successCount > 0) {
+        alert(`✅ Importación completada: ${successCount} nuevos temas agregados.`);
+        // Refrescar la lista de RDIs
+        refreshRDIs();
+      } else if (duplicateCount > 0) {
+        alert(`ℹ️ No se importaron nuevos temas. Los ${duplicateCount} temas encontrados ya existen.`);
+      } else {
+        alert(`⚠️ No se pudieron procesar los temas del archivo.`);
+      }
+    });
+  };
+
   // Filtrar lista según el filtro seleccionado
   const getFilteredRDIList = () => {
     return rdiList.filter((rdi) => {
@@ -644,10 +700,8 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
         <TabPanel value={tabValue} index={0} sx={{
           flex: 1,
           minHeight: 0,
-          overflow: 'hidden',  
-          display: 'flex',
-          flexDirection: 'column',
-          padding: 0  
+          overflow: 'hidden',
+          padding: 0
         }}>
           {console.log('📋 PASO 6: Renderizando TabPanel RDI con nueva estructura')}
 
@@ -662,7 +716,7 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
             <RDIHeader
               showForm={addFormLogic.showForm}
               onAddRDI={handleAgregarRDI}
-              onImportBCF={importBCF}
+              onImportBCF={handleImportBCF}
               rdiCount={rdiList.length}
             />
 
@@ -721,7 +775,11 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
         </TabPanel>
 
         {/* Panel Dashboard */}
-        <TabPanel value={tabValue} index={1} sx={{ flex: 1, minHeight: 0 }}>
+        <TabPanel value={tabValue} index={1} sx={{
+          flex: 1,
+          minHeight: 0,
+          padding: 0 // Eliminar espacio en blanco perimetral
+        }}>
           <DashboardTab
             rdiList={rdiList}
             bcfTopicSet={bcfTopicSet}

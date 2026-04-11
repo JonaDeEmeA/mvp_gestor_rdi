@@ -95,6 +95,7 @@ export const useRDIManager = (db) => {
 
       // Preparar los datos del formulario para guardar
       const rdiToSave = {
+        ...formData, // Mantener campos originales (útil para importación BCF)
         tipo: formData.tipo,
         titulo: formData.titulo,
         descripcion: formData.descripcion,
@@ -106,17 +107,15 @@ export const useRDIManager = (db) => {
         dueDate: formData.dueDate,
         // Metadatos de gestión
         id: formData.id || Date.now(),
-        creationAuthor: "signed.user@mail.com",
-        creationDate: new Date().toISOString(),
+        creationAuthor: formData.creationAuthor || "signed.user@mail.com",
+        creationDate: formData.creationDate || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        // Datos del snapshot si existe
-        ...(snapshotData && {
-          snapshot: {
-            imageData: snapshotData.imageData,
-            viewpointData: snapshotData.viewpointData,
-            createdAt: new Date().toISOString()
-          }
-        })
+        // Datos del snapshot: priorizar snapshotData, fallback a formData.snapshot
+        snapshot: snapshotData ? {
+          imageData: snapshotData.imageData,
+          viewpointData: snapshotData.viewpointData,
+          createdAt: new Date().toISOString()
+        } : (formData.snapshot || null)
       };
 
       const request = store.add(rdiToSave);
@@ -183,14 +182,12 @@ export const useRDIManager = (db) => {
             creationAuthor: existingRDI.creationAuthor || existingRDI.creation_author || "signed.user@mail.com",
             creationDate: existingRDI.creationDate || existingRDI.creation_date || existingRDI.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            // Actualizar snapshot si se proporciona
-            ...(snapshotData && {
-              snapshot: {
-                imageData: snapshotData.imageData,
-                viewpointData: snapshotData.viewpointData,
-                createdAt: new Date().toISOString()
-              }
-            })
+            // Actualizar snapshot: priorizar snapshotData, fallback a updatedData.snapshot, fallback a existingRDI.snapshot
+            snapshot: snapshotData ? {
+              imageData: snapshotData.imageData,
+              viewpointData: snapshotData.viewpointData,
+              createdAt: new Date().toISOString()
+            } : (updatedData.snapshot || existingRDI.snapshot || null)
           };
 
           // Actualizar en IndexedDB

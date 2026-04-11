@@ -49,11 +49,6 @@ const CoordinateInfoWindow = ({ open, onClose, point }) => {
           </Typography>
         )}
 
-        <Box sx={{ mt: 'auto', pt: 1, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary">
-            Modo Selección: Activo
-          </Typography>
-        </Box>
       </Box>
     </FloatingWindow>
   );

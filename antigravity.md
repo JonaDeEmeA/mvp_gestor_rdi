@@ -37,6 +37,7 @@ Se sigue un patrón de **Arquitectura de Componentes con Capas de Servicio**:
 | `analyzeModelGeometry`| `src/services/geometryAnalyzer.js` | Analiza el modelo cargado para extraer metadatos geométricos y facilitar la interacción con elementos específicos. |
 | `AuthProvider` | `src/hooks/useAuth.js` | Proveedor de contexto que envuelve la aplicación para gestionar la sesión de usuario de Firebase y las reglas de acceso. |
 | `useSelection` | Custom Hook | Maneja la lógica de selección de elementos 3D, resaltado visual y recuperación de datos de propiedades IFC. |
+| `mapBCFTopicToRDI` | `src/utilitario/bcfMapper.js` | Transforma temas BCF al formato RDI interno, integrando una lógica de búsqueda jerárquica para recuperar snapshots binarios (Uint8Array/Base64). |
 
 ---
 

@@ -63,7 +63,6 @@ export const processIfcFile = async (selectedFile, fragmentsManager, world) => {
       await saveFragmentFile(fragmentBytes, fragmentFileName);
     } catch (saveError) {
       console.warn('Error guardando archivo .frag:', saveError);
-      // No interrumpir el proceso por error de guardado
     }
 
     // Configurar en la escena

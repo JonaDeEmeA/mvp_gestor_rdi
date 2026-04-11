@@ -116,7 +116,9 @@ export const initializeViewer = async (container, refs) => {
     refs.clipperRef.current = clipper;
 
     // Configurar Raycasters y Highlighter (Selección)
-    components.get(OBC.Raycasters);
+    const raycasters = components.get(OBC.Raycasters);
+    raycasters.get(world); // Sincronización crucial: vincula el raycaster al mundo y su renderer
+    
     const highlighter = components.get(OBF.Highlighter);
     highlighter.setup({
       world,

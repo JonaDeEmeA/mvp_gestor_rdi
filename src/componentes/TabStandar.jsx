@@ -173,10 +173,6 @@ export default function TabStandar({
                 </ListItemIcon>
                 <ListItemText
                   primary={infoCoordenadaEnabled ? "Cerrar Coordenadas" : "Info Coordenadas"}
-                  secondary={pickedPoint ?
-                    `X: ${pickedPoint.x.toFixed(2)} | Y: ${pickedPoint.y.toFixed(2)} | Z: ${pickedPoint.z.toFixed(2)}`
-                    : 'No seleccionado'
-                  }
                 />
               </ListItemButton>
             </ListItem>
@@ -290,13 +286,6 @@ export default function TabStandar({
               >
                 {sectionEnabled ? 'Desactivar Sección' : 'Activar Sección'}
               </Button>
-              {pickedPoint && (
-                <Typography variant="body2" component="div">
-                  <strong>X:</strong> {pickedPoint.x.toFixed(2)} |
-                  <strong>Y:</strong> {pickedPoint.y.toFixed(2)} |
-                  <strong>Z:</strong> {pickedPoint.z.toFixed(2)}
-                </Typography>
-              )}
             </Box>
           </CustomTabPanel>
           <CustomTabPanel value={value} index={3}>

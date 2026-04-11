@@ -122,8 +122,45 @@ export default function Home() {
     toggleProperties();
   };
 
+  // ✅ NUEVO: Evitar que la selección interfiera con otras herramientas
+  useEffect(() => {
+    if (highlighterRef.current) {
+      // Desactivamos la selección automática si estamos capturando coordenadas
+      highlighterRef.current.enabled = !showInfoCoordenada;
+      
+      // Si activamos coordenadas, limpiamos la selección previa para mayor claridad
+      if (showInfoCoordenada) {
+        highlighterRef.current.clear("select");
+      }
+    }
+  }, [showInfoCoordenada]);
+
+  // Temporizador para distinguir entre click simple y doble click
+  const clickTimerRef = useRef(null);
+
   // Manejador unificado de clics en la escena
   const handleSceneClick = () => {
+    // Si la herramienta de sección está ACTIVA, usamos un delay para no interferir con el dblclick
+    if (enabled) {
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+        clickTimerRef.current = null;
+        console.log('[viewer] Doble click detectado, abortando selección.');
+        return;
+      }
+
+      clickTimerRef.current = setTimeout(() => {
+        console.log('[viewer] Click simple detectado en modo sección.');
+        runSelection();
+        clickTimerRef.current = null;
+      }, 250);
+    } else {
+      // Si no hay sección habilitada, la selección es instantánea
+      runSelection();
+    }
+  };
+
+  const runSelection = () => {
     if (showInfoCoordenada) {
       pickVertex();
     } else {
@@ -249,7 +286,7 @@ export default function Home() {
           />
 
           {/* Grupo de botones flotantes */}
-          <Box 
+          <Box
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}

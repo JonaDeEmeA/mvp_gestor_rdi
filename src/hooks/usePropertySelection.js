@@ -1,42 +1,67 @@
 import { useEffect, useCallback } from 'react';
 import * as OBC from "@thatopen/components";
+import * as OBF from "@thatopen/components-front";
+
+/**
+ * Extrae el valor legible de una propiedad IFC.
+ */
+const getPropertyValue = (property) => {
+  if (property === null || property === undefined) return '';
+  if (typeof property !== 'object') return String(property);
+  if (property.value !== undefined) return String(property.value);
+  return 'Complejo';
+};
 
 /**
  * Hook para manejar la selección de elementos y la obtención de sus propiedades.
- * @param {Object} components - Instancia de Components de ThatOpen.
- * @param {Object} world - Instancia del mundo actual.
- * @param {Object} highlighter - Instancia del Highlighter.
- * @param {Function} setSelectedEntityProps - Función para actualizar las propiedades en el estado global.
  */
 export const usePropertySelection = (components, world, highlighter, setSelectedEntityProps) => {
 
   const handleSelection = useCallback(async (modelIdMap) => {
-    console.log('--- Elemento Resaltado ---', modelIdMap);
-
-    if (!components) return;
-    const fragments = components.get(OBC.FragmentsManager);
-
-    const promises = [];
-    for (const [modelId, localIds] of Object.entries(modelIdMap)) {
-      const model = fragments.list.get(modelId);
-      if (!model) continue;
-
-      // localIds es un Set, lo convertimos a array
-      promises.push(model.getItemsData([...localIds]));
+    if (!components || !modelIdMap || Object.keys(modelIdMap).length === 0) {
+      setSelectedEntityProps(null);
+      return;
     }
 
-    try {
-      const propertiesData = await Promise.all(promises);
-      console.log('Propiedades recuperadas:', propertiesData);
+    const fragments = components.get(OBC.FragmentsManager);
 
-      // Aplanamos los resultados y tomamos el primero (asumiendo selección única por ahora)
-      if (propertiesData.length > 0 && propertiesData[0].length > 0) {
-        setSelectedEntityProps(propertiesData[0][0]);
-      } else {
-        setSelectedEntityProps(null);
+    try {
+      const modelId = Object.keys(modelIdMap)[0];
+      const expressIDs = [...modelIdMap[modelId]];
+      const expressID = expressIDs[0];
+      const model = fragments.list.get(modelId);
+      if (!model) return;
+
+      console.group('--- DIAGNÓSTICO TOTAL DE LIBRERÍAS ---');
+      console.log('Keys en OBC:', Object.keys(OBC));
+      console.log('Keys en OBF:', Object.keys(OBF));
+      console.groupEnd();
+
+      // Atributos base (esto funciona)
+      let attributes = null;
+      try {
+        const itemsData = await model.getItemsData([Number(expressID)]);
+        if (itemsData && itemsData.length > 0) {
+          attributes = itemsData[0];
+          console.log('[usePropertySelection] Info recuperada:', attributes);
+        }
+      } catch (err) {
+        console.error('Error en getItemsData:', err);
       }
+      
+      if (!attributes) {
+        attributes = { Name: { value: `Elemento ${expressID}` }, type: { value: "IFC Element" }, expressID };
+      }
+
+      // De momento Psets vacíos hasta ver los logs
+      setSelectedEntityProps({
+        attributes: attributes,
+        psets: [],
+        modelName: model.name || modelId
+      });
+
     } catch (error) {
-      console.error('Error al obtener propiedades:', error);
+      console.error('[usePropertySelection] Error:', error);
       setSelectedEntityProps(null);
     }
   }, [components, setSelectedEntityProps]);
@@ -58,49 +83,27 @@ export const usePropertySelection = (components, world, highlighter, setSelected
 
   // Función para ejecutar el raycast al hacer clic
   const pickEntity = useCallback(async () => {
-    if (!components || !world || !highlighter) {
-      console.warn('[usePropertySelection] Faltan dependencias:', { components: !!components, world: !!world, highlighter: !!highlighter });
-      return;
-    }
-
-    // Verificar si el mundo tiene un renderizador (necesario para el raycaster)
-    if (!world.renderer) {
-      console.warn('[usePropertySelection] El mundo aún no tiene un renderizador configurado.');
-      return;
-    }
+    if (!components || !world || !highlighter) return;
+    if (!world.renderer) return;
 
     try {
       const raycasters = components.get(OBC.Raycasters);
       const caster = raycasters.get(world);
-      
-      console.log('[usePropertySelection] Ejecutando castRay...');
       const result = await caster.castRay();
-      
+
       if (result) {
-        console.log('[usePropertySelection] Elemento detectado:', result);
-        
-        // Crear el modelIdMap para el resaltado
+        console.log('[usePropertySelection] Raycast exitoso:', result.localId);
         const modelIdMap = { [result.fragments.modelId]: new Set([result.localId]) };
-        
-        // Usamos el ID de selección por defecto "select" o el que configuró el usuario
         await highlighter.highlightByID("select", modelIdMap);
 
-        // Obtener y actualizar propiedades
-        const fragments = components.get(OBC.FragmentsManager);
-        const model = fragments.list.get(result.fragments.modelId);
-        if (model) {
-          const propertiesData = await model.getItemsData([result.localId]);
-          if (propertiesData && propertiesData.length > 0) {
-            setSelectedEntityProps(propertiesData[0]);
-          }
-        }
+        // Ejecución directa de la selección para asegurar actualización de UI inmediata
+        handleSelection(modelIdMap);
       } else {
-        // Si no hay resultado, limpiamos la selección
         highlighter.clear("select");
         setSelectedEntityProps(null);
       }
     } catch (error) {
-      console.error('[usePropertySelection] Error durante la selección:', error);
+      console.error('[usePropertySelection] Error en pickEntity:', error);
     }
   }, [components, world, highlighter, setSelectedEntityProps]);
 

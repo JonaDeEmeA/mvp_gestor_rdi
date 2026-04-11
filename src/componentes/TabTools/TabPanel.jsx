@@ -15,11 +15,11 @@ const TabPanel = ({
       id={`tabpanel-${index}`}
       aria-labelledby={`tab-${index}`}
       sx={{
-        display: value === index ? 'flex' : 'none',
-        flexDirection: 'column',
-        // Si se pasa flex en sx lo tomará, de lo contrario no crecerá por defecto
         height: '100%', 
-        ...sx
+        ...sx,
+        // La lógica de visibilidad debe ir al final para mandatar sobre cualquier sx externo
+        display: value === index ? (sx.display || 'flex') : 'none',
+        flexDirection: sx.flexDirection || 'column',
       }}
       {...other}
     >

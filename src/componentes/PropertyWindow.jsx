@@ -1,77 +1,96 @@
-import React from 'react';
 import {
   Typography,
   Box,
   Divider,
   List,
   ListItem,
-  ListItemText,
-  Paper
+  Paper,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
+import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import FloatingWindow from './FloatingWindow';
 
 /**
  * Extrae el valor legible de una propiedad IFC.
- * @param {any} property - La propiedad a procesar.
- * @returns {string} El valor en formato string.
  */
 const getPropertyValue = (property) => {
   if (property === null || property === undefined) return '';
   if (typeof property !== 'object') return String(property);
   if (property.value !== undefined) return String(property.value);
-  return 'Objeto complejo';
+  return 'Complejo';
 };
 
 /**
- * Componente que muestra las propiedades IFC del elemento seleccionado
- * @param {Object} props
- * @param {boolean} props.open - Controla si la ventana es visible
- * @param {Function} props.onClose - Función al cerrar la ventana
- * @param {Object} props.properties - Datos de las propiedades del elemento
+ * Renderiza una lista plana de propiedades clave-valor.
  */
+const PropertyList = ({ data }) => {
+  if (!data) return null;
+  
+  const entries = Object.entries(data).filter(([key, value]) => {
+    if (value === null || value === undefined) return false;
+    return typeof value !== 'object' || value.value !== undefined;
+  });
+
+  if (entries.length === 0) return null;
+
+  return (
+    <List dense sx={{ width: '100%', p: 0 }}>
+      {entries.map(([key, value]) => (
+        <ListItem 
+          key={key} 
+          divider 
+          sx={{ 
+            px: 0, 
+            py: 0.5,
+            flexDirection: 'column', 
+            alignItems: 'flex-start' 
+          }}
+        >
+          <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main', textTransform: 'uppercase', fontSize: '0.65rem' }}>
+            {key}
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: '0.85rem', wordBreak: 'break-all' }}>
+            {getPropertyValue(value)}
+          </Typography>
+        </ListItem>
+      ))}
+    </List>
+  );
+};
+
 const PropertyWindow = ({ open, onClose, properties }) => {
   
-  // Función para renderizar los pares clave-valor de forma limpia
-  const renderProperties = () => {
+  const renderContent = () => {
     if (!properties) return null;
 
-    // Obtener todas las propiedades y filtrar las legibles
-    const entries = Object.entries(properties).filter(([key, value]) => {
-      if (value === null || value === undefined) return false;
-      // Permitir primitivos y objetos que tengan una propiedad 'value'
-      return typeof value !== 'object' || value.value !== undefined;
-    });
-
-    if (entries.length === 0) {
-      return (
-        <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', p: 2 }}>
-          No hay propiedades disponibles para este elemento.
-        </Typography>
-      );
-    }
+    const { attributes, psets } = properties;
 
     return (
-      <List dense sx={{ width: '100%', p: 0 }}>
-        {entries.map(([key, value]) => (
-          <ListItem 
-            key={key} 
-            divider 
-            sx={{ 
-              px: 0, 
-              py: 1,
-              flexDirection: 'column', 
-              alignItems: 'flex-start' 
-            }}
-          >
-            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main', textTransform: 'uppercase' }}>
-              {key}
-            </Typography>
-            <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
-              {getPropertyValue(value)}
-            </Typography>
-          </ListItem>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {/* Sección de Atributos del Elemento */}
+        <Accordion defaultExpanded sx={{ boxShadow: 'none', '&:before': { display: 'none' }, bgcolor: 'transparent' }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="subtitle2" fontWeight="bold">Atributos Base</Typography>
+          </AccordionSummary>
+          <AccordionDetails sx={{ pt: 0 }}>
+            <PropertyList data={attributes} />
+          </AccordionDetails>
+        </Accordion>
+
+        {/* Secciones de Property Sets */}
+        {psets && psets.map((pset, index) => (
+          <Accordion key={index} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, bgcolor: 'transparent' }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="subtitle2" fontWeight="bold">{pset.name}</Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ pt: 0 }}>
+              <PropertyList data={pset.properties} />
+            </AccordionDetails>
+          </Accordion>
         ))}
-      </List>
+      </Box>
     );
   };
 
@@ -80,25 +99,24 @@ const PropertyWindow = ({ open, onClose, properties }) => {
       open={open}
       onClose={onClose}
       title="Propiedades IFC"
-      height="450px"
-      width="320px"
+      height="500px"
+      width="350px"
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {properties ? (
           <Box>
-            {properties.Name && (
-              <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5, bgcolor: 'rgba(31, 58, 95, 0.04)' }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                  {getPropertyValue(properties.Name)}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Tipo: {getPropertyValue(properties.type) || 'N/A'}
-                </Typography>
-              </Paper>
-            )}
+            {/* Cabecera con Nombre y Tipo */}
+            <Paper variant="outlined" sx={{ p: 1.5, mb: 1, bgcolor: 'rgba(31, 58, 95, 0.04)', borderRadius: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
+                {getPropertyValue(properties.attributes?.Name) || "Sin Nombre"}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Tipo: {getPropertyValue(properties.attributes?.type) || 'N/A'}
+              </Typography>
+            </Paper>
             
             <Box sx={{ flex: 1 }}>
-               {renderProperties()}
+               {renderContent()}
             </Box>
           </Box>
         ) : (
@@ -107,7 +125,7 @@ const PropertyWindow = ({ open, onClose, properties }) => {
             flexDirection: 'column', 
             alignItems: 'center', 
             justifyContent: 'center', 
-            py: 6, 
+            py: 8, 
             opacity: 0.5 
           }}>
             <Typography variant="h4">🔍</Typography>

@@ -90,6 +90,12 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
   // Helper para obtener labels
   const getValue = (value) => value || 'No especificado';
 
+  console.log('🖼️ RDIView rendering RDI:', rdi.id, {
+    hasSnapshotProp: !!rdi.snapshot,
+    hasImageData: !!(rdi.snapshot && rdi.snapshot.imageData),
+    snapshotUrl: !!snapshotUrl
+  });
+
   // Formatear fechas
   const formatDate = (dateString) => {
     if (!dateString) return 'No especificado';
@@ -231,71 +237,89 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
         </Box>
 
         {/* SECCIÓN 5: SNAPSHOT */}
-        {rdi.snapshot && snapshotUrl && (
-          <Box sx={{ mb: 3 }}>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-              <CameraIcon sx={{ fontSize: 18, color: BIM_COLORS.neutral.text.secondary }} />
-              <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, fontWeight: 'bold', textTransform: 'uppercase' }}>
-                Vista del Modelo
-              </Typography>
-            </Stack>
-            <Paper
-              variant="outlined"
-              sx={{
-                borderRadius: 1,
-                borderColor: BIM_COLORS.neutral.border,
-                overflow: 'hidden',
-                position: 'relative',
-                bgcolor: 'black',
-                '&:hover .snapshot-btn': { opacity: 1 }
-              }}
-            >
-              <img
-                src={snapshotUrl}
-                alt="RDI Snapshot"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block',
-                  maxHeight: '200px',
-                  objectFit: 'contain',
-                  margin: '0 auto'
-                }}
-              />
-              <Box
-                className="snapshot-btn"
+        {(() => {
+          const getSnapshotSrc = () => {
+            if (snapshotUrl) return snapshotUrl;
+            if (rdi.snapshot && rdi.snapshot.imageData) {
+              const data = rdi.snapshot.imageData;
+              return data.startsWith('data:') ? data : `data:image/png;base64,${data}`;
+            }
+            return null;
+          };
+          const src = getSnapshotSrc();
+          if (!src) return null;
+
+          return (
+            <Box sx={{ mb: 3 }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                <CameraIcon sx={{ fontSize: 18, color: BIM_COLORS.neutral.text.secondary }} />
+                <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                  Vista del Modelo
+                </Typography>
+              </Stack>
+              <Paper
+                variant="outlined"
                 sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: 'rgba(0,0,0,0.3)',
-                  opacity: 0,
-                  transition: 'opacity 0.2s'
+                  borderRadius: 1,
+                  borderColor: BIM_COLORS.neutral.border,
+                  overflow: 'hidden',
+                  position: 'relative',
+                  bgcolor: 'black',
+                  '&:hover .snapshot-btn': { opacity: 1 }
                 }}
               >
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={onVerSnapshot}
-                  startIcon={<CameraIcon />}
+                <img
+                  src={src}
+                  alt="RDI Snapshot"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    display: 'block',
+                    maxHeight: '300px',
+                    objectFit: 'contain',
+                    margin: '0 auto'
+                  }}
+                  onError={(e) => {
+                    console.error("Error cargando imagen de snapshot:", e);
+                    e.target.style.display = 'none';
+                  }}
+                />
+                <Box
+                  className="snapshot-btn"
                   sx={{
-                    bgcolor: BIM_COLORS.primary.main,
-                    textTransform: 'none',
-                    fontWeight: 'bold',
-                    '&:hover': { bgcolor: BIM_COLORS.primary.active }
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: 'rgba(0,0,0,0.3)',
+                    opacity: 0,
+                    transition: 'opacity 0.2s',
+                    zIndex: 2
                   }}
                 >
-                  Ver en 3D
-                </Button>
-              </Box>
-            </Paper>
-          </Box>
-        )}
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={onVerSnapshot}
+                    startIcon={<CameraIcon />}
+                    sx={{
+                      bgcolor: BIM_COLORS.primary.main,
+                      textTransform: 'none',
+                      fontWeight: 'bold',
+                      '&:hover': { bgcolor: BIM_COLORS.primary.active }
+                    }}
+                  >
+                    Ver en 3D
+                  </Button>
+                </Box>
+              </Paper>
+            </Box>
+          );
+        })()}
       </Box>
     </Box>
   );

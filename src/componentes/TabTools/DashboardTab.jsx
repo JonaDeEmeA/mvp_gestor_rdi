@@ -52,7 +52,12 @@ const DashboardTab = ({ rdiList, bcfTopicSet }) => {
       overflow: 'hidden'
     }}>
       {/* Header con resumen */}
-      <HeaderSection sx={{ bgcolor: BIM_COLORS.neutral.background.secondary, borderBottom: `1px solid ${BIM_COLORS.neutral.border}` }}>
+      <HeaderSection sx={{
+        bgcolor: BIM_COLORS.neutral.background.secondary,
+        borderBottom: `1px solid ${BIM_COLORS.neutral.border}`,
+        py: 1.5, // Reducir un poco el padding vertical para eliminar espacio muerto
+        px: 2
+      }}>
         <Stack direction="row" justifyContent="space-around" sx={{ width: '100%' }}>
           <Stack spacing={0.5} alignItems="center">
             <Typography variant="h4" sx={{ color: BIM_COLORS.primary.main, fontWeight: 'bold', lineHeight: 1 }}>

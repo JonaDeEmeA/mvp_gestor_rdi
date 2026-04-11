@@ -41,7 +41,7 @@ export const useSection = (component, world, containerRef, isViewerReady) => {
     if (clipper.onDeleted) clipper.onDeleted.add(onAfterChange);
 
     const handleDoubleClick = () => {
-      if (clipper.enabled) {
+      if (clipper.enabled && world && world.renderer) {
         clipper.create(world);
       }
     };

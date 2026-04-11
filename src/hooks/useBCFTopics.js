@@ -411,43 +411,7 @@ export const useBCFTopics = (component, db) => {
   };
 
   // Importar topics desde un archivo BCF local
-  const importBCF = () => {
-    /*if (!bcfTopicsRef.current) {
-      console.error("BCF Topics no está inicializado.");
-      return;
-    }
-
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.bcf,.bcfzip'; // Acepta ambos formatos BCF
-    input.style.display = 'none';
-
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-
-      try {
-        const buffer = await file.arrayBuffer();
-        // Usar el método .load() para procesar el buffer del archivo
-        const { topics: loadedTopics, viewpoints } = await bcfTopicsRef.current.load(new Uint8Array(buffer));
-
-        // Añadir los topics cargados al estado actual, evitando duplicados  
-        setTopics(prevTopics => {
-          const existingGuids = new Set(prevTopics.map(t => t.guid));
-          const newTopics = loadedTopics.filter(t => !existingGuids.has(t.guid));
-          return [...prevTopics, ...newTopics];
-        });
-
-        console.log("Archivo BCF cargado exitosamente:", topics);
-      } catch (error) {
-        console.error("Error al cargar el archivo BCF:", error);
-      } finally {
-        // Limpiar para permitir la selección del mismo archivo de nuevo
-        document.body.removeChild(input);
-      }
-    };
-    document.body.appendChild(input);
-    input.click();*/
+  const importBCF = (onTopicsLoaded) => {
     const input = document.createElement("input");
     input.multiple = false;
     input.accept = ".bcf";
@@ -458,12 +422,12 @@ export const useBCFTopics = (component, db) => {
       if (!file) return;
       const buffer = await file.arrayBuffer();
       const { topics, viewpoints } = await bcfTopicsRef.current.load(new Uint8Array(buffer));
-      console.log(topics, viewpoints);
+      console.log('BCF cargado:', topics, viewpoints);
+      
+      if (onTopicsLoaded && typeof onTopicsLoaded === 'function') {
+        onTopicsLoaded(topics, viewpoints);
+      }
     });
-
-    setLoadedTopicIds(topics.map(t => t.guid));
-    // Acceder a los datos completos cuando sea necesario  
-    //const topic = bcfTopics.list.get(topicId); 
 
     input.click();
   };

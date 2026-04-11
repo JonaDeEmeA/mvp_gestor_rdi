@@ -58,7 +58,7 @@ export const useViewerState = () => {
       console.log('Modelos importados:', importedModels);
 
       if (importedModels.length > 0) {
-        const targetModel = importedModels.find(model => model.object.uuid === modelId);
+        const targetModel = importedModels.find(model => model && model.object && model.object.uuid === modelId);
         if (targetModel) {
           targetModel.object.visible = !targetModel.object.visible;
           if (fragmentsRef?.current) {
@@ -84,11 +84,16 @@ export const useViewerState = () => {
     setImportedModels,
     showBrowser,
     showRDIManager,
+    showInfoCoordenada,
+    showCategoryColor,
+    showProperties,
+    selectedEntityProps,
+    isMobile,
+    toggleBrowser,
+    toggleRDIManager,
     toggleInfoCoordenada,
     toggleCategoryColor,
-    showProperties,
     toggleProperties,
-    selectedEntityProps,
     setSelectedEntityProps,
     closeFloatingWindows,
     createToggleModelVisibility,

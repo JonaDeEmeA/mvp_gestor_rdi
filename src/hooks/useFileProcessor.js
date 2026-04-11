@@ -67,7 +67,7 @@ export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
       }
 
       console.log(`Archivo ${selectedFile.name} procesado exitosamente`);
-      
+
     } catch (error) {
       console.error('Error procesando archivo:', error);
       showErrorMessage(ERROR_MESSAGES.FILE_PROCESSING, error);
