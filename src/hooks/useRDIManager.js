@@ -100,6 +100,7 @@ export const useRDIManager = (db) => {
         titulo: formData.titulo,
         descripcion: formData.descripcion,
         comentario: formData.comentario,
+        comments: formData.comments || [],
         fecha: formData.fecha,
         estado: formData.estado,
         etiqueta: formData.etiqueta,
@@ -178,7 +179,8 @@ export const useRDIManager = (db) => {
           const updatedRDI = {
             ...existingRDI,
             ...updatedData,
-            id: id, // Mantener el ID original
+            id: id,
+            comments: updatedData.comments || existingRDI.comments || [],
             creationAuthor: existingRDI.creationAuthor || existingRDI.creation_author || "signed.user@mail.com",
             creationDate: existingRDI.creationDate || existingRDI.creation_date || existingRDI.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -356,16 +358,22 @@ export const useRDIManager = (db) => {
       // Campos adicionales para contexto
       priority: 'Normal',
       index: rdiData.id,
-      // Comentarios si existen
-      ...(rdiData.comentario && {
-        comments: [{
-          guid: `comment-${rdiData.id}`,
-          date: rdiData.createdAt || new Date().toISOString(),
-          author: 'signed.user@mail.com',
-          comment: rdiData.comentario,
-          topic_guid: `rdi-${rdiData.id}`
-        }]
-      })
+      // Comentarios: priorizar el array de comentarios, fallback al campo simple
+      comments: rdiData.comments && rdiData.comments.length > 0
+        ? rdiData.comments.map(c => ({
+            guid: c.guid || `c-${Math.random().toString(36).substr(2, 9)}`,
+            date: c.date || new Date().toISOString(),
+            author: c.author || 'signed.user@mail.com',
+            comment: c.comment,
+            topic_guid: `rdi-${rdiData.id}`
+          }))
+        : (rdiData.comentario ? [{
+            guid: `comment-${rdiData.id}`,
+            date: rdiData.createdAt || new Date().toISOString(),
+            author: rdiData.creationAuthor || 'signed.user@mail.com',
+            comment: rdiData.comentario,
+            topic_guid: `rdi-${rdiData.id}`
+          }] : [])
     };
   }, []);
 

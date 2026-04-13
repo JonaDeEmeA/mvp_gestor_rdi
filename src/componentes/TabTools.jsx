@@ -487,7 +487,7 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
       }
 
       let successCount = 0;
-      let duplicateCount = 0;
+      let updatedCount = 0;
       
       // Asegurar que iteramos sobre los temas, ya sea Map o Array
       const topicsToProcess = topics.values ? Array.from(topics.values()) : topics;
@@ -495,37 +495,35 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
       for (const topic of topicsToProcess) {
         try {
           // 1. Mapear topic a formato RDI usando el componente Viewpoints global
-          // Pasamos el componente global Y los viewpoints recién cargados como respaldo
           const rdiMapped = mapBCFTopicToRDI(topic, viewpointsRef.current, viewpoints);
-          console.log(`🔍 Procesando topic: ${rdiMapped.titulo} (${rdiMapped.id})`);
           
           // 2. Verificar si ya existe en la lista actual por ID
           const exists = rdiList.some(r => r.id === rdiMapped.id);
           
           if (exists) {
-            console.log(`⏭️ Topic ${rdiMapped.id} ya existe, saltando...`);
-            duplicateCount++;
-            continue;
+            console.log(`🔄 Actualizando RDI existente: ${rdiMapped.id}`);
+            await updateRDI(rdiMapped.id, rdiMapped, rdiMapped.snapshot);
+            updatedCount++;
+          } else {
+            // 3. Guardar nuevo RDI en IndexedDB
+            console.log(`💾 Guardando nuevo RDI importado ${rdiMapped.id}`);
+            await saveRDI(rdiMapped, rdiMapped.snapshot);
+            successCount++;
           }
-          
-          // 3. Guardar en IndexedDB
-          console.log(`💾 Guardando RDI importado ${rdiMapped.id} con snapshot:`, !!rdiMapped.snapshot);
-          await saveRDI(rdiMapped, rdiMapped.snapshot);
-          successCount++;
         } catch (err) {
           console.error(`❌ Error al procesar topic ${topic.guid}:`, err);
         }
       }
       
-      if (successCount > 0) {
-        alert(`✅ Importación completada: ${successCount} nuevos temas agregados.`);
-        // Refrescar la lista de RDIs
-        refreshRDIs();
-      } else if (duplicateCount > 0) {
-        alert(`ℹ️ No se importaron nuevos temas. Los ${duplicateCount} temas encontrados ya existen.`);
-      } else {
-        alert(`⚠️ No se pudieron procesar los temas del archivo.`);
-      }
+      // 4. Refrescar y notificar
+      refreshRDIs();
+      
+      let mensaje = `📥 Proceso de importación finalizado:\n`;
+      if (successCount > 0) mensaje += `✅ ${successCount} nuevos temas agregados.\n`;
+      if (updatedCount > 0) mensaje += `🔄 ${updatedCount} temas existentes actualizados.\n`;
+      if (successCount === 0 && updatedCount === 0) mensaje += `ℹ️ No hubo cambios que procesar.`;
+      
+      alert(mensaje);
     });
   };
 
@@ -602,9 +600,9 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
             isSubmitting={editFormLogic.isSubmitting}
             snapshotUrl={editViewpointsLogic.snapshotUrl}
             snapShotReady={editViewpointsLogic.snapShotReady}
-            onCreateViewpoint={editViewpointsLogic.createViewpoint}
             onUpdateSnapshot={editViewpointsLogic.updateSnapshot}
             onVerSnapshotPV={onVerSnapshotPV}
+            onAddComment={editFormLogic.handleAddComment}
           />
         )}
       </EditPanel>
@@ -740,6 +738,7 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
                     snapShotReady={addViewpointsLogic.snapShotReady}
                     onCreateViewpoint={addViewpointsLogic.createViewpoint}
                     onUpdateSnapshot={addViewpointsLogic.updateSnapshot}
+                    onAddComment={addFormLogic.handleAddComment}
                   />
                 </Box>
               )}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BIM_COLORS } from '../../constants/designTokens';
-import { Box, Typography, FormControl, InputLabel, Select, MenuItem, TextField, Button, Collapse } from '@mui/material';
+import { Box, Typography, FormControl, InputLabel, Select, MenuItem, TextField, Button, Collapse, Divider, Stack, Avatar, Paper } from '@mui/material';
+import { ChatBubbleOutline as CommentIcon, Send as SendIcon } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 const RDIForm = ({
@@ -16,14 +17,23 @@ const RDIForm = ({
   onCreateViewpoint,
   onUpdateSnapshot,
   onVerSnapshotPV,
+  onAddComment,
 }) => {
+  const [newComment, setNewComment] = React.useState("");
+
+  const handleAddCommentLocal = () => {
+    if (!newComment.trim()) return;
+    onAddComment(newComment);
+    setNewComment("");
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onAccept();
   };
 
   const validateForm = () => {
-    return formData.tipo && formData.titulo && formData.fecha && formData.estado;
+    return formData.tipo && formData.titulo && formData.dueDate && formData.estado;
   };
 
   const textFieldStyles = {
@@ -178,6 +188,17 @@ const RDIForm = ({
             ))}
           </Select>
         </FormControl>
+        
+        {/* Campo Asignado a */}
+        <TextField
+          size="small"
+          fullWidth
+          label="Asignado a"
+          value={formData.assignedTo || ""}
+          onChange={(e) => onFormChange("assignedTo", e.target.value)}
+          sx={textFieldStyles}
+          placeholder="ejemplo@correo.com"
+        />
 
         {/* Select Estado */}
         <FormControl fullWidth sx={textFieldStyles} size="small" required variant="outlined">
@@ -196,11 +217,11 @@ const RDIForm = ({
           </Select>
         </FormControl>
 
-        {/* DatePicker Fecha */}
+        {/* DatePicker Fecha Límite */}
         <DatePicker
-          label="Fecha"
-          value={formData.fecha}
-          onChange={(newValue) => onFormChange("fecha", newValue)}
+          label="Fecha Límite"
+          value={formData.dueDate}
+          onChange={(newValue) => onFormChange("dueDate", newValue)}
           slotProps={{
             textField: {
               size: 'small',
@@ -210,6 +231,93 @@ const RDIForm = ({
             },
           }}
         />
+
+        {/* SECCIÓN DE COMENTARIOS (Solo en Edición) */}
+        {isEditing && (
+          <Box sx={{ mt: 4, mb: 2 }}>
+            <Divider sx={{ mb: 3, borderColor: BIM_COLORS.neutral.border }} />
+            
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+              <CommentIcon sx={{ fontSize: 18, color: BIM_COLORS.primary.main }} />
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: BIM_COLORS.primary.main }}>
+                Comentarios y Respuestas
+              </Typography>
+            </Stack>
+
+            {/* Input para nuevo comentario */}
+            <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="Escribe un comentario..."
+                multiline
+                rows={2}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                sx={{
+                  bgcolor: 'white',
+                  '& .MuiInputBase-root': { fontSize: '0.85rem' }
+                }}
+              />
+              <Button
+                variant="contained"
+                onClick={handleAddCommentLocal}
+                disabled={!newComment.trim()}
+                sx={{
+                  minWidth: 'auto',
+                  px: 2,
+                  bgcolor: BIM_COLORS.primary.main,
+                  '&:hover': { bgcolor: BIM_COLORS.primary.active }
+                }}
+              >
+                <SendIcon fontSize="small" />
+              </Button>
+            </Box>
+
+            {/* Historial de comentarios en el formulario */}
+            {formData.comments && formData.comments.length > 0 && (
+              <Stack spacing={2} sx={{ maxHeight: '300px', overflowY: 'auto', pr: 1 }}>
+                {formData.comments.map((comment, index) => (
+                  <Box key={comment.guid || index} sx={{ display: 'flex', gap: 1 }}>
+                    <Avatar sx={{ 
+                      width: 24, 
+                      height: 24, 
+                      bgcolor: BIM_COLORS.neutral.background.main,
+                      color: BIM_COLORS.neutral.text.secondary,
+                      fontSize: '0.6rem',
+                      border: `1px solid ${BIM_COLORS.neutral.border}`
+                    }}>
+                      {comment.author?.charAt(0).toUpperCase() || 'U'}
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}>
+                          {comment.author}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, fontSize: '0.6rem' }}>
+                          {new Date(comment.date).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                      <Paper 
+                        elevation={0} 
+                        sx={{ 
+                          p: 1, 
+                          bgcolor: 'white', 
+                          border: `1px solid ${BIM_COLORS.neutral.border}`,
+                          borderRadius: '0 8px 8px 8px'
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ fontSize: '0.8rem', color: BIM_COLORS.neutral.text.primary }}>
+                          {comment.comment}
+                        </Typography>
+                      </Paper>
+                    </Box>
+                  </Box>
+                ))}
+              </Stack>
+            )}
+          </Box>
+        )}
 
         {/* Botones de acción del formulario */}
         <Box sx={{ display: "flex", gap: 1, mt: 3 }}>

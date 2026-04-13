@@ -109,13 +109,19 @@ export const mapBCFTopicToRDI = (topic, viewpointsSistema, viewpointsArchivo = n
     estado: topic.status || 'Pendiente',
     etiqueta: topic.labels && topic.labels.size > 0 ? Array.from(topic.labels)[0] : 'Arquitectura',
     assignedTo: topic.assignedTo || 'coordinacion@gmail.com',
-    dueDate: topic.dueDate ? (() => {
-        const d = new Date(topic.dueDate);
-        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-    })() : '',
+    dueDate: topic.dueDate ? new Date(topic.dueDate).toLocaleDateString("es-ES") : '',
+    fecha: topic.dueDate ? new Date(topic.dueDate).toLocaleDateString("es-ES") : '',
     creationAuthor: topic.creationAuthor || 'bcf.import@mail.com',
     creationDate: topic.creationDate ? topic.creationDate.toISOString() : new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    snapshot: snapshotData
+    snapshot: snapshotData,
+    comments: topic.comments && topic.comments.size > 0 
+      ? Array.from(topic.comments.values()).map(c => ({
+          guid: c.guid,
+          author: c.author,
+          date: c.date ? (typeof c.date.toISOString === 'function' ? c.date.toISOString() : new Date(c.date).toISOString()) : new Date().toISOString(),
+          comment: c.comment
+        })) 
+      : []
   };
 };

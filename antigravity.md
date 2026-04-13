@@ -21,7 +21,7 @@ Se sigue un patrón de **Arquitectura de Componentes con Capas de Servicio**:
 
 ### Flujo de Datos
 1.  **Carga de Modelos**: El usuario selecciona un archivo (IFC/FRAG) -> `useFileProcessor` recibe el archivo -> `processIfcFile` o `processFragFile` convierte/carga los datos -> El modelo se añade al `FragmentsManager` y se renderiza en la escena de Three.js.
-2.  **Gestión de RDI/BCF**: Los componentes interactúan con `useRDIManager` o `useBCFTopics` -> Estos hooks mantienen el estado en sincronía con **Firebase Firestore** para persistencia colaborativa en tiempo real.
+2.  **Gestión de RDI/BCF**: Los componentes interactúan con `useRDIManager` o `useBCFTopics`. Durante la importación de BCF, el sistema detecta duplicados mediante GUIDs y realiza una **actualización dinámica (Upsert)** y normalización de datos (ej. responsables, fechas límites e hilos hilos de comentarios multi-autor), garantizando la sincronía y trazabilidad del registro de incidencias.
 3.  **Estado del Visor**: La configuración de la cámara, secciones (clipping) y herramientas activas se gestionan a través de `useViewerState` y `useViewer3D`, centralizando el control del entorno 3D.
 
 ---
@@ -32,12 +32,13 @@ Se sigue un patrón de **Arquitectura de Componentes con Capas de Servicio**:
 | :--- | :--- | :--- |
 | `initializeViewer` | `src/services/viewer3DService.js` | Configura el motor 3D, inicializa el mundo de ThatOpen, la cámara ortoperspectiva, el renderizador y el `FragmentsManager`. |
 | `processIfcFile` | `src/services/fileProcessorService.js` | Utiliza `IfcImporter` para convertir archivos IFC pesados en fragmentos indexados (`.frag`) optimizados para la web. |
-| `useRDIManager` | `src/hooks/useRDIManager.js` | Gestiona el CRUD de Solicitudes de Información (RDI), incluyendo la lógica de estados, visualización de puntos de vista y sincronía con Firestore. |
+| `useRDIManager` | `src/hooks/useRDIManager.js` | Gestiona el CRUD de RDIs, incluyendo la persistencia del historial de comentarios en IndexedDB y la migración automática de datos legacy al formato de array BCF. |
 | `useBCFTopics` | `src/hooks/useBCFTopics.js` | Implementa el estándar BCF (BIM Collaboration Format) para gestionar incidencias y comentarios vinculados a elementos específicos del modelo. |
 | `analyzeModelGeometry`| `src/services/geometryAnalyzer.js` | Analiza el modelo cargado para extraer metadatos geométricos y facilitar la interacción con elementos específicos. |
 | `AuthProvider` | `src/hooks/useAuth.js` | Proveedor de contexto que envuelve la aplicación para gestionar la sesión de usuario de Firebase y las reglas de acceso. |
+| `mapBCFTopicToRDI` | `src/utilitario/bcfMapper.js` | Transforma temas BCF al formato RDI interno, normalizando campos (`assignedTo`, `dueDate`) e integrando la colección completa de comentarios originales. |
+| `useRDIForm` | `src/hooks/useRDIForm.js` | Gestiona la creación/edición de RDIs, implementando la lógica de añadir comentarios dinámicos con firma de autor (vía `useAuth`) para el historial de incidencias. |
 | `useSelection` | Custom Hook | Maneja la lógica de selección de elementos 3D, resaltado visual y recuperación de datos de propiedades IFC. |
-| `mapBCFTopicToRDI` | `src/utilitario/bcfMapper.js` | Transforma temas BCF al formato RDI interno, integrando una lógica de búsqueda jerárquica para recuperar snapshots binarios (Uint8Array/Base64). |
 
 ---
 

@@ -1,15 +1,17 @@
 import { useState } from 'react';
+import { useAuth } from './useAuth';
 
 const initialFormData = {
   tipo: "",
   titulo: "",
   descripcion: "",
   comentario: "",
-  fecha: null,
   estado: "",
   etiqueta: "",
   assignedTo: "",
-  dueDate: null,
+  dueDate: null, // Fecha Límite (Estándar BCF)
+  fecha: null,   // Mantener por compatibilidad legacy
+  comments: [],  // Historial de comentarios BCF
 };
 
 export const useRDIForm = () => {
@@ -17,6 +19,7 @@ export const useRDIForm = () => {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
 
   // Manejar cambios en el formulario
   const handleFormChange = (field, value) => {
@@ -28,9 +31,26 @@ export const useRDIForm = () => {
 
   };
 
+  // Agregar un nuevo comentario al historial
+  const handleAddComment = (commentText) => {
+    if (!commentText?.trim()) return;
+
+    const newCommentObj = {
+      guid: `c-${Math.random().toString(36).substr(2, 9)}`,
+      author: user?.email || 'signed.user@mail.com',
+      date: new Date().toISOString(),
+      comment: commentText.trim()
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      comments: [newCommentObj, ...(prev.comments || [])]
+    }));
+  };
+
   // Validar formulario
   const validateForm = () => {
-    const requiredFields = ['tipo', 'titulo', 'fecha', 'estado'];
+    const requiredFields = ['tipo', 'titulo', 'dueDate', 'estado'];
     const missingFields = requiredFields.filter(field => {
       const value = formData[field];
       return !value || (typeof value === 'string' && value.trim() === '');
@@ -46,14 +66,17 @@ export const useRDIForm = () => {
 
   // Preparar datos para guardar
   const prepareFormDataForSave = () => {
+    // Si dueDate está presente, sincronizarlo con fecha para compatibilidad con componentes que aún busquen .fecha
+    const formattedDate = formData.dueDate ? formData.dueDate.toLocaleDateString("es-ES") : null;
+    
     return {
       ...formData,
-      fecha: formData.fecha ? formData.fecha.toLocaleDateString("es-ES") : null,
-      dueDate: formData.dueDate ? formData.dueDate.toLocaleDateString("es-ES") : null,
+      dueDate: formattedDate,
+      fecha: formattedDate || (formData.fecha ? formData.fecha.toLocaleDateString("es-ES") : null),
       assignedTo: formData.assignedTo || "",
-      // Limpiar campos vacíos
       descripcion: formData.descripcion?.trim() || "",
       comentario: formData.comentario?.trim() || "",
+      comments: formData.comments || [],
     };
   };
 
@@ -75,8 +98,14 @@ export const useRDIForm = () => {
       fecha: parseDateFromString(item.fecha),
       estado: item.estado || "",
       etiqueta: item.etiqueta || "",
-      assignedTo: item.assignedTo || "",
+      assignedTo: item.assignedTo || item.assigned_to || "",
       dueDate: parseDateFromString(item.dueDate),
+      comments: item.comments || (item.comentario ? [{
+        guid: `legacy-${item.id}`,
+        author: item.creationAuthor || 'signed.user@mail.com',
+        date: item.creationDate || new Date().toISOString(),
+        comment: item.comentario
+      }] : [])
     });
     setEditId(item.id);
     //setShowForm(true);
@@ -176,6 +205,7 @@ export const useRDIForm = () => {
 
     // Utilidades
     getBCFTopicData,
+    handleAddComment,
     isEditing: editId !== null,
   };
 };

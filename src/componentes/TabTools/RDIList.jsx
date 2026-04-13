@@ -203,10 +203,11 @@ const RDIList = ({
                       <strong>Asignado:</strong> {rdi.assignedTo || "No asignado"}
                     </Typography>
                     <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, display: 'block' }}>
-                      <strong>Fecha:</strong> {(() => {
-                        if (!rdi.fecha) return 'No definida';
-                        const date = new Date(rdi.fecha);
-                        return isNaN(date.getTime()) ? rdi.fecha : date.toLocaleDateString('es-ES');
+                      <strong>F. Límite:</strong> {(() => {
+                        const displayDate = rdi.dueDate || rdi.fecha;
+                        if (!displayDate) return 'No definida';
+                        const date = new Date(displayDate);
+                        return isNaN(date.getTime()) ? displayDate : date.toLocaleDateString('es-ES');
                       })()}
                     </Typography>
                   </Box>

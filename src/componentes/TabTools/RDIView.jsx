@@ -20,7 +20,8 @@ import {
   Description as DescriptionIcon,
   CameraAlt as CameraIcon,
   Flag as FlagIcon,
-  Edit as EditIcon
+  Edit as EditIcon,
+  ChatBubbleOutline as CommentIcon
 } from '@mui/icons-material';
 
 // Componente para Cards de Información Principal
@@ -320,8 +321,89 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
             </Box>
           );
         })()}
+
+        {/* SECCIÓN 6: HISTORIAL DE COMENTARIOS */}
+        <Box sx={{ mt: 1, mb: 4 }}>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+            <CommentIcon sx={{ fontSize: 18, color: BIM_COLORS.neutral.text.secondary }} />
+            <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, fontWeight: 'bold', textTransform: 'uppercase' }}>
+              Historial de Comentarios ({rdi.comments?.length || 0})
+            </Typography>
+          </Stack>
+          
+          {rdi.comments && rdi.comments.length > 0 ? (
+            <Stack spacing={2.5}>
+              {rdi.comments.map((comment, index) => (
+                <Box key={comment.guid || index} sx={{ display: 'flex', gap: 1.5 }}>
+                  <Avatar sx={{ 
+                    width: 32, 
+                    height: 32, 
+                    bgcolor: comment.author === rdi.creationAuthor ? BIM_COLORS.primary.soft : BIM_COLORS.accent.soft,
+                    color: comment.author === rdi.creationAuthor ? BIM_COLORS.primary.main : BIM_COLORS.accent.main,
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                    border: `1px solid ${BIM_COLORS.neutral.border}`
+                  }}>
+                    {comment.author?.charAt(0).toUpperCase() || 'U'}
+                  </Avatar>
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 'bold', color: BIM_COLORS.neutral.text.primary }}>
+                        {comment.author}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, fontSize: '0.65rem' }}>
+                        {formatDateTime(comment.date)}
+                      </Typography>
+                    </Box>
+                    <Paper 
+                      elevation={0}
+                      sx={{ 
+                        p: 1.5, 
+                        bgcolor: 'white', 
+                        border: `1px solid ${BIM_COLORS.neutral.border}`,
+                        borderRadius: '0 12px 12px 12px',
+                        position: 'relative',
+                        '&:before': {
+                          content: '""',
+                          position: 'absolute',
+                          top: 0,
+                          left: -6,
+                          width: 0,
+                          height: 0,
+                          borderStyle: 'solid',
+                          borderWidth: '0 6px 6px 0',
+                          borderColor: `transparent ${BIM_COLORS.neutral.border} transparent transparent`
+                        }
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ color: BIM_COLORS.neutral.text.primary, fontSize: '0.85rem', lineHeight: 1.4 }}>
+                        {comment.comment}
+                      </Typography>
+                    </Paper>
+                  </Box>
+                </Box>
+              ))}
+            </Stack>
+          ) : (
+            <Paper 
+              variant="outlined" 
+              sx={{ 
+                p: 2, 
+                borderRadius: 1, 
+                borderColor: BIM_COLORS.neutral.border, 
+                bgcolor: BIM_COLORS.neutral.background.secondary,
+                textAlign: 'center'
+              }}
+            >
+              <Typography variant="body2" sx={{ color: BIM_COLORS.neutral.text.secondary, fontStyle: 'italic' }}>
+                No hay comentarios registrados en este RDI.
+              </Typography>
+            </Paper>
+          )}
+        </Box>
       </Box>
     </Box>
+
   );
 };
 
