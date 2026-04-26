@@ -140,7 +140,7 @@ const StatusDoughnut = ({ byStatus }) => {
     },
     // Desactivar animaciones si ya se cargó inicialmente para suavizar re-renders
     animation: {
-        duration: 500
+      duration: 500
     }
   };
 
@@ -291,7 +291,7 @@ const RDIChartsPanel = memo(function RDIChartsPanel({ stats, loading }) {
       </Box>
 
       {/* Grid de gráficos */}
-      <Grid container spacing={3}>
+      <Grid container spacing={4} justifyContent="center"  >
         {/* Gráfico 1: Distribución por Estado */}
         <Grid item xs={12} md={4}>
           <ChartCard icon={DonutIcon} title="Por Estado">

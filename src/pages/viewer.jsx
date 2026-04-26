@@ -1,7 +1,21 @@
 "use client";
-import { useEffect, useRef } from 'react';
-import { Box, Typography, Fab, Tooltip } from '@mui/material';
-import { Home as HomeIcon } from '@mui/icons-material';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Box, Typography, Fab, Tooltip,
+  Avatar, Button, Divider, CircularProgress,
+  AppBar, Toolbar, IconButton, Drawer, List,
+  ListItem, ListItemIcon, ListItemText,
+} from '@mui/material';
+import {
+  Home as HomeIcon,
+  Dashboard as DashboardIcon,
+  Logout as LogoutIcon,
+  Assignment as PropertyIcon,
+  Menu as MenuIcon,
+} from '@mui/icons-material';
+
+import { useAuth } from '../hooks/useAuth';
+import { useRouter } from 'next/router';
 
 import TabStandar from "@/componentes/TabStandar";
 import Browser from "@/componentes/Browser";
@@ -18,14 +32,33 @@ import SectionManagerWindow from '@/componentes/SectionManagerWindow';
 import CoordinateInfoWindow from '@/componentes/CoordinateInfoWindow';
 import CategoryColorWindow from '@/componentes/CategoryColorWindow';
 import PropertyWindow from '@/componentes/PropertyWindow';
-import { Assignment as PropertyIcon } from '@mui/icons-material';
-
 // Constantes
 import { STYLES, VIEWER_CONFIG } from '../constants/viewerConfig';
 import React from 'react';
 
+const APPBAR_HEIGHT = 48; // px — barra compacta estilo Autodesk
+
 export default function Home() {
   const clickPosRef = useRef({ x: 0, y: 0 });
+
+  // Auth & navegación
+  const authHook = useAuth();
+  const router = useRouter();
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const user = authHook?.user || { email: 'usuario@demo.com', displayName: 'Usuario Demo' };
+
+  const handleLogout = async () => {
+    if (!authHook?.logout) return;
+    setLogoutLoading(true);
+    try {
+      const result = await authHook.logout();
+      if (result.success) router.push('/');
+    } finally {
+      setLogoutLoading(false);
+    }
+  };
 
   // Hooks personalizados
   const {
@@ -39,7 +72,7 @@ export default function Home() {
     isViewerReady
   } = useViewer3D();
 
-  // Hook de sección  
+  // Hook de sección
   const { enabled, planesList, toggle, deletePlane, togglePlane } = useSection(
     componentsRef.current,
     worldRef.current,
@@ -89,26 +122,17 @@ export default function Home() {
 
   // Manejadores locales para coordinar exclusividad con la herramienta de sección
   const handleToggleSection = () => {
-    if (!enabled) {
-      // Si vamos a activar sección, cerramos Browser e Info Coor
-      closeFloatingWindows();
-    }
+    if (!enabled) closeFloatingWindows();
     toggle();
   };
 
   const handleToggleBrowser = () => {
-    if (!showBrowser) {
-      // Si vamos a activar browser, cerramos sección
-      if (enabled) toggle();
-    }
+    if (!showBrowser && enabled) toggle();
     toggleBrowser();
   };
 
   const handleToggleInfoCoordenada = () => {
-    if (!showInfoCoordenada) {
-      // Si vamos a activar info coor, cerramos sección
-      if (enabled) toggle();
-    }
+    if (!showInfoCoordenada && enabled) toggle();
     toggleInfoCoordenada();
   };
 
@@ -122,50 +146,36 @@ export default function Home() {
     toggleProperties();
   };
 
-  // ✅ NUEVO: Evitar que la selección interfiera con otras herramientas
+  // Evitar que la selección interfiera con otras herramientas
   useEffect(() => {
     if (highlighterRef.current) {
-      // Desactivamos la selección automática si estamos capturando coordenadas
       highlighterRef.current.enabled = !showInfoCoordenada;
-      
-      // Si activamos coordenadas, limpiamos la selección previa para mayor claridad
-      if (showInfoCoordenada) {
-        highlighterRef.current.clear("select");
-      }
+      if (showInfoCoordenada) highlighterRef.current.clear("select");
     }
   }, [showInfoCoordenada]);
 
   // Temporizador para distinguir entre click simple y doble click
   const clickTimerRef = useRef(null);
 
-  // Manejador unificado de clics en la escena
   const handleSceneClick = () => {
-    // Si la herramienta de sección está ACTIVA, usamos un delay para no interferir con el dblclick
     if (enabled) {
       if (clickTimerRef.current) {
         clearTimeout(clickTimerRef.current);
         clickTimerRef.current = null;
-        console.log('[viewer] Doble click detectado, abortando selección.');
         return;
       }
-
       clickTimerRef.current = setTimeout(() => {
-        console.log('[viewer] Click simple detectado en modo sección.');
         runSelection();
         clickTimerRef.current = null;
       }, 250);
     } else {
-      // Si no hay sección habilitada, la selección es instantánea
       runSelection();
     }
   };
 
   const runSelection = () => {
-    if (showInfoCoordenada) {
-      pickVertex();
-    } else {
-      pickEntity();
-    }
+    if (showInfoCoordenada) pickVertex();
+    else pickEntity();
   };
 
   const handlePointerDown = (e) => {
@@ -173,24 +183,196 @@ export default function Home() {
   };
 
   const handlePointerUp = (e) => {
-    // Evitar disparar selección si hubo arrastre (órbita/pan)
     const moveThreshold = 5;
     const deltaX = Math.abs(e.clientX - clickPosRef.current.x);
     const deltaY = Math.abs(e.clientY - clickPosRef.current.y);
-
-    if (deltaX < moveThreshold && deltaY < moveThreshold) {
-      handleSceneClick();
-    }
+    if (deltaX < moveThreshold && deltaY < moveThreshold) handleSceneClick();
   };
 
+  // ── Drawer de usuario ─────────────────────────────────────────────────────
+  const userDrawer = (
+    <Box
+      sx={{
+        width: 280,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: '#1F3A5F',
+      }}
+      role="presentation"
+    >
+      {/* Cabecera con avatar */}
+      <Box sx={{ p: 2, pt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <Avatar sx={{ bgcolor: '#4CAF50', width: 56, height: 56, fontSize: '1.5rem', fontWeight: 'bold' }}>
+          {user.displayName?.[0] || user.email[0].toUpperCase()}
+        </Avatar>
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', lineHeight: 1.2 }}>
+            {user.displayName || 'Usuario'}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem' }}>
+            {user.email}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Acciones */}
+      <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={<DashboardIcon />}
+          onClick={() => { setDrawerOpen(false); router.push('/dashboard'); }}
+          sx={{
+            color: 'white',
+            borderColor: 'rgba(255,255,255,0.4)',
+            textTransform: 'none',
+            fontWeight: 'bold',
+            justifyContent: 'flex-start',
+            py: 1.2,
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', borderColor: 'white' }
+          }}
+        >
+          Ir al Dashboard
+        </Button>
+      </Box>
+
+      {/* Pie con logout */}
+      <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={logoutLoading ? <CircularProgress size={18} color="inherit" /> : <LogoutIcon />}
+          onClick={handleLogout}
+          disabled={logoutLoading}
+          sx={{
+            color: '#FF6B6B',
+            borderColor: 'rgba(255,107,107,0.5)',
+            textTransform: 'none',
+            fontWeight: 'bold',
+            justifyContent: 'flex-start',
+            py: 1.2,
+            '&:hover': { bgcolor: 'rgba(255,107,107,0.08)', borderColor: '#FF6B6B' }
+          }}
+        >
+          {logoutLoading ? 'Saliendo...' : 'Cerrar sesión'}
+        </Button>
+      </Box>
+    </Box>
+  );
+
   return (
-    <Box sx={STYLES.container}>
+    <Box sx={{
+      height: '100vh',
+      width: '100vw',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      background: '#181818',
+      paddingTop: `${APPBAR_HEIGHT}px`,
+    }}>
+
+      {/* ── AppBar superior ──────────────────────────────────────────────── */}
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{
+          height: APPBAR_HEIGHT,
+          bgcolor: '#1F3A5F',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          zIndex: 1300,
+        }}
+      >
+        <Toolbar
+          variant="dense"
+          sx={{
+            height: APPBAR_HEIGHT,
+            minHeight: `${APPBAR_HEIGHT}px !important`,
+            px: { xs: 1.5, sm: 2 },
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          {/* Logo / marca – izquierda */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box
+              sx={{
+                width: 26,
+                height: 26,
+                bgcolor: '#4CAF50',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: '0.75rem',
+                color: 'white',
+                letterSpacing: '-0.5px',
+              }}
+            >
+              BIM
+            </Box>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                color: 'white',
+                fontWeight: 700,
+                fontSize: { xs: '0.8rem', sm: '0.95rem' },
+                letterSpacing: '0.3px',
+                display: { xs: 'none', sm: 'block' },
+              }}
+            >
+              Visor 3D
+            </Typography>
+          </Box>
+
+          <Box sx={{ flexGrow: 1 }} />
+
+          {/* Derecha: avatar + hamburguesa */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Avatar
+              sx={{
+                bgcolor: '#4CAF50',
+                width: 30,
+                height: 30,
+                fontSize: '0.8rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+              }}
+              onClick={() => setDrawerOpen(true)}
+            >
+              {user.displayName?.[0] || user.email[0].toUpperCase()}
+            </Avatar>
+
+            <Tooltip title="Menú de usuario" placement="bottom">
+              <IconButton
+                onClick={() => setDrawerOpen(true)}
+                size="small"
+                sx={{ color: 'rgba(255,255,255,0.85)', '&:hover': { color: 'white' } }}
+              >
+                <MenuIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* ── Drawer de usuario ────────────────────────────────────────────── */}
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        PaperProps={{ sx: { bgcolor: '#1F3A5F' } }}
+      >
+        {userDrawer}
+      </Drawer>
+
       {/* TabStandar siempre visible */}
       <TabStandar
         onCargarFile={openFileDialog}
         hideModel={handleToggleModelVisibility}
         onCloseBrowser={handleToggleBrowser}
-        onCloseRdiManager={toggleRDIManager} // RDI Manager sigue independiente
+        onCloseRdiManager={toggleRDIManager}
         onToggleInfoCoordenada={handleToggleInfoCoordenada}
         pickedPoint={pickedPoint}
         onResetCamera={resetCamera}
@@ -204,17 +386,17 @@ export default function Home() {
         categoryColorEnabled={showCategoryColor}
       />
 
-      {/* Contenedor principal que cambia según el estado */}
+      {/* Contenedor principal - ocupa todo el espacio restante */}
       <Box data-testid="box-contenedor-principal" sx={{
         width: "100%",
-        height: { xs: "100vh", sm: "85vh" },
+        flex: 1,
+        minHeight: 0,
         display: "flex",
         flexDirection: { xs: "column", sm: "row" },
-
-        position: { xs: "static", sm: "relative" }
+        position: "relative"
       }}>
 
-        {/* Escena 3D - Se oculta en móviles cuando TabTools está activo */}
+        {/* Escena 3D */}
         <Box data-testid="box-contenedor-UNO A"
           ref={containerRef}
           onPointerDown={handlePointerDown}
@@ -222,18 +404,17 @@ export default function Home() {
           sx={{
             ...STYLES.viewer,
             visibility: {
-              xs: showRDIManager ? "hidden" : "visible", // Ocultar en móviles si TabTools está activo
-              sm: "visible" // Siempre visible en desktop
+              xs: showRDIManager ? "hidden" : "visible",
+              sm: "visible"
             },
             position: {
-              xs: showRDIManager ? "absolute" : "static", // Posición absoluta cuando está oculto en móviles
+              xs: showRDIManager ? "absolute" : "static",
               sm: "relative"
             },
             zIndex: {
-              xs: showRDIManager ? -1 : 1, // Enviar atrás cuando está oculto en móviles
+              xs: showRDIManager ? -1 : 1,
               sm: 1
             },
-            // Ajustar ancho dinámicamente  
             width: {
               xs: "100%",
               sm: showRDIManager ? `calc(100% - 350px)` : "100%"
@@ -309,9 +490,7 @@ export default function Home() {
                 onClick={resetCamera}
                 sx={{
                   bgcolor: 'rgba(31, 58, 95, 0.8)',
-                  '&:hover': {
-                    bgcolor: 'rgba(31, 58, 95, 1)',
-                  }
+                  '&:hover': { bgcolor: 'rgba(31, 58, 95, 1)' }
                 }}
               >
                 <HomeIcon />
@@ -326,9 +505,7 @@ export default function Home() {
                 onClick={handleToggleProperties}
                 sx={{
                   bgcolor: showProperties ? '#4CAF50' : 'rgba(31, 58, 95, 0.8)',
-                  '&:hover': {
-                    bgcolor: showProperties ? '#43A047' : 'rgba(31, 58, 95, 1)',
-                  }
+                  '&:hover': { bgcolor: showProperties ? '#43A047' : 'rgba(31, 58, 95, 1)' }
                 }}
               >
                 <PropertyIcon />
@@ -337,31 +514,22 @@ export default function Home() {
           </Box>
         </Box>
 
-        {/* TabTools - Ocupa toda la pantalla en móviles, panel lateral redimensionable en desktop */}
+        {/* TabTools */}
         {showRDIManager && (
           <TabTools data-testid="DOS B"
             component={componentsRef.current}
             world={worldRef.current}
             topic={topicRef.current}
             sx={{
-              // Móviles: Posición estática, ocupa toda la pantalla
               position: { xs: "static", sm: "absolute" },
               width: { xs: "100%", sm: "350px" },
               height: "100%",
-              // Desktop: Posición absoluta para redimensionamiento
               right: { sm: 0 },
               top: { sm: 0 },
               zIndex: 20,
               pointerEvents: "none",
             }}
-            onClose={() => {
-              console.log('═══════════════════════════════════════════');
-              console.log('🚪 PASO 4.1: Cerrando TabTools desde viewer');
-              console.log('═══════════════════════════════════════════');
-              toggleRDIManager(); // Función existente del hook useViewerState
-              console.log('✅ showRDIManager cambiado a false');
-              console.log('═══════════════════════════════════════════');
-            }}
+            onClose={() => toggleRDIManager()}
           />
         )}
       </Box>

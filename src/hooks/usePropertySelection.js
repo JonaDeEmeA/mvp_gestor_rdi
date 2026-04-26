@@ -9,6 +9,10 @@ const getPropertyValue = (property) => {
   if (property === null || property === undefined) return '';
   if (typeof property !== 'object') return String(property);
   if (property.value !== undefined) return String(property.value);
+  // Soporte para IfcPropertySingleValue (NominalValue)
+  if (property.NominalValue && property.NominalValue.value !== undefined) {
+    return String(property.NominalValue.value);
+  }
   return 'Complejo';
 };
 
@@ -32,31 +36,48 @@ export const usePropertySelection = (components, world, highlighter, setSelected
       const model = fragments.list.get(modelId);
       if (!model) return;
 
-      console.group('--- DIAGNÓSTICO TOTAL DE LIBRERÍAS ---');
-      console.log('Keys en OBC:', Object.keys(OBC));
-      console.log('Keys en OBF:', Object.keys(OBF));
-      console.groupEnd();
-
-      // Atributos base (esto funciona)
+      // Atributos y Property Sets
       let attributes = null;
+      let psets = [];
       try {
-        const itemsData = await model.getItemsData([Number(expressID)]);
+        const itemsData = await model.getItemsData([Number(expressID)], {
+          relations: {
+            IsDefinedBy: { attributes: true, relations: true },
+            HasPropertySets: { attributes: true, relations: true },
+            IsTypedBy: { attributes: true, relations: false },
+          },
+        });
+
         if (itemsData && itemsData.length > 0) {
           attributes = itemsData[0];
-          console.log('[usePropertySelection] Info recuperada:', attributes);
+          
+          // Extraer property sets
+          if (Array.isArray(attributes.IsDefinedBy)) {
+            for (const pset of attributes.IsDefinedBy) {
+              if (pset.Name && "value" in pset.Name && Array.isArray(pset.HasProperties)) {
+                const properties = pset.HasProperties.map(prop => ({
+                  name: prop.Name?.value || '',
+                  value: getPropertyValue(prop)
+                }));
+                psets.push({
+                  name: pset.Name.value,
+                  properties: properties
+                });
+              }
+            }
+          }
         }
       } catch (err) {
-        console.error('Error en getItemsData:', err);
+        console.error('[usePropertySelection] Error en getItemsData:', err);
       }
       
       if (!attributes) {
         attributes = { Name: { value: `Elemento ${expressID}` }, type: { value: "IFC Element" }, expressID };
       }
 
-      // De momento Psets vacíos hasta ver los logs
       setSelectedEntityProps({
         attributes: attributes,
-        psets: [],
+        psets: psets,
         modelName: model.name || modelId
       });
 

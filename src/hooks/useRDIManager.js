@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAnalytics } from './useAnalytics';
+
 
 export const useRDIManager = (db) => {
   const [rdiList, setRdiList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { trackRDIAction } = useAnalytics();
 
   // Cargar RDIs desde IndexedDB al inicializar
   useEffect(() => {
@@ -251,6 +254,7 @@ export const useRDIManager = (db) => {
           // Actualizar lista local
           setRdiList(prev => prev.filter(rdi => rdi.id !== id));
           setLoading(false);
+          trackRDIAction('delete', id);
           resolve(true);
         };
 
@@ -411,6 +415,7 @@ export const useRDIManager = (db) => {
     URL.revokeObjectURL(url);
 
     console.log('RDI exportado a BCF:', bcfTopic);
+    trackRDIAction('export_individual_bcf', rdiId);
     return bcfTopic;
   }, [getRDIById, convertRDIToBCFTopic]);
 
@@ -454,6 +459,7 @@ export const useRDIManager = (db) => {
     URL.revokeObjectURL(url);
 
     console.log(`${rdiList.length} RDIs exportados a BCF:`, bcfTopics);
+    trackRDIAction('export_all_bcf', 'multiple');
     return bcfData;
   }, [rdiList, convertRDIToBCFTopic]);
 

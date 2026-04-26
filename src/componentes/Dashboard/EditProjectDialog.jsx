@@ -7,12 +7,18 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Button,
   Box,
   Typography,
   Alert,
   CircularProgress,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
+import {
+  DeleteForever as DeleteIcon,
+  Close as CloseIcon,
+  Save as SaveIcon,
+} from '@mui/icons-material';
 
 export default function EditProjectDialog({ 
   project, 
@@ -104,7 +110,21 @@ export default function EditProjectDialog({
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle>Editar Proyecto</DialogTitle>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
+        Editar Proyecto
+        <Tooltip title="Cerrar" placement="left">
+          <span>
+            <IconButton
+              onClick={handleClose}
+              disabled={isSubmitting}
+              size="small"
+              sx={{ color: 'text.secondary', '&:hover': { bgcolor: 'rgba(0,0,0,0.06)' } }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+      </DialogTitle>
       
       <DialogContent>
         {/* Error Alert */}
@@ -154,34 +174,39 @@ export default function EditProjectDialog({
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'space-between' }}>
-        {/* Botón Eliminar - Izquierda */}
-        <Button 
-          onClick={handleDelete}
-          disabled={isSubmitting}
-          color="error"
-          variant="outlined"
-          startIcon={isSubmitting ? null : '🗑️'}
-        >
-          {isSubmitting ? <CircularProgress size={20} /> : 'Eliminar'}
-        </Button>
+      <DialogActions sx={{ px: 2, pb: 2, justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Botón Eliminar – izquierda */}
+        <Tooltip title="Eliminar proyecto" placement="top">
+          <span>
+            <IconButton
+              onClick={handleDelete}
+              disabled={isSubmitting}
+              color="error"
+              size="medium"
+              sx={{ '&:hover': { bgcolor: 'rgba(211,47,47,0.08)' } }}
+            >
+              {isSubmitting ? <CircularProgress size={20} color="error" /> : <DeleteIcon />}
+            </IconButton>
+          </span>
+        </Tooltip>
 
-        {/* Botones Cancelar y Guardar - Derecha */}
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button 
-            onClick={handleClose}
-            disabled={isSubmitting}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleSave}
-            variant="contained"
-            disabled={!projectName.trim() || isSubmitting}
-          >
-            {isSubmitting ? <CircularProgress size={20} /> : 'Guardar'}
-          </Button>
-        </Box>
+        {/* Botón Guardar – derecha */}
+        <Tooltip title="Guardar cambios" placement="top">
+          <span>
+            <IconButton
+              onClick={handleSave}
+              disabled={!projectName.trim() || isSubmitting}
+              color="primary"
+              size="medium"
+              sx={{
+                bgcolor: (!projectName.trim() || isSubmitting) ? 'transparent' : 'rgba(31,58,95,0.08)',
+                '&:hover': { bgcolor: 'rgba(31,58,95,0.15)' }
+              }}
+            >
+              {isSubmitting ? <CircularProgress size={20} color="primary" /> : <SaveIcon />}
+            </IconButton>
+          </span>
+        </Tooltip>
       </DialogActions>
     </Dialog>
   );

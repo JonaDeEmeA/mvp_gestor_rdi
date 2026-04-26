@@ -76,7 +76,7 @@ const EditPanel = ({
         position: { xs: 'relative', sm: 'absolute' },
         left: { xs: 'auto', sm: 0 },
         top: { xs: 'auto', sm: 0 },
-        height: { xs: 'auto', sm: '100%' },
+        height: '100%',
         width: {
           xs: '100%', // En móviles ocupa toda la pantalla
           sm: `${panelWidth}%` // En desktop usa el ancho redimensionable

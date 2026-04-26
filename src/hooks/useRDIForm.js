@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from './useAuth';
+import { useAnalytics } from './useAnalytics';
+
 
 const initialFormData = {
   tipo: "",
@@ -20,6 +22,8 @@ export const useRDIForm = () => {
   const [editId, setEditId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
+  const { trackRDIAction } = useAnalytics();
+
 
   // Manejar cambios en el formulario
   const handleFormChange = (field, value) => {
@@ -171,10 +175,12 @@ export const useRDIForm = () => {
         // Actualizar existente
         console.log('Actualizando RDI:', editId, preparedData);
         await onUpdate(editId, preparedData);
+        trackRDIAction('update', editId);
       } else {
         // Crear nuevo
         console.log('Creando nuevo RDI:', preparedData);
-        await onSave(preparedData);
+        const result = await onSave(preparedData);
+        trackRDIAction('create', result?.id || 'new');
       }
 
       resetForm();

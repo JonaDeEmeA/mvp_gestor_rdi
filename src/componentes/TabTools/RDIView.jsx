@@ -159,7 +159,7 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
         </Stack>
       </Box>
 
-      <Box sx={{ px: 2, pb: 2 }}>
+      <Box sx={{ pb: 2 }}>
         {/* SECCIÓN 2: INFORMACIÓN PRINCIPAL */}
         <Box sx={{ display: 'flex', gap: 1.5, mb: 3 }}>
           <InfoCard
@@ -330,14 +330,14 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
               Historial de Comentarios ({rdi.comments?.length || 0})
             </Typography>
           </Stack>
-          
+
           {rdi.comments && rdi.comments.length > 0 ? (
             <Stack spacing={2.5}>
               {rdi.comments.map((comment, index) => (
                 <Box key={comment.guid || index} sx={{ display: 'flex', gap: 1.5 }}>
-                  <Avatar sx={{ 
-                    width: 32, 
-                    height: 32, 
+                  <Avatar sx={{
+                    width: 32,
+                    height: 32,
                     bgcolor: comment.author === rdi.creationAuthor ? BIM_COLORS.primary.soft : BIM_COLORS.accent.soft,
                     color: comment.author === rdi.creationAuthor ? BIM_COLORS.primary.main : BIM_COLORS.accent.main,
                     fontSize: '0.8rem',
@@ -355,11 +355,11 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
                         {formatDateTime(comment.date)}
                       </Typography>
                     </Box>
-                    <Paper 
+                    <Paper
                       elevation={0}
-                      sx={{ 
-                        p: 1.5, 
-                        bgcolor: 'white', 
+                      sx={{
+                        p: 1.5,
+                        bgcolor: 'white',
                         border: `1px solid ${BIM_COLORS.neutral.border}`,
                         borderRadius: '0 12px 12px 12px',
                         position: 'relative',
@@ -385,12 +385,12 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
               ))}
             </Stack>
           ) : (
-            <Paper 
-              variant="outlined" 
-              sx={{ 
-                p: 2, 
-                borderRadius: 1, 
-                borderColor: BIM_COLORS.neutral.border, 
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 1,
+                borderColor: BIM_COLORS.neutral.border,
                 bgcolor: BIM_COLORS.neutral.background.secondary,
                 textAlign: 'center'
               }}

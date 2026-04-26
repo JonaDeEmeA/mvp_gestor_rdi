@@ -162,8 +162,23 @@ export const initializeViewer = async (container, refs) => {
  */
 export const cleanupViewer = (refs) => {
   try {
-    if (refs.componentsRef.current) {
-      refs.componentsRef.current.dispose();
+    const components = refs.componentsRef.current;
+    if (components) {
+      // 1. Limpiar específicamente el Clipper antes de cerrar todo
+      // Esto evita el error "Renderer not found for this plane's world!"
+      try {
+        const clipper = components.get(OBC.Clipper);
+        if (clipper) {
+          clipper.enabled = false;
+          clipper.deleteAll();
+        }
+      } catch (e) {
+        console.warn("Aviso al limpiar Clipper:", e);
+      }
+
+      // 2. Disponer de todos los componentes de forma segura
+      components.dispose();
+      refs.componentsRef.current = null;
     }
 
     // Eliminar panel de controles si existe

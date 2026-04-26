@@ -30,15 +30,16 @@ Se sigue un patrón de **Arquitectura de Componentes con Capas de Servicio**:
 
 | Función / Hook | Ubicación | Propósito Técnico |
 | :--- | :--- | :--- |
-| `initializeViewer` | `src/services/viewer3DService.js` | Configura el motor 3D, inicializa el mundo de ThatOpen, la cámara ortoperspectiva, el renderizador y el `FragmentsManager`. |
+| `initializeViewer` | `src/services/viewer3DService.js` | Configura el motor 3D y componentes de ThatOpen. Incluye una lógica de limpieza (`cleanupViewer`) robusta que libera planos de sección antes de la disposición de recursos para evitar errores de renderizado. |
 | `processIfcFile` | `src/services/fileProcessorService.js` | Utiliza `IfcImporter` para convertir archivos IFC pesados en fragmentos indexados (`.frag`) optimizados para la web. |
 | `useRDIManager` | `src/hooks/useRDIManager.js` | Gestiona el CRUD de RDIs, incluyendo la persistencia del historial de comentarios en IndexedDB y la migración automática de datos legacy al formato de array BCF. |
 | `useBCFTopics` | `src/hooks/useBCFTopics.js` | Implementa el estándar BCF (BIM Collaboration Format) para gestionar incidencias y comentarios vinculados a elementos específicos del modelo. |
 | `analyzeModelGeometry`| `src/services/geometryAnalyzer.js` | Analiza el modelo cargado para extraer metadatos geométricos y facilitar la interacción con elementos específicos. |
-| `AuthProvider` | `src/hooks/useAuth.js` | Proveedor de contexto que envuelve la aplicación para gestionar la sesión de usuario de Firebase y las reglas de acceso. |
+| `AuthProvider` | `src/hooks/useAuth.js` | Gestiona la sesión de Firebase y las reglas de acceso. Controla el registro seguro de eventos de analítica iniciales (`app_opened`) asegurando la resolución previa del estado del usuario. |
 | `mapBCFTopicToRDI` | `src/utilitario/bcfMapper.js` | Transforma temas BCF al formato RDI interno, normalizando campos (`assignedTo`, `dueDate`) e integrando la colección completa de comentarios originales. |
 | `useRDIForm` | `src/hooks/useRDIForm.js` | Gestiona la creación/edición de RDIs, implementando la lógica de añadir comentarios dinámicos con firma de autor (vía `useAuth`) para el historial de incidencias. |
 | `useSelection` | Custom Hook | Maneja la lógica de selección de elementos 3D, resaltado visual y recuperación de datos de propiedades IFC. |
+| `useAnalytics` | `src/hooks/useAnalytics.js` | Capa de abstracción para el registro de eventos en el backend de analítica, con manejo integrado de fallbacks para identificar al usuario durante la carga inicial de la sesión. |
 
 ---
 

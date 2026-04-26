@@ -35,6 +35,9 @@ import { Edit, Menu as MenuIcon, Add as AddIcon, Logout as LogoutIcon, Dashboard
 
 const DRAWER_WIDTH = 280;
 
+// ✅ Usuarios con permisos para crear múltiples proyectos
+const SUPER_USER_EMAIL = 'jma00110111@gmail.com';
+
 export default function Dashboard({ userProjects = [] }) {
   // ✅ PASO 0.1: Usar el hook de autenticación directamente
   const authHook = useAuth();
@@ -50,6 +53,8 @@ export default function Dashboard({ userProjects = [] }) {
   const [loading, setLoading] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+
+
 
   // Hook de estadísticas de RDIs
   const { stats, loading: statsLoading, refresh: refreshStats } = useRDIStats();
@@ -71,6 +76,10 @@ export default function Dashboard({ userProjects = [] }) {
     email: 'user@example.com',
     displayName: 'Usuario Demo'
   };
+
+  // ✅ Restricción: solo el super-usuario puede crear más de un proyecto
+  const isSuperUser = user?.email === SUPER_USER_EMAIL;
+  const canCreateProject = isSuperUser || projects.length === 0;
 
   // Detectar si es mobile usando MUI
   const theme = useTheme();
@@ -319,22 +328,36 @@ export default function Dashboard({ userProjects = [] }) {
 
       {/* Botón Crear Proyecto */}
       <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <Button
-          fullWidth
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setShowCreateDialog(true)}
-          sx={{
-            bgcolor: '#4CAF50',
-            color: 'white',
-            fontWeight: 'bold',
-            textTransform: 'none',
-            py: 1.5,
-            '&:hover': { bgcolor: '#43A047' }
-          }}
+        <Tooltip
+          title={!canCreateProject ? 'Solo puedes tener un proyecto activo' : ''}
+          placement="top"
+          arrow
         >
-          Crear Proyecto
-        </Button>
+          <span style={{ display: 'block' }}>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setShowCreateDialog(true)}
+              disabled={!canCreateProject}
+              sx={{
+                bgcolor: canCreateProject ? '#4CAF50' : 'rgba(255,255,255,0.15)',
+                color: 'white',
+                fontWeight: 'bold',
+                textTransform: 'none',
+                py: 1.5,
+                '&:hover': { bgcolor: canCreateProject ? '#43A047' : 'rgba(255,255,255,0.15)' },
+                '&.Mui-disabled': {
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                  color: 'rgba(255,255,255,0.35)',
+                  cursor: 'not-allowed'
+                }
+              }}
+            >
+              Crear Proyecto
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
     </Box>
   );
@@ -478,22 +501,32 @@ export default function Dashboard({ userProjects = [] }) {
               <Typography variant="body1" sx={{ color: '#9AA4AF' }}>
                 Selecciona un proyecto del menú lateral o crea uno nuevo
               </Typography>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setShowCreateDialog(true)}
-                sx={{
-                  bgcolor: '#1F3A5F',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  textTransform: 'none',
-                  px: 4,
-                  py: 1.5,
-                  '&:hover': { bgcolor: '#2B5DAF' }
-                }}
+              <Tooltip
+                title={!canCreateProject ? 'Solo puedes tener un proyecto activo' : ''}
+                placement="top"
+                arrow
               >
-                Crear Primer Proyecto
-              </Button>
+                <span>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => setShowCreateDialog(true)}
+                    disabled={!canCreateProject}
+                    sx={{
+                      bgcolor: '#1F3A5F',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      textTransform: 'none',
+                      px: 4,
+                      py: 1.5,
+                      '&:hover': { bgcolor: '#2B5DAF' },
+                      '&.Mui-disabled': { opacity: 0.45 }
+                    }}
+                  >
+                    Crear Primer Proyecto
+                  </Button>
+                </span>
+              </Tooltip>
             </Box>
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%', gap: 3 }}>

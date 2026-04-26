@@ -2,6 +2,8 @@ import { useRef } from 'react';
 import { processIfcFile, processFragFile, processJsonFile } from '../services/fileProcessorService';
 import { showErrorMessage } from '../utils/errorHandler';
 import { VIEWER_CONFIG, ERROR_MESSAGES } from '../constants/viewerConfig';
+import { useAnalytics } from './useAnalytics';
+
 
 /**
  * Hook personalizado para manejar el procesamiento de archivos
@@ -12,6 +14,8 @@ import { VIEWER_CONFIG, ERROR_MESSAGES } from '../constants/viewerConfig';
  */
 export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
   const fileInputRef = useRef(null);
+  const { trackModelLoad, trackAction } = useAnalytics();
+
 
   const openFileDialog = () => {
     try {
@@ -51,11 +55,13 @@ export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
         case 'ifc':
           processedModel = await processIfcFile(selectedFile, fragmentsManager, world);
           setImportedModels(previousModels => [...previousModels, processedModel]);
+          trackModelLoad(selectedFile.name, selectedFile.size);
           break;
 
         case 'frag':
           processedModel = await processFragFile(selectedFile, fragmentsManager, world);
           setImportedModels(previousModels => [...previousModels, processedModel]);
+          trackModelLoad(selectedFile.name, selectedFile.size);
           break;
 
         case 'json':
