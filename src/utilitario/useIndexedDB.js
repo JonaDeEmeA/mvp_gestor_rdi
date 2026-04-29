@@ -2,17 +2,25 @@ import { useState, useEffect } from 'react';
 
 const initializeIndexedDB = async () => {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('BCFDatabase', 1);
+    const request = indexedDB.open('BCFDatabase', 2);
 
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
+      console.log('Migrando/Inicializando IndexedDB a versión', event.newVersion);
       if (!db.objectStoreNames.contains('topics')) {
         db.createObjectStore('topics', { keyPath: 'id' });
+        console.log('Store "topics" creado exitosamente');
       }
     };
 
-    request.onsuccess = (event) => resolve(event.target.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = (event) => {
+      console.log('BCFDatabase abierta con éxito');
+      resolve(event.target.result);
+    };
+    request.onerror = (event) => {
+      console.error('Error abriendo BCFDatabase:', event.target.error);
+      reject(event.target.error);
+    };
   });
 };
 

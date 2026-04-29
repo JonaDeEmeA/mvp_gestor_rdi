@@ -536,8 +536,10 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
     });
   }
 
-  // Mostrar loading si los datos no están listos
-  const isLoading = dbLoading || rdiLoading || !bcfTopicSet.labels
+  // Mostrar loading solo mientras los datos realmente se están cargando
+  // - dbLoading: IndexedDB está inicializando
+  // - rdiLoading: solo relevante si db ya está disponible (si no, el efecto nunca corre)
+  const isLoading = dbLoading || (db && rdiLoading)
   const hasError = dbError || rdiError
 
   if (isLoading) {

@@ -4,18 +4,79 @@ import { useAnalytics } from './useAnalytics';
 
 export const useRDIManager = (db) => {
   const [rdiList, setRdiList] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { trackRDIAction } = useAnalytics();
 
-  // Cargar RDIs desde IndexedDB al inicializar
+  // ── Carga inicial desde IndexedDB ────────────────────────────────────
+  // La lógica está inlineada para evitar problemas de stale closure con useCallback.
   useEffect(() => {
-    if (db) {
-      loadRDIsFromDB();
-    }
+    // Si db aún no está disponible, no podemos cargar datos.
+    // Mantenemos loading=true hasta que db esté listo.
+    if (!db) return;
+
+    let cancelled = false;
+
+    const loadData = () => {
+      setLoading(true);
+      setError(null);
+      console.log('🔄 [useRDIManager] Carga inicial: db disponible, cargando RDIs...');
+
+      try {
+        if (!db.objectStoreNames.contains('topics')) {
+          console.warn('⚠️ [useRDIManager] Store "topics" no existe en la DB');
+          if (!cancelled) {
+            setRdiList([]);
+            setLoading(false);
+          }
+          return;
+        }
+
+        const transaction = db.transaction(['topics'], 'readonly');
+        const store = transaction.objectStore('topics');
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+          if (!cancelled) {
+            const rdisFromDB = request.result || [];
+            console.log('✅ [useRDIManager] RDIs cargados:', rdisFromDB.length);
+            setRdiList(rdisFromDB);
+            setLoading(false);
+          }
+        };
+
+        request.onerror = (event) => {
+          if (!cancelled) {
+            console.error('❌ [useRDIManager] Error en request:', event.target.error);
+            setError(event.target.error);
+            setLoading(false);
+          }
+        };
+
+        // Safeguard: si la transacción se aborta, asegurar que loading se libere
+        transaction.onabort = () => {
+          if (!cancelled) {
+            console.error('❌ [useRDIManager] Transacción abortada');
+            setLoading(false);
+          }
+        };
+      } catch (err) {
+        if (!cancelled) {
+          console.error('❌ [useRDIManager] Error capturado:', err);
+          setError(err);
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [db]);
 
-  // Cargar todos los RDIs desde IndexedDB
+  // ── Función de recarga manual (para refresh, post-CRUD, etc.) ────────
   const loadRDIsFromDB = useCallback(async () => {
     if (!db) return;
 
@@ -23,24 +84,30 @@ export const useRDIManager = (db) => {
     setError(null);
 
     try {
+      if (!db.objectStoreNames.contains('topics')) {
+        setRdiList([]);
+        setLoading(false);
+        return;
+      }
       const transaction = db.transaction(['topics'], 'readonly');
       const store = transaction.objectStore('topics');
       const request = store.getAll();
 
       request.onsuccess = () => {
         const rdisFromDB = request.result || [];
-        console.log('RDIs cargados desde IndexedDB:', rdisFromDB);
         setRdiList(rdisFromDB);
         setLoading(false);
       };
 
       request.onerror = (event) => {
-        console.error('Error cargando RDIs desde IndexedDB:', event.target.error);
         setError(event.target.error);
         setLoading(false);
       };
+
+      transaction.onabort = () => {
+        setLoading(false);
+      };
     } catch (err) {
-      console.error('Error en loadRDIsFromDB:', err);
       setError(err);
       setLoading(false);
     }
@@ -54,6 +121,10 @@ export const useRDIManager = (db) => {
     }
 
     try {
+      if (!db.objectStoreNames.contains('topics')) {
+        console.warn('Store "topics" no encontrado');
+        return null;
+      }
       const transaction = db.transaction(['topics'], 'readonly');
       const store = transaction.objectStore('topics');
       const request = store.get(id);
@@ -93,6 +164,9 @@ export const useRDIManager = (db) => {
     setError(null);
 
     try {
+      if (!db.objectStoreNames.contains('topics')) {
+        throw new Error('Store "topics" no encontrado. La base de datos podría estar corrupta o desactualizada.');
+      }
       const transaction = db.transaction(['topics'], 'readwrite');
       const store = transaction.objectStore('topics');
 
@@ -160,6 +234,9 @@ export const useRDIManager = (db) => {
     setError(null);
 
     try {
+      if (!db.objectStoreNames.contains('topics')) {
+        throw new Error('Store "topics" no encontrado');
+      }
       const transaction = db.transaction(['topics'], 'readwrite');
       const store = transaction.objectStore('topics');
 
@@ -243,6 +320,9 @@ export const useRDIManager = (db) => {
     setError(null);
 
     try {
+      if (!db.objectStoreNames.contains('topics')) {
+        throw new Error('Store "topics" no encontrado');
+      }
       const transaction = db.transaction(['topics'], 'readwrite');
       const store = transaction.objectStore('topics');
       const request = store.delete(id);
@@ -294,6 +374,9 @@ export const useRDIManager = (db) => {
     setError(null);
 
     try {
+      if (!db.objectStoreNames.contains('topics')) {
+        throw new Error('Store "topics" no encontrado');
+      }
       const transaction = db.transaction(['topics'], 'readwrite');
       const store = transaction.objectStore('topics');
       const request = store.clear();

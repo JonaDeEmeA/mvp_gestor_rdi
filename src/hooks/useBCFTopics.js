@@ -6,7 +6,12 @@ export const useBCFTopics = (component, db) => {
   const [loadedTopicIds, setLoadedTopicIds] = useState([]);
   const [topics, setTopics] = useState([]);
   const [topicsFromDB, setTopicsFromDB] = useState([]);
-  const [bcfTopicSet, setBcfTopicSet] = useState({});
+   const [bcfTopicSet, setBcfTopicSet] = useState({
+    statuses: new Set(),
+    types: new Set(),
+    labels: new Set(),
+    users: new Set(),
+  });
   const bcfTopicsRef = useRef(null);
 
   // Inicializar BCF Topics
@@ -44,6 +49,11 @@ export const useBCFTopics = (component, db) => {
   useEffect(() => {
     if (!db) return;
 
+    if (!db.objectStoreNames.contains('topics')) {
+      console.warn('Store "topics" no encontrado en la base de datos');
+      setTopicsFromDB([]);
+      return;
+    }
     const transaction = db.transaction(['topics'], 'readonly');
     const store = transaction.objectStore('topics');
     const request = store.getAll();
@@ -439,6 +449,10 @@ export const useBCFTopics = (component, db) => {
       return;
     }
 
+    if (!db.objectStoreNames.contains('topics')) {
+      console.error('Store "topics" no encontrado');
+      return;
+    }
     const transaction = db.transaction(['topics'], 'readwrite');
     const store = transaction.objectStore('topics');
     const request = store.clear();
