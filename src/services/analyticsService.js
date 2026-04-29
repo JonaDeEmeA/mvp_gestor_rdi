@@ -5,7 +5,7 @@
  * Se encarga de enviar eventos a un endpoint de AppScript para su registro en Google Sheets u otros destinos.
  */
 
-const ANALYTICS_ENDPOINT = process.env.NEXT_PUBLIC_ANALYTICS_ENDPOINT;
+const ANALYTICS_ENDPOINT = process.env.NEXT_PUBLIC_ANALYTICS_ENDPOINT || "https://script.google.com/macros/s/AKfycbxRw040czdP0hfD7GdC48ainLMDuv9Lsuh0OuKaUZ1lvCVAdZsCeZ-FHy3jCkf1RhVC/exec";
 
 class AnalyticsService {
   /**
