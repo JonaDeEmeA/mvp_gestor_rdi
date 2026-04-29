@@ -187,7 +187,7 @@ export default function LandingPage() {
           marginBottom: '16px',
           textAlign: 'center'
         }}>
-          Sistema de Gestión de Proyectos
+          Gestión de incidencias para proyectos BIM
         </h1>
 
         <p style={{
@@ -196,7 +196,7 @@ export default function LandingPage() {
           marginBottom: '48px',
           textAlign: 'center'
         }}>
-          Organiza tus proyectos y gestiona issues de forma eficiente
+          Centraliza, coordina y da seguimiento a tus RDIs en un solo lugar, con interoperabilidad BCF e IFC.
         </p>
 
         <Button
