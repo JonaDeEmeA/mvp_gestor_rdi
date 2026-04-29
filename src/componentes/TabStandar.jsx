@@ -110,6 +110,44 @@ export default function TabStandar({
     }
   };
 
+  // Estilos de botones para escritorio
+  const buttonStyleOutlined = {
+    color: 'white',
+    borderColor: 'rgba(255,255,255,0.4)',
+    textTransform: 'none',
+    '&:hover': {
+      bgcolor: 'rgba(255,255,255,0.08)',
+      borderColor: 'white'
+    }
+  };
+
+  const buttonStyleContained = {
+    bgcolor: '#4CAF50',
+    color: 'white',
+    textTransform: 'none',
+    '&:hover': {
+      bgcolor: '#43A047'
+    }
+  };
+
+  const getButtonStyle = (isActive) => isActive ? buttonStyleContained : buttonStyleOutlined;
+
+  // Estilos de lista para móvil
+  const listItemStyle = {
+    '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' }
+  };
+
+  const getListItemTextStyle = (isActive) => ({
+    color: isActive ? '#4CAF50' : 'white',
+    '& .MuiTypography-root': {
+      fontWeight: isActive ? 'bold' : 'normal'
+    }
+  });
+
+  const getListItemIconStyle = (isActive) => ({
+    color: isActive ? '#4CAF50' : 'rgba(255,255,255,0.7)'
+  });
+
   // Contenido de herramientas según la pestaña seleccionada
   const getDrawerContent = () => {
     console.log('🎨 PASO 2.4: Renderizando contenido del drawer para tab:', selectedTab);
@@ -119,14 +157,14 @@ export default function TabStandar({
         return (
           <List>
             <ListItem disablePadding>
-              <ListItemButton onClick={() => {
+              <ListItemButton sx={listItemStyle} onClick={() => {
                 onCargarFile();
                 if (isMobile) setDrawerOpen(false);
               }}>
-                <ListItemIcon>
+                <ListItemIcon sx={getListItemIconStyle(false)}>
                   <FolderOpenIcon />
                 </ListItemIcon>
-                <ListItemText primary="Cargar IFC" />
+                <ListItemText primary="Cargar IFC" sx={getListItemTextStyle(false)} />
               </ListItemButton>
             </ListItem>
           </List>
@@ -136,25 +174,25 @@ export default function TabStandar({
         return (
           <List>
             <ListItem disablePadding>
-              <ListItemButton onClick={() => {
+              <ListItemButton sx={listItemStyle} onClick={() => {
                 onCloseBrowser();
                 if (isMobile) setDrawerOpen(false);
               }}>
-                <ListItemIcon>
+                <ListItemIcon sx={getListItemIconStyle(browserEnabled)}>
                   <VisibilityIcon />
                 </ListItemIcon>
-                <ListItemText primary={browserEnabled ? "Cerrar Explorador" : "Explorador"} />
+                <ListItemText primary={browserEnabled ? "Cerrar Explorador" : "Explorador"} sx={getListItemTextStyle(browserEnabled)} />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
-              <ListItemButton onClick={() => {
+              <ListItemButton sx={listItemStyle} onClick={() => {
                 onCloseRdiManager();
                 if (isMobile) setDrawerOpen(false);
               }}>
-                <ListItemIcon>
+                <ListItemIcon sx={getListItemIconStyle(rdiManagerEnabled)}>
                   <LayersIcon />
                 </ListItemIcon>
-                <ListItemText primary={rdiManagerEnabled ? "Cerrar Gestor RDI" : "Gestor RDI"} />
+                <ListItemText primary={rdiManagerEnabled ? "Cerrar Gestor RDI" : "Gestor RDI"} sx={getListItemTextStyle(rdiManagerEnabled)} />
               </ListItemButton>
             </ListItem>
           </List>
@@ -164,38 +202,39 @@ export default function TabStandar({
         return (
           <List>
             <ListItem disablePadding>
-              <ListItemButton onClick={() => {
+              <ListItemButton sx={listItemStyle} onClick={() => {
                 onToggleInfoCoordenada();
                 if (isMobile) setDrawerOpen(false);
               }}>
-                <ListItemIcon>
+                <ListItemIcon sx={getListItemIconStyle(infoCoordenadaEnabled)}>
                   <BuildIcon />
                 </ListItemIcon>
                 <ListItemText
                   primary={infoCoordenadaEnabled ? "Cerrar Coordenadas" : "Info Coordenadas"}
+                  sx={getListItemTextStyle(infoCoordenadaEnabled)}
                 />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
-              <ListItemButton onClick={() => {
+              <ListItemButton sx={listItemStyle} onClick={() => {
                 onToggleCategoryColor();
                 if (isMobile) setDrawerOpen(false);
               }}>
-                <ListItemIcon>
+                <ListItemIcon sx={getListItemIconStyle(categoryColorEnabled)}>
                   <ColorIcon />
                 </ListItemIcon>
-                <ListItemText primary={categoryColorEnabled ? "Cerrar Categoría" : "Color por Categoría"} />
+                <ListItemText primary={categoryColorEnabled ? "Cerrar Categoría" : "Color por Categoría"} sx={getListItemTextStyle(categoryColorEnabled)} />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
-              <ListItemButton onClick={() => {
+              <ListItemButton sx={listItemStyle} onClick={() => {
                 onToggleSection();
                 if (isMobile) setDrawerOpen(false);
               }}>
-                <ListItemIcon>
+                <ListItemIcon sx={getListItemIconStyle(sectionEnabled)}>
                   <ContentCutIcon />
                 </ListItemIcon>
-                <ListItemText primary={sectionEnabled ? "Desactivar Sección" : "Activar Sección"} />
+                <ListItemText primary={sectionEnabled ? "Desactivar Sección" : "Activar Sección"} sx={getListItemTextStyle(sectionEnabled)} />
               </ListItemButton>
             </ListItem>
           </List>
@@ -204,7 +243,7 @@ export default function TabStandar({
       case 3: // Capas
         return (
           <Box sx={{ p: 2 }}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
               Panel de capas (Próximamente)
             </Typography>
           </Box>
@@ -213,7 +252,7 @@ export default function TabStandar({
       case 4: // Publicar
         return (
           <Box sx={{ p: 2 }}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
               Opciones de publicación (Próximamente)
             </Typography>
           </Box>
@@ -227,9 +266,9 @@ export default function TabStandar({
 
   return (
 
-    <Box sx={{ width: '100%', height: { xs: "auto", sm: "15vh" }, position: 'relative' }}>
+    <Box sx={{ width: '100%', height: { xs: "auto", sm: "15vh" }, position: 'relative', bgcolor: '#1F3A5F', color: 'white', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
       {/* Tabs Header */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+      <Box sx={{ borderBottom: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
         <Tabs
           value={value}
           onChange={handleChange}
@@ -238,18 +277,26 @@ export default function TabStandar({
           scrollButtons="auto"
           sx={{
             minHeight: '48px',
+            '& .MuiTabs-indicator': {
+              backgroundColor: '#4CAF50',
+            },
             '& .MuiTab-root': {
               minWidth: { xs: 'auto', sm: 90 },
               fontSize: { xs: '0.75rem', sm: '0.875rem' },
-              px: { xs: 1, sm: 2 }
+              px: { xs: 1, sm: 2 },
+              color: 'rgba(255,255,255,0.6)',
+              '&.Mui-selected': {
+                color: '#4CAF50',
+                fontWeight: 'bold'
+              }
             }
           }}
         >
-          <Tab sx={{ color: 'gray' }} label="Archivos" {...a11yProps(0)} onClick={() => handleTabClick(0)} />
-          <Tab sx={{ color: 'gray' }} label="Ver" {...a11yProps(1)} onClick={() => handleTabClick(1)} />
-          <Tab sx={{ color: 'gray' }} label="Herramientas" {...a11yProps(2)} onClick={() => handleTabClick(2)} />
-          <Tab sx={{ color: 'gray' }} label="Capas" {...a11yProps(3)} onClick={() => handleTabClick(3)} />
-          <Tab sx={{ color: 'gray' }} label="Publicar" {...a11yProps(4)} onClick={() => handleTabClick(4)} />
+          <Tab label="Archivos" {...a11yProps(0)} onClick={() => handleTabClick(0)} />
+          <Tab label="Ver" {...a11yProps(1)} onClick={() => handleTabClick(1)} />
+          <Tab label="Herramientas" {...a11yProps(2)} onClick={() => handleTabClick(2)} />
+          <Tab label="Capas" {...a11yProps(3)} onClick={() => handleTabClick(3)} />
+          <Tab label="Publicar" {...a11yProps(4)} onClick={() => handleTabClick(4)} />
         </Tabs>
       </Box>
 
@@ -257,44 +304,45 @@ export default function TabStandar({
       {!isMobile && (
         <>
           <CustomTabPanel value={value} index={0}>
-            <Button size='small' variant="outlined" startIcon={<FolderOpenIcon />} onClick={onCargarFile}>
+            <Button size='small' variant="outlined" startIcon={<FolderOpenIcon />} onClick={onCargarFile} sx={getButtonStyle(false)}>
               Cargar IFC
             </Button>
           </CustomTabPanel>
           <CustomTabPanel value={value} index={1}>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button sx={{ fontSize: '0.675rem' }} size='small' variant={browserEnabled ? 'contained' : 'outlined'} startIcon={<VisibilityIcon />} onClick={onCloseBrowser}>
+              <Button sx={{ fontSize: '0.675rem', ...getButtonStyle(browserEnabled) }} size='small' variant={browserEnabled ? 'contained' : 'outlined'} startIcon={<VisibilityIcon />} onClick={onCloseBrowser}>
                 {browserEnabled ? 'Cerrar Explorador' : 'Explorador'}
               </Button>
-              <Button size='small' variant={rdiManagerEnabled ? 'contained' : 'outlined'} startIcon={<LayersIcon />} onClick={onCloseRdiManager}>
+              <Button size='small' variant={rdiManagerEnabled ? 'contained' : 'outlined'} startIcon={<LayersIcon />} onClick={onCloseRdiManager} sx={getButtonStyle(rdiManagerEnabled)}>
                 {rdiManagerEnabled ? 'Cerrar RDI' : 'Gestor RDI'}
               </Button>
             </Box>
           </CustomTabPanel>
           <CustomTabPanel value={value} index={2}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Button size='small' variant={infoCoordenadaEnabled ? 'contained' : 'outlined'} startIcon={<BuildIcon />} onClick={onToggleInfoCoordenada}>
+              <Button size='small' variant={infoCoordenadaEnabled ? 'contained' : 'outlined'} startIcon={<BuildIcon />} onClick={onToggleInfoCoordenada} sx={getButtonStyle(infoCoordenadaEnabled)}>
                 {infoCoordenadaEnabled ? 'Cerrar Coor' : 'Info Coor'}
               </Button>
-              <Button size='small' variant={categoryColorEnabled ? 'contained' : 'outlined'} startIcon={<ColorIcon />} onClick={onToggleCategoryColor}>
+              <Button size='small' variant={categoryColorEnabled ? 'contained' : 'outlined'} startIcon={<ColorIcon />} onClick={onToggleCategoryColor} sx={getButtonStyle(categoryColorEnabled)}>
                 {categoryColorEnabled ? 'Cerrar Cat' : 'Color Cat'}
               </Button>
               <Button
                 size='small'
                 variant={sectionEnabled ? 'contained' : 'outlined'}
                 onClick={onToggleSection}
+                sx={getButtonStyle(sectionEnabled)}
               >
                 {sectionEnabled ? 'Desactivar Sección' : 'Activar Sección'}
               </Button>
             </Box>
           </CustomTabPanel>
           <CustomTabPanel value={value} index={3}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
               Panel de capas (Próximamente)
             </Typography>
           </CustomTabPanel>
           <CustomTabPanel value={value} index={4}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
               Opciones de publicación (Próximamente)
             </Typography>
           </CustomTabPanel>
@@ -309,12 +357,16 @@ export default function TabStandar({
           console.log('🚪 PASO 2.5: Cerrando drawer');
           setDrawerOpen(false);
         }}
-        sx={{
-          display: { xs: 'block', sm: 'none' },
-          '& .MuiDrawer-paper': {
+        PaperProps={{
+          sx: {
+            bgcolor: '#1F3A5F',
+            color: 'white',
             width: 280,
             boxSizing: 'border-box',
           }
+        }}
+        sx={{
+          display: { xs: 'block', sm: 'none' }
         }}
       >
         {/* Header del Drawer */}
@@ -323,13 +375,12 @@ export default function TabStandar({
           alignItems: 'center',
           justifyContent: 'space-between',
           p: 2,
-          borderBottom: '1px solid',
-          borderColor: 'divider'
+          borderBottom: '1px solid rgba(255,255,255,0.1)'
         }}>
-          <Typography variant="h6">
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
             {['Archivos', 'Ver', 'Herramientas', 'Capas', 'Publicar'][selectedTab]}
           </Typography>
-          <IconButton onClick={() => setDrawerOpen(false)}>
+          <IconButton onClick={() => setDrawerOpen(false)} sx={{ color: 'rgba(255,255,255,0.85)' }}>
             <CloseIcon />
           </IconButton>
         </Box>
