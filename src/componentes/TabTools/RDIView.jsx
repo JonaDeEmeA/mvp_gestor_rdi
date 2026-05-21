@@ -13,16 +13,19 @@ import {
 } from '@mui/material';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {
-  CalendarToday as CalendarIcon,
-  Person as PersonIcon,
-  Label as LabelIcon,
-  Description as DescriptionIcon,
-  CameraAlt as CameraIcon,
-  Flag as FlagIcon,
-  Edit as EditIcon,
-  ChatBubbleOutline as CommentIcon
+import { 
+  CalendarToday as CalendarIcon, 
+  Person as PersonIcon, 
+  Label as LabelIcon, 
+  Description as DescriptionIcon, 
+  CameraAlt as CameraIcon, 
+  Flag as FlagIcon, 
+  Edit as EditIcon, 
+  ChatBubbleOutline as CommentIcon, 
+  Close as CloseIcon,
+  Send as SendIcon
 } from '@mui/icons-material';
+import { TextField } from '@mui/material';
 
 // Componente para Cards de Información Principal
 const InfoCard = ({ icon: Icon, label, value, bgcolor, color = 'white' }) => {
@@ -85,8 +88,18 @@ const DetailRow = ({ icon: Icon, label, value, iconColor = BIM_COLORS.primary.ma
   );
 };
 
-const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
+const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl, onClose, onAddComment }) => {
+  const [newComment, setNewComment] = React.useState("");
+
   if (!rdi) return null;
+
+  const handleAddCommentLocal = () => {
+    if (!newComment.trim()) return;
+    if (onAddComment) {
+      onAddComment(newComment);
+      setNewComment("");
+    }
+  };
 
   // Helper para obtener labels
   const getValue = (value) => value || 'No especificado';
@@ -140,39 +153,60 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
               ID: {String(rdi.id || '').substring(0, 8)}...
             </Typography>
             <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1.2 }}>
-              {rdi.title || rdi.titulo || 'Detalles del RDI'}
+              {rdi.title || 'Detalles del RDI'}
             </Typography>
           </Box>
-          <Tooltip title="Editar RDI">
-            <IconButton
-              size="small"
-              onClick={onEdit}
-              sx={{
-                color: 'white',
-                bgcolor: 'rgba(255,255,255,0.1)',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Tooltip title="Editar RDI">
+              <IconButton
+                size="small"
+                onClick={onEdit}
+                sx={{
+                  color: 'white',
+                  bgcolor: 'rgba(255,255,255,0.15)',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                  width: 34,
+                  height: 34
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            {onClose && (
+              <Tooltip title="Cerrar">
+                <IconButton
+                  size="small"
+                  onClick={onClose}
+                  sx={{
+                    color: 'white',
+                    bgcolor: 'rgba(0,0,0,0.2)',
+                    '&:hover': { bgcolor: 'rgba(0,0,0,0.4)' },
+                    width: 34,
+                    height: 34
+                  }}
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
         </Stack>
       </Box>
 
-      <Box sx={{ pb: 2 }}>
+      <Box sx={{ px: 2, pb: 2 }}>
         {/* SECCIÓN 2: INFORMACIÓN PRINCIPAL */}
         <Box sx={{ display: 'flex', gap: 1.5, mb: 3 }}>
           <InfoCard
             icon={LabelIcon}
             label="Tipo"
-            value={getValue(rdi.tipo)}
+            value={getValue(rdi.type)}
             bgcolor={BIM_COLORS.primary.main}
           />
           <InfoCard
             icon={FlagIcon}
             label="Estado"
-            value={getValue(rdi.estado)}
-            bgcolor={rdi.estado === 'Resuelto' ? BIM_COLORS.accent.main : BIM_COLORS.status.warning.main}
+            value={getValue(rdi.status)}
+            bgcolor={rdi.status === 'Resuelto' || rdi.status === 'Resuelta' ? BIM_COLORS.accent.main : BIM_COLORS.status.warning.main}
           />
         </Box>
 
@@ -184,7 +218,7 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
           <DetailRow
             icon={LabelIcon}
             label="Especialidad"
-            value={getValue(rdi.etiqueta)}
+            value={getValue(rdi.label)}
             iconColor={BIM_COLORS.status.info.main}
           />
           <Divider sx={{ borderColor: BIM_COLORS.neutral.border }} />
@@ -232,7 +266,7 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
             }}
           >
             <Typography variant="body2" sx={{ color: BIM_COLORS.neutral.text.primary, whiteSpace: 'pre-wrap' }}>
-              {rdi.descripcion || rdi.description || 'Sin descripción disponible.'}
+              {rdi.description || 'Sin descripción disponible.'}
             </Typography>
           </Paper>
         </Box>
@@ -327,9 +361,39 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl }) => {
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
             <CommentIcon sx={{ fontSize: 18, color: BIM_COLORS.neutral.text.secondary }} />
             <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, fontWeight: 'bold', textTransform: 'uppercase' }}>
-              Historial de Comentarios ({rdi.comments?.length || 0})
+              Comentarios ({rdi.comments?.length || 0})
             </Typography>
           </Stack>
+
+          {/* Input para nuevo comentario en Vista */}
+          <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="Añadir comentario..."
+              multiline
+              rows={1}
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              sx={{
+                bgcolor: 'white',
+                '& .MuiInputBase-root': { fontSize: '0.85rem' }
+              }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleAddCommentLocal}
+              disabled={!newComment.trim()}
+              sx={{
+                minWidth: 'auto',
+                px: 2,
+                bgcolor: BIM_COLORS.primary.main,
+                '&:hover': { bgcolor: BIM_COLORS.primary.active }
+              }}
+            >
+              <SendIcon fontSize="small" />
+            </Button>
+          </Box>
 
           {rdi.comments && rdi.comments.length > 0 ? (
             <Stack spacing={2.5}>

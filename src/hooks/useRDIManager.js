@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAnalytics } from './useAnalytics';
+import { RDI_STANDARDS } from '../constants/rdiStandards';
 
 
 export const useRDIManager = (db) => {
@@ -7,6 +8,38 @@ export const useRDIManager = (db) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { trackRDIAction } = useAnalytics();
+  
+  // Helper para normalizar datos (Legacy Spanish -> Canonical English)
+  const normalizeRDI = useCallback((item) => {
+    if (!item) return null;
+    
+    const normalizedStatus = item.status || item.estado || 'Abierta';
+    const normalizedType = item.type || item.tipo || 'General';
+    const normalizedLabel = item.label || item.etiqueta || 'General';
+
+    return {
+      ...item,
+      id: item.id || item.guid || `rdi-${Date.now()}`,
+      title: item.title || item.titulo || 'Sin título',
+      description: item.description || item.comentario || item.descripcion || '',
+      status: RDI_STANDARDS.statuses.includes(normalizedStatus) ? normalizedStatus : 'Abierta',
+      type: RDI_STANDARDS.types.includes(normalizedType) ? normalizedType : 'General',
+      label: RDI_STANDARDS.labels.includes(normalizedLabel) ? normalizedLabel : 'General',
+      assignedTo: item.assignedTo || item.assigned_to || item.asignado_a || '',
+      dueDate: item.dueDate || item.fecha || null,
+      creationDate: item.creationDate || item.creation_date || item.createdAt || item.fecha || new Date().toISOString(),
+      creationAuthor: item.creationAuthor || item.creation_author || item.autor || '',
+      updatedAt: item.updatedAt || item.modified_date || item.fecha_modificacion || new Date().toISOString(),
+      comments: (item.comments && Array.isArray(item.comments) && item.comments.length > 0)
+        ? item.comments
+        : (item.comentario ? [{
+            guid: `c-legacy-${item.id || item.guid}`,
+            comment: item.comentario,
+            author: item.creationAuthor || item.creation_author || item.autor || 'Usuario',
+            date: item.creationDate || item.creation_date || item.createdAt || item.fecha || new Date().toISOString()
+          }] : [])
+    };
+  }, []);
 
   // ── Carga inicial desde IndexedDB ────────────────────────────────────
   // La lógica está inlineada para evitar problemas de stale closure con useCallback.
@@ -40,7 +73,8 @@ export const useRDIManager = (db) => {
           if (!cancelled) {
             const rdisFromDB = request.result || [];
             console.log('✅ [useRDIManager] RDIs cargados:', rdisFromDB.length);
-            setRdiList(rdisFromDB);
+            const normalized = rdisFromDB.map(normalizeRDI);
+            setRdiList(normalized);
             setLoading(false);
           }
         };
@@ -77,10 +111,10 @@ export const useRDIManager = (db) => {
   }, [db]);
 
   // ── Función de recarga manual (para refresh, post-CRUD, etc.) ────────
-  const loadRDIsFromDB = useCallback(async () => {
+  const loadRDIsFromDB = useCallback(async (silent = false) => {
     if (!db) return;
 
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError(null);
 
     try {
@@ -95,7 +129,8 @@ export const useRDIManager = (db) => {
 
       request.onsuccess = () => {
         const rdisFromDB = request.result || [];
-        setRdiList(rdisFromDB);
+        const normalized = rdisFromDB.map(normalizeRDI);
+        setRdiList(normalized);
         setLoading(false);
       };
 
@@ -131,7 +166,7 @@ export const useRDIManager = (db) => {
 
       return new Promise((resolve, reject) => {
         request.onsuccess = () => {
-          const result = request.result;
+          const result = normalizeRDI(request.result);
           if (result) {
             console.log('RDI encontrado en IndexedDB:', result);
             resolve(result);
@@ -172,17 +207,8 @@ export const useRDIManager = (db) => {
 
       // Preparar los datos del formulario para guardar
       const rdiToSave = {
-        ...formData, // Mantener campos originales (útil para importación BCF)
-        tipo: formData.tipo,
-        titulo: formData.titulo,
-        descripcion: formData.descripcion,
-        comentario: formData.comentario,
+        ...formData, // Incluye title, description, status, type, label, dueDate, etc.
         comments: formData.comments || [],
-        fecha: formData.fecha,
-        estado: formData.estado,
-        etiqueta: formData.etiqueta,
-        assignedTo: formData.assignedTo,
-        dueDate: formData.dueDate,
         // Metadatos de gestión
         id: formData.id || Date.now(),
         creationAuthor: formData.creationAuthor || "signed.user@mail.com",
@@ -224,13 +250,13 @@ export const useRDIManager = (db) => {
   }, [db]);
 
   // Actualizar RDI existente en IndexedDB y lista local
-  const updateRDI = useCallback(async (id, updatedData, snapshotData = null) => {
+  const updateRDI = useCallback(async (id, updatedData, snapshotData = null, silent = false) => {
     if (!db) {
       console.warn('IndexedDB no está listo');
       return null;
     }
 
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError(null);
 
     try {
@@ -260,6 +286,13 @@ export const useRDIManager = (db) => {
             ...existingRDI,
             ...updatedData,
             id: id,
+            // Sincronizar llaves legadas para asegurar compatibilidad total bidireccional
+            titulo: updatedData.title || updatedData.titulo || existingRDI.titulo || existingRDI.title,
+            estado: updatedData.status || updatedData.estado || existingRDI.estado || existingRDI.status,
+            tipo: updatedData.type || updatedData.tipo || existingRDI.tipo || existingRDI.type,
+            etiqueta: updatedData.label || updatedData.etiqueta || existingRDI.etiqueta || existingRDI.label,
+            comentario: updatedData.description || updatedData.comentario || existingRDI.comentario || existingRDI.description,
+            
             comments: updatedData.comments || existingRDI.comments || [],
             creationAuthor: existingRDI.creationAuthor || existingRDI.creation_author || "signed.user@mail.com",
             creationDate: existingRDI.creationDate || existingRDI.creation_date || existingRDI.createdAt || new Date().toISOString(),
@@ -355,7 +388,7 @@ export const useRDIManager = (db) => {
 
   // Actualizar solo el estado de un RDI
   const updateRDIStatus = useCallback(async (id, newStatus) => {
-    return updateRDI(id, { estado: newStatus });
+    return updateRDI(id, { status: newStatus });
   }, [updateRDI]);
 
   // Obtener RDI por ID
@@ -413,13 +446,13 @@ export const useRDIManager = (db) => {
   const getRDIStats = useCallback(() => {
     const total = rdiList.length;
     const byStatus = rdiList.reduce((acc, rdi) => {
-      const status = rdi.estado || rdi.statuses || 'Sin estado';
+      const status = rdi.status || 'Sin estado';
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {});
 
     const byType = rdiList.reduce((acc, rdi) => {
-      const type = rdi.tipo || rdi.types || 'Sin tipo';
+      const type = rdi.type || 'Sin tipo';
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {});
@@ -430,37 +463,21 @@ export const useRDIManager = (db) => {
   // Convertir datos de RDI a formato BCF Topic
   const convertRDIToBCFTopic = useCallback((rdiData) => {
     return {
-      guid: `rdi-${rdiData.id}`, // GUID único para BCF
-      title: rdiData.titulo || 'Sin título',
-      description: rdiData.descripcion || '',
-      topic_type: rdiData.tipo || rdiData.types || 'Información',
-      topic_status: rdiData.estado || rdiData.statuses || 'Pendiente',
-      labels: (rdiData.etiqueta || rdiData.labels) ? [rdiData.etiqueta || rdiData.labels] : [],
+      guid: rdiData.guid || rdiData.id, 
+      title: rdiData.title || 'Sin título',
+      description: rdiData.description || '',
+      topic_type: rdiData.type || 'General',
+      topic_status: rdiData.status || 'Abierta',
+      labels: rdiData.label ? [rdiData.label] : [],
       creation_date: rdiData.creationDate || new Date().toISOString(),
       modified_date: rdiData.updatedAt || new Date().toISOString(),
-      due_date: rdiData.dueDate ? new Date(rdiData.dueDate.split('/').reverse().join('-')).toISOString() : null,
+      due_date: rdiData.dueDate ? (rdiData.dueDate instanceof Date ? rdiData.dueDate.toISOString() : new Date(rdiData.dueDate).toISOString()) : null,
       assigned_to: rdiData.assignedTo || 'coordinacion@gmail.com',
       creation_author: rdiData.creationAuthor || 'signed.user@mail.com',
       stage: 'Diseño',
-      // Campos adicionales para contexto
-      priority: 'Normal',
+      priority: rdiData.priority || 'Media',
       index: rdiData.id,
-      // Comentarios: priorizar el array de comentarios, fallback al campo simple
-      comments: rdiData.comments && rdiData.comments.length > 0
-        ? rdiData.comments.map(c => ({
-            guid: c.guid || `c-${Math.random().toString(36).substr(2, 9)}`,
-            date: c.date || new Date().toISOString(),
-            author: c.author || 'signed.user@mail.com',
-            comment: c.comment,
-            topic_guid: `rdi-${rdiData.id}`
-          }))
-        : (rdiData.comentario ? [{
-            guid: `comment-${rdiData.id}`,
-            date: rdiData.createdAt || new Date().toISOString(),
-            author: rdiData.creationAuthor || 'signed.user@mail.com',
-            comment: rdiData.comentario,
-            topic_guid: `rdi-${rdiData.id}`
-          }] : [])
+      comments: rdiData.comments || []
     };
   }, []);
 
@@ -520,9 +537,9 @@ export const useRDIManager = (db) => {
         creation_date: new Date().toISOString()
       },
       extensions: {
-        topic_type: Array.from(new Set(rdiList.map(rdi => rdi.tipo || rdi.types).filter(Boolean))),
-        topic_status: Array.from(new Set(rdiList.map(rdi => rdi.estado || rdi.statuses).filter(Boolean))),
-        topic_label: Array.from(new Set(rdiList.map(rdi => rdi.etiqueta || rdi.labels).filter(Boolean))),
+        topic_type: Array.from(new Set(rdiList.map(rdi => rdi.type).filter(Boolean))),
+        topic_status: Array.from(new Set(rdiList.map(rdi => rdi.status).filter(Boolean))),
+        topic_label: Array.from(new Set(rdiList.map(rdi => rdi.label).filter(Boolean))),
         users: ['signed.user@mail.com', 'coordinacion@gmail.com']
       }
     };

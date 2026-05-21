@@ -29,8 +29,7 @@ export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
     }
   };
 
-  const handleFileSelection = async (event) => {
-    const selectedFile = event.target.files[0];
+  const processFile = async (selectedFile) => {
     if (!selectedFile) return;
 
     const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
@@ -73,6 +72,7 @@ export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
       }
 
       console.log(`Archivo ${selectedFile.name} procesado exitosamente`);
+      return processedModel;
 
     } catch (error) {
       console.error('Error procesando archivo:', error);
@@ -80,9 +80,15 @@ export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
     }
   };
 
+  const handleFileSelection = async (event) => {
+    const selectedFile = event.target.files[0];
+    await processFile(selectedFile);
+  };
+
   return {
     fileInputRef,
     openFileDialog,
-    handleFileSelection
+    handleFileSelection,
+    processFile
   };
 };

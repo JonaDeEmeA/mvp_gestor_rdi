@@ -4,16 +4,14 @@ import { useAnalytics } from './useAnalytics';
 
 
 const initialFormData = {
-  tipo: "",
-  titulo: "",
-  descripcion: "",
-  comentario: "",
-  estado: "",
-  etiqueta: "",
+  type: "General",
+  title: "",
+  description: "",
+  status: "Abierta",
+  label: "General",
   assignedTo: "",
-  dueDate: null, // Fecha Límite (Estándar BCF)
-  fecha: null,   // Mantener por compatibilidad legacy
-  comments: [],  // Historial de comentarios BCF
+  dueDate: null, 
+  comments: [],  
 };
 
 export const useRDIForm = () => {
@@ -54,7 +52,7 @@ export const useRDIForm = () => {
 
   // Validar formulario
   const validateForm = () => {
-    const requiredFields = ['tipo', 'titulo', 'dueDate', 'estado'];
+    const requiredFields = ['type', 'title', 'dueDate', 'status'];
     const missingFields = requiredFields.filter(field => {
       const value = formData[field];
       return !value || (typeof value === 'string' && value.trim() === '');
@@ -70,16 +68,10 @@ export const useRDIForm = () => {
 
   // Preparar datos para guardar
   const prepareFormDataForSave = () => {
-    // Si dueDate está presente, sincronizarlo con fecha para compatibilidad con componentes que aún busquen .fecha
-    const formattedDate = formData.dueDate ? formData.dueDate.toLocaleDateString("es-ES") : null;
-    
     return {
       ...formData,
-      dueDate: formattedDate,
-      fecha: formattedDate || (formData.fecha ? formData.fecha.toLocaleDateString("es-ES") : null),
+      description: formData.description?.trim() || "",
       assignedTo: formData.assignedTo || "",
-      descripcion: formData.descripcion?.trim() || "",
-      comentario: formData.comentario?.trim() || "",
       comments: formData.comments || [],
     };
   };
@@ -95,24 +87,16 @@ export const useRDIForm = () => {
   // Iniciar edición
   const startEdit = (item) => {
     setFormData({
-      tipo: item.tipo || "",
-      titulo: item.titulo || "",
-      descripcion: item.descripcion || "",
-      comentario: item.comentario || "",
-      fecha: parseDateFromString(item.fecha),
-      estado: item.estado || "",
-      etiqueta: item.etiqueta || "",
+      type: item.type || item.tipo || "General",
+      title: item.title || item.titulo || "",
+      description: item.description || item.descripcion || item.comentario || "",
+      status: item.status || item.estado || "Abierta",
+      label: item.label || item.etiqueta || "General",
       assignedTo: item.assignedTo || item.assigned_to || "",
-      dueDate: parseDateFromString(item.dueDate),
-      comments: item.comments || (item.comentario ? [{
-        guid: `legacy-${item.id}`,
-        author: item.creationAuthor || 'signed.user@mail.com',
-        date: item.creationDate || new Date().toISOString(),
-        comment: item.comentario
-      }] : [])
+      dueDate: item.dueDate ? (item.dueDate instanceof Date ? item.dueDate : new Date(item.dueDate)) : null,
+      comments: item.comments || []
     });
     setEditId(item.id);
-    //setShowForm(true);
     setIsSubmitting(false);
   };
 
@@ -148,12 +132,11 @@ export const useRDIForm = () => {
   // Obtener datos del formulario para BCF
   const getBCFTopicData = () => {
     return {
-      titulo: formData.titulo,
-      descripcion: formData.descripcion,
-      fecha: formData.fecha,
-      types: formData.tipo,
-      statuses: formData.estado,
-      labels: formData.etiqueta,
+      title: formData.title,
+      description: formData.description,
+      type: formData.type,
+      status: formData.status,
+      label: formData.label,
       assignedTo: formData.assignedTo,
       dueDate: formData.dueDate,
     };

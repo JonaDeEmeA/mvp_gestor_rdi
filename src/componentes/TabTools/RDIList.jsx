@@ -174,10 +174,10 @@ const RDIList = ({
                 primary={
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: 'column', gap: 0.5, mb: 1 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: BIM_COLORS.neutral.text.primary, lineHeight: 1.2 }}>
-                      {rdi.titulo}
+                      {rdi.title}
                     </Typography>
                     <Chip
-                      label={rdi.tipo || rdi.types || "Sin tipo"}
+                      label={rdi.type || "Sin tipo"}
                       size="small"
                       sx={{
                         height: 20,
@@ -193,10 +193,10 @@ const RDIList = ({
                   <Box component="span" sx={{ display: 'block' }}>
                     <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, display: 'block' }}>
                       <strong>Estado:</strong> <span style={{
-                        color: (rdi.estado || rdi.statuses) === 'Resuelto' ? BIM_COLORS.accent.main : BIM_COLORS.status.warning.main,
+                        color: rdi.status === 'Resuelto' || rdi.status === 'Resuelta' ? BIM_COLORS.accent.main : BIM_COLORS.status.warning.main,
                         fontWeight: 'bold'
                       }}>
-                        {rdi.estado || rdi.statuses || "No definido"}
+                        {rdi.status || "No definido"}
                       </span>
                     </Typography>
                     <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, display: 'block' }}>
@@ -229,7 +229,7 @@ const RDIList = ({
       }}>
         <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, fontWeight: 'medium' }}>
           Resumen: {Array.from(bcfTopicSet.statuses || []).map(estado => {
-            const count = rdiList.filter(rdi => (rdi.estado || rdi.statuses) === estado).length;
+            const count = rdiList.filter(rdi => rdi.status === estado).length;
             return count > 0 ? `${estado}: ${count}` : null;
           }).filter(Boolean).join(' | ') || 'Sin datos'}
         </Typography>

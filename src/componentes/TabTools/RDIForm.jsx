@@ -3,6 +3,7 @@ import { BIM_COLORS } from '../../constants/designTokens';
 import { Box, Typography, FormControl, InputLabel, Select, MenuItem, TextField, Button, Collapse, Divider, Stack, Avatar, Paper } from '@mui/material';
 import { ChatBubbleOutline as CommentIcon, Send as SendIcon } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { RDI_STANDARDS } from '../../constants/rdiStandards';
 
 const RDIForm = ({
   showForm,
@@ -21,9 +22,17 @@ const RDIForm = ({
 }) => {
   const [newComment, setNewComment] = React.useState("");
 
+  const types = bcfTopicSet?.types && bcfTopicSet.types.size > 0 ? Array.from(bcfTopicSet.types) : RDI_STANDARDS.types;
+  const statuses = bcfTopicSet?.statuses && bcfTopicSet.statuses.size > 0 ? Array.from(bcfTopicSet.statuses) : RDI_STANDARDS.statuses;
+  const labels = bcfTopicSet?.labels && bcfTopicSet.labels.size > 0 ? Array.from(bcfTopicSet.labels) : RDI_STANDARDS.labels;
+
   const handleAddCommentLocal = () => {
     if (!newComment.trim()) return;
-    onAddComment(newComment);
+    if (onAddComment) {
+      onAddComment(newComment);
+    } else {
+      console.warn("onAddComment no está definido");
+    }
     setNewComment("");
   };
 
@@ -33,7 +42,7 @@ const RDIForm = ({
   };
 
   const validateForm = () => {
-    return formData.tipo && formData.titulo && formData.dueDate && formData.estado;
+    return formData.type && formData.title && formData.dueDate && formData.status;
   };
 
   const textFieldStyles = {
@@ -76,9 +85,10 @@ const RDIForm = ({
         {showForm && (
           <Box display="flex" gap={1} sx={{ mb: 3 }}>
             {!snapShotReady ? (
+              // En el dashboard o cuando no está listo el motor 3D, mostramos "Ver en 3D" en lugar de "Agregar Captura"
               <Button
                 variant="contained"
-                onClick={onCreateViewpoint}
+                onClick={onVerSnapshotPV}
                 fullWidth
                 size="small"
                 sx={{
@@ -88,7 +98,7 @@ const RDIForm = ({
                   '&:hover': { bgcolor: BIM_COLORS.primary.active }
                 }}
               >
-                Agregar Captura
+                Ver en 3D
               </Button>
             ) : (
               <>
@@ -121,7 +131,7 @@ const RDIForm = ({
                     fontSize: '0.75rem'
                   }}
                 >
-                  Ver
+                  Ver en 3D
                 </Button>
               </>
             )}
@@ -138,8 +148,8 @@ const RDIForm = ({
           fullWidth
           label="Título"
           required
-          value={formData.titulo}
-          onChange={(e) => onFormChange("titulo", e.target.value)}
+          value={formData.title}
+          onChange={(e) => onFormChange("title", e.target.value)}
           sx={textFieldStyles}
         />
 
@@ -150,8 +160,8 @@ const RDIForm = ({
           label="Descripción"
           multiline
           rows={3}
-          value={formData.descripcion}
-          onChange={(e) => onFormChange("descripcion", e.target.value)}
+          value={formData.description}
+          onChange={(e) => onFormChange("description", e.target.value)}
           sx={textFieldStyles}
         />
 
@@ -159,12 +169,12 @@ const RDIForm = ({
         <FormControl fullWidth sx={textFieldStyles} size="small" required variant="outlined">
           <InputLabel>Tipo</InputLabel>
           <Select
-            value={formData.tipo}
+            value={formData.type}
             label="Tipo"
-            onChange={(e) => onFormChange("tipo", e.target.value)}
+            onChange={(e) => onFormChange("type", e.target.value)}
             sx={{ fontSize: '0.85rem' }}
           >
-            {Array.from(bcfTopicSet.types || []).map((tipo) => (
+            {types.map((tipo) => (
               <MenuItem key={tipo} value={tipo} sx={{ fontSize: '0.85rem' }}>
                 {tipo}
               </MenuItem>
@@ -176,12 +186,12 @@ const RDIForm = ({
         <FormControl fullWidth sx={textFieldStyles} size="small" variant="outlined">
           <InputLabel>Especialidad</InputLabel>
           <Select
-            value={formData.etiqueta}
+            value={formData.label}
             label="Especialidad"
-            onChange={(e) => onFormChange("etiqueta", e.target.value)}
+            onChange={(e) => onFormChange("label", e.target.value)}
             sx={{ fontSize: '0.85rem' }}
           >
-            {Array.from(bcfTopicSet.labels || []).map((esp) => (
+            {labels.map((esp) => (
               <MenuItem key={esp} value={esp} sx={{ fontSize: '0.85rem' }}>
                 {esp}
               </MenuItem>
@@ -204,12 +214,12 @@ const RDIForm = ({
         <FormControl fullWidth sx={textFieldStyles} size="small" required variant="outlined">
           <InputLabel>Estado</InputLabel>
           <Select
-            value={formData.estado}
+            value={formData.status}
             label="Estado"
-            onChange={(e) => onFormChange("estado", e.target.value)}
+            onChange={(e) => onFormChange("status", e.target.value)}
             sx={{ fontSize: '0.85rem' }}
           >
-            {Array.from(bcfTopicSet.statuses || []).map((estado) => (
+            {statuses.map((estado) => (
               <MenuItem key={estado} value={estado} sx={{ fontSize: '0.85rem' }}>
                 {estado}
               </MenuItem>

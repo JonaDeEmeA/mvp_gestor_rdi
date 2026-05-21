@@ -32,6 +32,8 @@ import SectionManagerWindow from '@/componentes/SectionManagerWindow';
 import CoordinateInfoWindow from '@/componentes/CoordinateInfoWindow';
 import CategoryColorWindow from '@/componentes/CategoryColorWindow';
 import PropertyWindow from '@/componentes/PropertyWindow';
+import { useLocalModels } from '@/hooks/useLocalModels';
+import { Warning as WarningIcon } from '@mui/icons-material';
 // Constantes
 import { STYLES, VIEWER_CONFIG } from '../constants/viewerConfig';
 import React from 'react';
@@ -111,11 +113,18 @@ export default function Home() {
     setSelectedEntityProps
   );
 
-  const { fileInputRef, openFileDialog, handleFileSelection } = useFileProcessor(
+  const { fileInputRef, openFileDialog, handleFileSelection, processFile } = useFileProcessor(
     worldRef,
     fragmentsRef,
     setImportedModels
   );
+
+  const { 
+    models: localModels, 
+    needsPermission: localNeedsPermission, 
+    authorize: localAuthorize, 
+    getFileFromHandle 
+  } = useLocalModels();
 
   // Crear función de toggle de visibilidad con fragmentsRef
   const handleToggleModelVisibility = createToggleModelVisibility(fragmentsRef);
@@ -145,6 +154,56 @@ export default function Home() {
     if (!showProperties) closeFloatingWindows();
     toggleProperties();
   };
+
+  const [autoOpenForm, setAutoOpenForm] = useState(false);
+  const [autoEditId, setAutoEditId] = useState(null);
+  const [autoViewId, setAutoViewId] = useState(null);
+
+  // Efecto para activar herramientas desde la URL (ej: desde el Dashboard)
+  useEffect(() => {
+    if (router.query.tool === 'rdi' && !showRDIManager) {
+      toggleRDIManager();
+    }
+    
+    if (router.query.tool === 'rdi') {
+      if (router.query.editId) {
+        setAutoEditId(router.query.editId);
+      } else if (router.query.viewId) {
+        setAutoViewId(router.query.viewId);
+      } else if (!showRDIManager) {
+        setAutoOpenForm(true);
+      }
+      
+      // Limpiar parámetros de RDI
+      const { tool, editId, viewId, ...restQuery } = router.query;
+      router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    }
+  }, [router.query.tool, router.query.editId, router.query.viewId, showRDIManager, toggleRDIManager, router]);
+
+  // Efecto para cargar modelo local desde URL
+  useEffect(() => {
+    const loadModelFromUrl = async () => {
+      if (router.query.model && isViewerReady && localModels.length > 0) {
+        const modelName = router.query.model;
+        const modelToLoad = localModels.find(m => m.name === modelName);
+        
+        if (modelToLoad) {
+          try {
+            console.log(`🚀 Cargando modelo local solicitado: ${modelName}`);
+            const file = await getFileFromHandle(modelToLoad.handle);
+            await processFile(file);
+            
+            // Limpiar parámetro de la URL
+            const { model, ...restQuery } = router.query;
+            router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+          } catch (error) {
+            console.error("Error cargando modelo desde URL:", error);
+          }
+        }
+      }
+    };
+    loadModelFromUrl();
+  }, [router.query.model, isViewerReady, localModels, getFileFromHandle, processFile, router]);
 
   // Evitar que la selección interfiera con otras herramientas
   useEffect(() => {
@@ -367,6 +426,33 @@ export default function Home() {
         {userDrawer}
       </Drawer>
 
+      {/* Banner de Permiso Local */}
+      {localNeedsPermission && (
+        <Box sx={{ 
+          position: 'fixed', 
+          top: APPBAR_HEIGHT + 10, 
+          left: '50%', 
+          transform: 'translateX(-50%)', 
+          zIndex: 2000,
+          bgcolor: '#FFF4E5',
+          p: 1.5,
+          borderRadius: 2,
+          boxShadow: 3,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          border: '1px solid #FFD599'
+        }}>
+          <WarningIcon color="warning" />
+          <Typography variant="body2" sx={{ color: '#663C00', fontWeight: 'bold' }}>
+            Acceso al repositorio local requerido
+          </Typography>
+          <Button size="small" variant="contained" color="warning" onClick={localAuthorize}>
+            Permitir
+          </Button>
+        </Box>
+      )}
+
       {/* TabStandar siempre visible */}
       <TabStandar
         onCargarFile={openFileDialog}
@@ -438,6 +524,17 @@ export default function Home() {
             onClose={toggleBrowser}
             listaModelos={importedModels}
             ocultarModelo={handleToggleModelVisibility}
+            localModels={localModels}
+            onLoadLocal={async (model) => {
+              try {
+                const file = await getFileFromHandle(model.handle);
+                await processFile(file);
+              } catch (error) {
+                console.error("Error al cargar modelo desde el explorador:", error);
+              }
+            }}
+            localNeedsPermission={localNeedsPermission}
+            onAuthorizeLocal={localAuthorize}
           />
 
           <SectionManagerWindow
@@ -520,6 +617,14 @@ export default function Home() {
             component={componentsRef.current}
             world={worldRef.current}
             topic={topicRef.current}
+            autoOpenForm={autoOpenForm}
+            autoEditId={autoEditId}
+            autoViewId={autoViewId}
+            onFormOpened={() => {
+              setAutoOpenForm(false);
+              setAutoEditId(null);
+              setAutoViewId(null);
+            }}
             sx={{
               position: { xs: "static", sm: "absolute" },
               width: { xs: "100%", sm: "350px" },

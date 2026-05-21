@@ -1,63 +1,172 @@
-import React from "react";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemAvatar from "@mui/material/ListItemAvatar";
-import Avatar from "@mui/material/Avatar";
-import ListItemText from "@mui/material/ListItemText";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import IconButton from '@mui/material/IconButton';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
+import React, { useState } from "react";
+import {
+  List,
+  ListItem,
+  ListItemAvatar,
+  Avatar,
+  ListItemText,
+  ListItemIcon,
+  IconButton,
+  Box,
+  Typography,
+  Tabs,
+  Tab,
+  Button,
+  Tooltip,
+  Divider
+} from '@mui/material';
+import {
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+  CloudUpload as LoadIcon,
+  FolderSpecial as RepositoryIcon,
+  Layers as LayersIcon,
+  FilePresent as FileIcon
+} from '@mui/icons-material';
 import FloatingWindow from './FloatingWindow';
 
 /**
- * Componente Explorador de Modelos
- * @param {Object} props
- * @param {boolean} props.open - Controla si la ventana es visible
- * @param {string} props.title - Título de la ventana
- * @param {Function} props.onClose - Función al cerrar la ventana
- * @param {Array} props.listaModelos - Lista de modelos cargados
- * @param {Function} props.ocultarModelo - Función para alternar visibilidad
+ * Componente Explorador de Modelos Mejorado
  */
-export default function Browser({ open, onClose, title = "Explorador", listaModelos = [], ocultarModelo }) {
+export default function Browser({ 
+  open, 
+  onClose, 
+  title = "Explorador", 
+  listaModelos = [], 
+  ocultarModelo,
+  localModels = [],
+  onLoadLocal,
+  localNeedsPermission,
+  onAuthorizeLocal
+}) {
+  const [tabValue, setTabValue] = useState(0);
+
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+
   return (
     <FloatingWindow
       open={open}
       onClose={onClose}
       title={title}
-      width="320px"
-      height="450px"
+      width="350px"
+      height="500px"
     >
-      <List dense>
-        {listaModelos.map((item) => (
-          <ListItem key={item.object.uuid}>
-            <ListItemAvatar>
-              <Avatar sx={{ width: 32, height: 32, fontSize: '0.8rem' }}>
-                {item.object.name.slice(0, 3).toUpperCase()}
-              </Avatar>
-            </ListItemAvatar>
-            <ListItemText
-              primary={item.object.name}
-              primaryTypographyProps={{ fontSize: '0.85rem', noWrap: true }}
-            />
-            <ListItemIcon>
-              <IconButton edge="end" aria-label="visibility" onClick={() => ocultarModelo(item.object.uuid)}>
-                {item.object.visible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
-              </IconButton>
-            </ListItemIcon>
-          </ListItem>
-        ))}
-      </List>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange} 
+          variant="fullWidth"
+          sx={{ minHeight: 40, '& .MuiTab-root': { py: 1, fontSize: '0.75rem', minHeight: 40 } }}
+        >
+          <Tab icon={<LayersIcon sx={{ fontSize: '1.1rem' }} />} label="ESCENA" iconPosition="start" />
+          <Tab icon={<RepositoryIcon sx={{ fontSize: '1.1rem' }} />} label="REPOSITORIO" iconPosition="start" />
+        </Tabs>
+      </Box>
 
-      {listaModelos.length === 0 && (
-        <Box sx={{ p: 2, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-            No hay modelos cargados.
-          </Typography>
-        </Box>
-      )}
+      <Box sx={{ flex: 1, overflowY: 'auto' }}>
+        {/* TAB 1: MODELOS EN ESCENA */}
+        {tabValue === 0 && (
+          <List dense>
+            {listaModelos.map((item) => (
+              <ListItem key={item.object.uuid}>
+                <ListItemAvatar>
+                  <Avatar sx={{ width: 30, height: 30, fontSize: '0.7rem', bgcolor: '#1F3A5F' }}>
+                    {item.object.name.slice(0, 3).toUpperCase()}
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={item.object.name}
+                  primaryTypographyProps={{ fontSize: '0.8rem', noWrap: true, fontWeight: 'medium' }}
+                />
+                <ListItemIcon>
+                  <IconButton edge="end" size="small" onClick={() => ocultarModelo(item.object.uuid)}>
+                    {item.object.visible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
+                  </IconButton>
+                </ListItemIcon>
+              </ListItem>
+            ))}
+
+            {listaModelos.length === 0 && (
+              <Box sx={{ p: 4, textAlign: 'center', opacity: 0.5 }}>
+                <LayersIcon sx={{ fontSize: 40, mb: 1 }} />
+                <Typography variant="body2">No hay modelos en la escena.</Typography>
+              </Box>
+            )}
+          </List>
+        )}
+
+        {/* TAB 2: REPOSITORIO LOCAL */}
+        {tabValue === 1 && (
+          <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            {localNeedsPermission ? (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body2" sx={{ mb: 2, color: '#5F6B7A' }}>
+                  Se requiere permiso para listar los archivos de la carpeta local.
+                </Typography>
+                <Button variant="contained" size="small" onClick={onAuthorizeLocal} sx={{ textTransform: 'none' }}>
+                  Dar Permiso
+                </Button>
+              </Box>
+            ) : localModels.length === 0 ? (
+              <Box sx={{ p: 4, textAlign: 'center', opacity: 0.5 }}>
+                <RepositoryIcon sx={{ fontSize: 40, mb: 1 }} />
+                <Typography variant="body2">Repositorio local vacío o no conectado.</Typography>
+              </Box>
+            ) : (
+              <List dense>
+                {localModels.map((model) => {
+                  const isLoaded = listaModelos.some(m => m.object.name === model.name);
+                  return (
+                    <ListItem 
+                      key={model.id}
+                      sx={{ 
+                        opacity: isLoaded ? 0.6 : 1,
+                        bgcolor: isLoaded ? 'rgba(0,0,0,0.02)' : 'transparent'
+                      }}
+                    >
+                      <ListItemAvatar>
+                        <Avatar sx={{ width: 30, height: 30, bgcolor: model.name.endsWith('.ifc') ? '#E3F2FD' : '#F3E5F5', color: model.name.endsWith('.ifc') ? '#1976D2' : '#7B1FA2' }}>
+                          <FileIcon sx={{ fontSize: '1rem' }} />
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={model.name}
+                        secondary={isLoaded ? "Cargado" : (model.name.endsWith('.ifc') ? "IFC" : "Frag")}
+                        primaryTypographyProps={{ fontSize: '0.8rem', noWrap: true, fontWeight: isLoaded ? 'normal' : 'bold' }}
+                        secondaryTypographyProps={{ fontSize: '0.65rem' }}
+                      />
+                      <ListItemIcon>
+                        <Tooltip title={isLoaded ? "Ya está en la escena" : "Cargar modelo"}>
+                          <span>
+                            <IconButton 
+                              edge="end" 
+                              size="small" 
+                              disabled={isLoaded}
+                              onClick={() => onLoadLocal(model)}
+                              sx={{ color: '#4CAF50' }}
+                            >
+                              <LoadIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </ListItemIcon>
+                    </ListItem>
+                  );
+                })}
+              </List>
+            )}
+          </Box>
+        )}
+      </Box>
+      
+      <Divider />
+      <Box sx={{ p: 1, textAlign: 'right' }}>
+        <Typography variant="caption" sx={{ color: '#9AA4AF', fontSize: '0.6rem' }}>
+          {tabValue === 0 ? `${listaModelos.length} modelos en escena` : `${localModels.length} archivos disponibles`}
+        </Typography>
+      </Box>
     </FloatingWindow>
   );
 }

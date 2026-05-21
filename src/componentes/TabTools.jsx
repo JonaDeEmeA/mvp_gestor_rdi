@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { useRouter } from 'next/router';
 import {
   Tabs,
   Tab,
@@ -25,6 +26,7 @@ import { es } from "date-fns/locale"
 
 // Hooks personalizados
 import { useIndexedDB } from "../utilitario/useIndexedDB"
+import { useAuth } from "../hooks/useAuth"
 import { useViewpoints } from "../hooks/useViewpoints"
 import { useRDIForm } from "../hooks/useRDIForm"
 import { useRDIManager } from "../hooks/useRDIManager"
@@ -171,8 +173,23 @@ const EditPanel = ({
   );
 };
 
-export default function TabTools({ sx, topic, world, component, onClose }) {
+export default function TabTools({ sx, topic, world, component, onClose, autoOpenForm, autoEditId, autoViewId, onFormOpened }) {
+  const router = useRouter();
   const [tabValue, setTabValue] = useState(0)
+  
+  // Si venimos con la señal de autoOpenForm, abrimos el formulario
+  useEffect(() => {
+    if (autoOpenForm) {
+      setTabValue(0);
+      // Pequeño delay para asegurar que los hooks de formulario estén listos
+      const timer = setTimeout(() => {
+        handleAgregarRDI();
+        if (onFormOpened) onFormOpened(); // Notificar que ya se procesó
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [autoOpenForm]);
+
   const [filterTipo, setFilterTipo] = useState("")
   const [filterEstado, setFilterEstado] = useState("")
   const [showEditPanel, setShowEditPanel] = useState(false)
@@ -184,8 +201,9 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Hooks de base de datos y BCF
+  // Hooks de base de datos, BCF y Autenticación
   const { db, loading: dbLoading, error: dbError } = useIndexedDB()
+  const { user } = useAuth();
   const { bcfTopicSet, createBCFTopic, clearAllTopics, importBCF, exportBCF, exportBCFWithCorrectXML } = useBCFTopics(component, db);
 
   // Hooks para el formulario de AGREGAR
@@ -231,6 +249,39 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
     refreshRDIs,
   } = useRDIManager(db);
 
+  useEffect(() => {
+    if (rdiList.length > 0 && autoEditId) {
+      const item = rdiList.find(r => String(r.id) === String(autoEditId));
+      if (item) {
+        setTabValue(0);
+        const timer = setTimeout(() => {
+          handleEditRDI(item);
+          setEditPanelMode('edit');
+          if (onFormOpened) onFormOpened();
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [autoEditId, rdiList]);
+
+  useEffect(() => {
+    if (rdiList.length > 0 && autoViewId) {
+      const item = rdiList.find(r => String(r.id) === String(autoViewId));
+      if (item) {
+        setTabValue(0);
+        const timer = setTimeout(() => {
+          handleEditRDI(item);
+          setEditPanelMode('view');
+          if (item.snapshot) {
+            updateCameraFromViewpoint(item.snapshot.viewpointData);
+          }
+          if (onFormOpened) onFormOpened();
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [autoViewId, rdiList]);
+
   // Handlers del componente principal
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue)
@@ -241,7 +292,7 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
     console.log('🚪 PASO 5.2: Ejecutando handleClose');
 
     // Verificar si hay formulario sin guardar
-    if (addFormLogic.showForm && addFormLogic.formData.titulo) {
+    if (addFormLogic.showForm && addFormLogic.formData.title) {
       const confirmClose = window.confirm(
         '¿Estás seguro de cerrar? Hay cambios sin guardar que se perderán.'
       );
@@ -318,7 +369,8 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
   };
 
   const handleEditFormAccept = async () => {
-    const snapshotData = editViewpointsLogic.getSnapshotData();
+    // Solo enviamos snapshotData si el usuario actualizó explícitamente el snapshot
+    const snapshotData = editViewpointsLogic.isSnapshotUpdated ? editViewpointsLogic.getSnapshotData() : null;
     const success = await editFormLogic.handleSubmit(
       () => Promise.resolve(), // No se usa para editar
       async (id, rdiData) => {
@@ -396,6 +448,27 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
       console.log('No hay snapshot para restaurar en RDI:', item.id)
     }
   }
+
+  const handleAddCommentDirect = async (commentText) => {
+    if (!editingItem) return;
+    
+    const newCommentObj = {
+      guid: `c-${Date.now()}`,
+      author: user?.email || 'signed.user@mail.com',
+      date: new Date().toISOString(),
+      comment: commentText.trim()
+    };
+
+    const updatedComments = [newCommentObj, ...(editingItem.comments || [])];
+    
+    try {
+      await updateRDI(editingItem.id, { comments: updatedComments }, null, true);
+      // Actualizar el item que se está visualizando
+      setEditingItem(prev => ({ ...prev, comments: updatedComments }));
+    } catch (error) {
+      console.error('Error al añadir comentario directo:', error);
+    }
+  };
 
   const handleStatusChange = async (id, newStatus) => {
     try {
@@ -530,8 +603,8 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
   // Filtrar lista según el filtro seleccionado
   const getFilteredRDIList = () => {
     return rdiList.filter((rdi) => {
-      const matchTipo = filterTipo ? (rdi.tipo || rdi.types) === filterTipo : true;
-      const matchEstado = filterEstado ? (rdi.estado || rdi.statuses) === filterEstado : true;
+      const matchTipo = filterTipo ? rdi.type === filterTipo : true;
+      const matchEstado = filterEstado ? rdi.status === filterEstado : true;
       return matchTipo && matchEstado;
     });
   }
@@ -589,6 +662,7 @@ export default function TabTools({ sx, topic, world, component, onClose }) {
             onEdit={() => setEditPanelMode('edit')}
             onVerSnapshot={onVerSnapshotPV}
             snapshotUrl={editViewpointsLogic.snapshotUrl}
+            onAddComment={handleAddCommentDirect}
           />
         ) : (
           <RDIForm

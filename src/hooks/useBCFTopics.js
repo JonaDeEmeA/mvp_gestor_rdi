@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import * as OBC from "@thatopen/components";
-import { log } from 'three';
+import { RDI_STANDARDS } from '../constants/rdiStandards';
 
 export const useBCFTopics = (component, db) => {
   const [loadedTopicIds, setLoadedTopicIds] = useState([]);
@@ -22,10 +22,10 @@ export const useBCFTopics = (component, db) => {
 
     bcfTopics.setup({
       author: "signed.user@mail.com",
-      types: new Set([...bcfTopics.config.types, "Información", "Coordinación", "Interferencia"]),
-      statuses: new Set(["Resuelto", "Pendiente", "En revision"]),
-      labels: new Set(["Arquitectura", "Calculo", "Electricidad", "Sanitario", "Climatización"]),
-      users: new Set(["jonamorales@gmail.com", "coordinacion@gmail.com"]),
+      types: new Set(RDI_STANDARDS.types),
+      statuses: new Set(RDI_STANDARDS.statuses),
+      labels: new Set(RDI_STANDARDS.labels),
+      users: new Set(RDI_STANDARDS.users),
       version: "3",
     });
 
@@ -207,25 +207,21 @@ export const useBCFTopics = (component, db) => {
       return null;
     }
 
-    // Convertir fecha de string 'dd/mm/yyyy' a objeto Date si es necesario
+    // Handle dueDate from ISO string, Date object or null
     let dueDate = null;
-    if (topicData.fecha) {
-      if (typeof topicData.fecha === 'string') {
-        const [day, month, year] = topicData.fecha.split('/');
-        dueDate = new Date(`${year}-${month}-${day}`);
-      } else if (topicData.fecha instanceof Date) {
-        dueDate = topicData.fecha;
-      }
+    if (topicData.dueDate) {
+      dueDate = new Date(topicData.dueDate);
     }
+    
     const bcfTopicData = {
-      title: topicData.titulo,
-      description: topicData.descripcion,
+      title: topicData.title || topicData.titulo || '',
+      description: topicData.description || topicData.descripcion || '',
       dueDate: dueDate,
-      type: topicData.tipo,
-      status: topicData.estado,
-      labels: new Set([topicData.etiqueta]),
-      assignedTo: topicData.assignedTo,
-      creationAuthor: topicData.creationAuthor,
+      type: topicData.type || topicData.tipo || 'General',
+      status: topicData.status || topicData.estado || 'Abierta',
+      labels: new Set([topicData.label || topicData.etiqueta || '']),
+      assignedTo: topicData.assignedTo || '',
+      creationAuthor: topicData.creationAuthor || '',
     };
 
     // Si es edición, agrega el id original

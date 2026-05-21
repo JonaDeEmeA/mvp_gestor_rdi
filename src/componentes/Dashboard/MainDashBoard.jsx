@@ -8,14 +8,18 @@ import { useRouter } from 'next/router';
 import { createProject, updateProject, deleteProject } from '../../utilitario/indexedDBManager';
 import CreateProjectDialog from './CreateProjectDialog';
 import EditProjectDialog from './EditProjectDialog';
+import CreateIssueDialog from './CreateIssueDialog';
+import CreateIssueTypeDialog from './CreateIssueTypeDialog';
 import RDIChartsPanel from './RDIChartsPanel';
+import IncidenciasPanel from './IncidenciasPanel';
+import ModelosPanel from './ModelosPanel';
 import { useRDIStats } from '../../hooks/useRDIStats';
 
-import { 
-  IconButton, 
-  Tooltip, 
-  Button, 
-  Box, 
+import {
+  IconButton,
+  Tooltip,
+  Button,
+  Box,
   CircularProgress,
   Drawer,
   AppBar,
@@ -30,8 +34,27 @@ import {
   Divider,
   useTheme,
   useMediaQuery,
+  Select,
+  MenuItem,
+  FormControl,
+  Collapse,
 } from '@mui/material';
-import { Edit, Menu as MenuIcon, Add as AddIcon, Logout as LogoutIcon, Dashboard as DashboardIcon, Folder as FolderIcon } from '@mui/icons-material';
+import {
+  Edit,
+  Menu as MenuIcon,
+  Add as AddIcon,
+  Logout as LogoutIcon,
+  Home as HomeIcon,
+  Layers as LayersIcon,
+  ExpandLess,
+  ExpandMore,
+  FiberManualRecord as DotIcon,
+  ViewInAr as CubeIcon,
+  Map as MapIcon,
+  Assignment as AssignmentIcon,
+  Settings as SettingsIcon,
+  Folder as FolderIcon
+} from '@mui/icons-material';
 
 const DRAWER_WIDTH = 280;
 
@@ -53,6 +76,15 @@ export default function Dashboard({ userProjects = [] }) {
   const [loading, setLoading] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+
+  // Estados para menús colapsables
+  const [incidenciasOpen, setIncidenciasOpen] = useState(true);
+  const [modelosOpen, setModelosOpen] = useState(true);
+  const [activeView, setActiveView] = useState('dashboard');
+  const [showCreateTypeDialog, setShowCreateTypeDialog] = useState(false);
+  const [showCreateIssueDialog, setShowCreateIssueDialog] = useState(false);
+  const [selectedIssueType, setSelectedIssueType] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
 
 
@@ -236,126 +268,255 @@ export default function Dashboard({ userProjects = [] }) {
   // Contenido del Drawer (Sidebar)
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#1F3A5F', color: 'white' }}>
-      {/* Header del Drawer */}
-      <Box sx={{ 
-        p: 3, 
-        display: 'flex', 
-        alignItems: 'center', 
+      {/* Header del Drawer - Selector de Proyecto */}
+      <Box sx={{
+        p: 2.5,
+        display: 'flex',
+        alignItems: 'center',
         gap: 2,
-        borderBottom: '1px solid rgba(255,255,255,0.1)' 
+        borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
-        <DashboardIcon sx={{ color: '#4CAF50' }} />
-        <Typography variant="h6" fontWeight="bold">
-          Proyectos
-        </Typography>
-      </Box>
-
-      {/* Lista de Proyectos */}
-      <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-            <CircularProgress size={24} sx={{ color: 'white' }} />
-          </Box>
-        ) : projects.length === 0 ? (
-          <Typography variant="body2" sx={{ textAlign: 'center', color: 'rgba(255,255,255,0.7)', mt: 2 }}>
-            No tienes proyectos aún
-          </Typography>
-        ) : (
-          <List disablePadding>
-            {projects.map(project => (
-              <ListItem 
-                key={project.id} 
-                disablePadding 
-                sx={{ mb: 1 }}
-                secondaryAction={
-                  <Tooltip title="Editar proyecto">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingProject(project);
-                        setShowEditDialog(true);
-                      }}
-                      sx={{ 
-                        color: 'rgba(255,255,255,0.7)',
-                        '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.1)' }
-                      }}
-                    >
-                      <Edit fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+        <FormControl fullWidth size="small" variant="standard" sx={{
+          '& .MuiInputBase-root': { color: 'white', fontWeight: 'bold', fontSize: '1.1rem', textTransform: 'uppercase' },
+          '& .MuiSelect-icon': { color: 'white' },
+          '& .MuiInput-underline:before': { borderBottom: 'none' },
+          '& .MuiInput-underline:after': { borderBottom: 'none' },
+          '& .MuiInput-underline:hover:not(.Mui-disabled):before': { borderBottom: 'none' }
+        }}>
+          <Select
+            value={currentProject?.id || ''}
+            displayEmpty
+            onChange={(e) => {
+              const project = projects.find(p => p.id === e.target.value);
+              if (project) handleSelectProject(project);
+            }}
+            renderValue={(selected) => {
+              if (!selected) return "PROYECTO";
+              return projects.find(p => p.id === selected)?.name.toUpperCase();
+            }}
+            MenuProps={{
+              PaperProps: {
+                sx: {
+                  bgcolor: '#1F3A5F',
+                  color: 'white',
+                  '& .MuiMenuItem-root': {
+                    '&.Mui-selected': { bgcolor: '#2B5DAF' },
+                    '&.Mui-selected:hover': { bgcolor: '#1F4B8F' },
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+                  }
                 }
-              >
-                <ListItemButton
-                  selected={currentProject?.id === project.id}
-                  onClick={() => handleSelectProject(project)}
-                  sx={{
-                    borderRadius: '8px',
-                    '&.Mui-selected': {
-                      bgcolor: '#2B5DAF',
-                      '&:hover': { bgcolor: '#1F4B8F' }
-                    },
-                    '&:hover': {
-                      bgcolor: 'rgba(255,255,255,0.05)'
-                    }
-                  }}
-                >
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    <FolderIcon sx={{ 
-                      color: currentProject?.id === project.id ? '#4CAF50' : 'rgba(255,255,255,0.5)',
-                      fontSize: 20
-                    }} />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={project.name}
-                    secondary={new Date(project.createdAt).toLocaleDateString()}
-                    primaryTypographyProps={{ 
-                      fontWeight: currentProject?.id === project.id ? 'bold' : 'normal',
-                      color: 'white',
-                      noWrap: true
-                    }}
-                    secondaryTypographyProps={{ 
-                      color: 'rgba(255,255,255,0.5)',
-                      fontSize: '0.75rem'
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
+              }
+            }}
+          >
+            <MenuItem disabled value="">
+              <em>Seleccionar Proyecto</em>
+            </MenuItem>
+            {projects.map((project) => (
+              <MenuItem key={project.id} value={project.id}>
+                {project.name}
+              </MenuItem>
             ))}
-          </List>
-        )}
+          </Select>
+        </FormControl>
       </Box>
 
-      {/* Botón Crear Proyecto */}
-      <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+      {/* Navegación Principal */}
+      <Box sx={{ flex: 1, overflowY: 'auto', pt: 1 }}>
+        <List disablePadding>
+          {/* Dashboard */}
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => setActiveView('dashboard')}
+              selected={activeView === 'dashboard'}
+              sx={{
+                py: 1.5,
+                '&.Mui-selected': { bgcolor: 'rgba(255,255,255,0.1)' },
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 45 }}>
+                <HomeIcon sx={{ color: activeView === 'dashboard' ? '#4CAF50' : 'rgba(255,255,255,0.7)' }} />
+              </ListItemIcon>
+              <ListItemText primary="Dashboard" primaryTypographyProps={{ fontSize: '0.95rem', fontWeight: activeView === 'dashboard' ? 'bold' : 'normal' }} />
+            </ListItemButton>
+          </ListItem>
+
+          {/* Incidencias (Collapsible) */}
+          <ListItem disablePadding sx={{ flexDirection: 'column', alignItems: 'stretch' }}>
+            <ListItemButton
+              onClick={() => setIncidenciasOpen(!incidenciasOpen)}
+              sx={{
+                py: 1.5,
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 45 }}>
+                <AssignmentIcon sx={{ color: activeView === 'incidencias' ? '#4CAF50' : 'rgba(255,255,255,0.7)' }} />
+              </ListItemIcon>
+              <ListItemText primary="Incidencias" primaryTypographyProps={{ fontSize: '0.95rem' }} />
+              {incidenciasOpen ? <ExpandLess sx={{ fontSize: '1.2rem', opacity: 0.7 }} /> : <ExpandMore sx={{ fontSize: '1.2rem', opacity: 0.7 }} />}
+            </ListItemButton>
+
+            <Collapse in={incidenciasOpen} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                <ListItemButton
+                  selected={activeView === 'incidencias'}
+                  sx={{
+                    pl: 6,
+                    py: 1,
+                    '&.Mui-selected': { bgcolor: 'rgba(255,255,255,0.1)' },
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+                  }}
+                  onClick={() => setActiveView('incidencias')}
+                >
+                  <ListItemIcon sx={{ minWidth: 30 }}>
+                    <DotIcon sx={{ color: '#4CAF50', fontSize: '0.8rem' }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Todas las incidencias" primaryTypographyProps={{ fontSize: '0.85rem', color: activeView === 'incidencias' ? 'white' : 'rgba(255,255,255,0.8)', fontWeight: activeView === 'incidencias' ? 'bold' : 'normal' }} />
+                </ListItemButton>
+
+                <ListItemButton
+                  sx={{
+                    pl: 6,
+                    py: 1,
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+                  }}
+                  onClick={() => setShowCreateIssueDialog(true)}
+                >
+                  <ListItemIcon sx={{ minWidth: 30 }}>
+                    <AddIcon sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem' }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Crear incidencia" primaryTypographyProps={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }} />
+                </ListItemButton>
+              </List>
+            </Collapse>
+          </ListItem>
+
+          {/* Modelos y Planos (Collapsible) */}
+          <ListItem disablePadding sx={{ flexDirection: 'column', alignItems: 'stretch' }}>
+            <ListItemButton
+              onClick={() => setModelosOpen(!modelosOpen)}
+              sx={{
+                py: 1.5,
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 45 }}>
+                <LayersIcon sx={{ color: 'rgba(255,255,255,0.7)' }} />
+              </ListItemIcon>
+              <ListItemText primary="Modelos y Planos" primaryTypographyProps={{ fontSize: '0.95rem' }} />
+              {modelosOpen ? <ExpandLess sx={{ fontSize: '1.2rem', opacity: 0.7 }} /> : <ExpandMore sx={{ fontSize: '1.2rem', opacity: 0.7 }} />}
+            </ListItemButton>
+
+            <Collapse in={modelosOpen} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                <ListItemButton
+                  selected={activeView === 'modelos'}
+                  sx={{
+                    pl: 6,
+                    py: 1,
+                    '&.Mui-selected': { bgcolor: 'rgba(255,255,255,0.1)' },
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+                  }}
+                  onClick={() => setActiveView('modelos')}
+                >
+                  <ListItemIcon sx={{ minWidth: 30 }}>
+                    <AssignmentIcon sx={{ color: activeView === 'modelos' ? '#4CAF50' : 'rgba(255,255,255,0.5)', fontSize: '1.1rem' }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Gestión de Modelos" primaryTypographyProps={{ fontSize: '0.85rem', color: activeView === 'modelos' ? 'white' : 'rgba(255,255,255,0.8)', fontWeight: activeView === 'modelos' ? 'bold' : 'normal' }} />
+                </ListItemButton>
+
+                <ListItemButton
+                  sx={{
+                    pl: 6,
+                    py: 1,
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+                  }}
+                  onClick={() => router.push('/viewer')}
+                >
+                  <ListItemIcon sx={{ minWidth: 30 }}>
+                    <CubeIcon sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem' }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Visor 3D" primaryTypographyProps={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }} />
+                </ListItemButton>
+
+                <ListItemButton
+                  sx={{
+                    pl: 6,
+                    py: 1,
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+                  }}
+                  onClick={() => console.log('Planos')}
+                >
+                  <ListItemIcon sx={{ minWidth: 30 }}>
+                    <MapIcon sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem' }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Planos" primaryTypographyProps={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }} />
+                </ListItemButton>
+              </List>
+            </Collapse>
+          </ListItem>
+
+          {/* Configuración */}
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => {
+                if (currentProject) {
+                  setEditingProject(currentProject);
+                  setShowEditDialog(true);
+                }
+              }}
+              sx={{
+                py: 1.5,
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 45 }}>
+                <SettingsIcon sx={{ color: 'rgba(255,255,255,0.7)' }} />
+              </ListItemIcon>
+              <ListItemText primary="Configuración" primaryTypographyProps={{ fontSize: '0.95rem' }} />
+            </ListItemButton>
+          </ListItem>
+        </List>
+      </Box>
+
+      {/* Botón Crear Proyecto - Estilo Inferior */}
+      <Box sx={{ p: 0, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
         <Tooltip
           title={!canCreateProject ? 'Solo puedes tener un proyecto activo' : ''}
           placement="top"
           arrow
         >
-          <span style={{ display: 'block' }}>
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setShowCreateDialog(true)}
+          <span>
+            <ListItemButton
               disabled={!canCreateProject}
+              onClick={() => setShowCreateDialog(true)}
               sx={{
-                bgcolor: canCreateProject ? '#4CAF50' : 'rgba(255,255,255,0.15)',
+                p: 2,
+                bgcolor: '#4CAF50',
                 color: 'white',
-                fontWeight: 'bold',
-                textTransform: 'none',
-                py: 1.5,
-                '&:hover': { bgcolor: canCreateProject ? '#43A047' : 'rgba(255,255,255,0.15)' },
-                '&.Mui-disabled': {
-                  bgcolor: 'rgba(255,255,255,0.1)',
-                  color: 'rgba(255,255,255,0.35)',
-                  cursor: 'not-allowed'
-                }
+                '&:hover': { bgcolor: '#43A047' },
+                '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' }
               }}
             >
-              Crear Proyecto
-            </Button>
+              <ListItemIcon sx={{ minWidth: 45 }}>
+                <Avatar sx={{
+                  width: 30,
+                  height: 30,
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  fontSize: '0.8rem',
+                  fontWeight: 'bold',
+                  borderRadius: '4px'
+                }}>
+                  N
+                </Avatar>
+              </ListItemIcon>
+              <ListItemText
+                primary="+ Crear Proyecto"
+                primaryTypographyProps={{ fontWeight: 'bold', fontSize: '0.9rem' }}
+              />
+            </ListItemButton>
           </span>
         </Tooltip>
       </Box>
@@ -364,10 +525,10 @@ export default function Dashboard({ userProjects = [] }) {
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#F5F7FA' }}>
-      
+
       {/* AppBar Superior */}
-      <AppBar 
-        position="fixed" 
+      <AppBar
+        position="fixed"
         sx={{
           width: { md: drawerOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%' },
           ml: { md: drawerOpen ? `${DRAWER_WIDTH}px` : 0 },
@@ -458,9 +619,9 @@ export default function Dashboard({ userProjects = [] }) {
           open={drawerOpen && !isMobile}
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
-              width: DRAWER_WIDTH, 
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: DRAWER_WIDTH,
               bgcolor: '#1F3A5F',
               borderRight: 'none'
             },
@@ -471,12 +632,12 @@ export default function Dashboard({ userProjects = [] }) {
       </Box>
 
       {/* Contenido Principal */}
-      <Box 
-        component="main" 
-        sx={{ 
-          flexGrow: 1, 
-          p: 3, 
-          mt: 8, 
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 3,
+          mt: 8,
           width: { md: drawerOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%' },
           transition: theme.transitions.create(['width', 'margin'], {
             easing: theme.transitions.easing.sharp,
@@ -485,85 +646,95 @@ export default function Dashboard({ userProjects = [] }) {
           overflow: 'auto'
         }}
       >
-          {!currentProject ? (
-            <Box sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '80vh',
-              gap: 3
-            }}>
-              <FolderIcon sx={{ fontSize: 80, color: '#D9DEE5' }} />
-              <Typography variant="h5" sx={{ color: '#5F6B7A', fontWeight: 'bold' }}>
-                No hay proyecto seleccionado
-              </Typography>
-              <Typography variant="body1" sx={{ color: '#9AA4AF' }}>
-                Selecciona un proyecto del menú lateral o crea uno nuevo
-              </Typography>
-              <Tooltip
-                title={!canCreateProject ? 'Solo puedes tener un proyecto activo' : ''}
-                placement="top"
-                arrow
-              >
-                <span>
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => setShowCreateDialog(true)}
-                    disabled={!canCreateProject}
-                    sx={{
-                      bgcolor: '#1F3A5F',
-                      color: 'white',
-                      fontWeight: 'bold',
-                      textTransform: 'none',
-                      px: 4,
-                      py: 1.5,
-                      '&:hover': { bgcolor: '#2B5DAF' },
-                      '&.Mui-disabled': { opacity: 0.45 }
-                    }}
-                  >
-                    Crear Primer Proyecto
-                  </Button>
-                </span>
-              </Tooltip>
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%', gap: 3 }}>
-
-              {/* Cabecera del proyecto */}
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-                <Typography variant="h5" sx={{ color: '#1E1E1E', fontWeight: 'bold' }}>
-                  {currentProject.name}
-                </Typography>
+        {!currentProject ? (
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '80vh',
+            gap: 3
+          }}>
+            <FolderIcon sx={{ fontSize: 80, color: '#D9DEE5' }} />
+            <Typography variant="h5" sx={{ color: '#5F6B7A', fontWeight: 'bold' }}>
+              No hay proyecto seleccionado
+            </Typography>
+            <Typography variant="body1" sx={{ color: '#9AA4AF' }}>
+              Selecciona un proyecto del menú lateral o crea uno nuevo
+            </Typography>
+            <Tooltip
+              title={!canCreateProject ? 'Solo puedes tener un proyecto activo' : ''}
+              placement="top"
+              arrow
+            >
+              <span>
                 <Button
                   variant="contained"
-                  size="large"
-                  disabled={isNavigating}
-                  onClick={() => {
-                    setIsNavigating(true);
-                    // refreshStats(); // Se elimina para evitar el cambio de estado 'loading' y el parpadeo de charts antes de navegar
-                    router.push('/viewer');
-                  }}
+                  startIcon={<AddIcon />}
+                  onClick={() => setShowCreateDialog(true)}
+                  disabled={!canCreateProject}
                   sx={{
                     bgcolor: '#1F3A5F',
-                    px: 4,
-                    py: 1.2,
-                    fontSize: '1rem',
+                    color: 'white',
                     fontWeight: 'bold',
                     textTransform: 'none',
-                    '&:hover': { bgcolor: '#2B5DAF' }
+                    px: 4,
+                    py: 1.5,
+                    '&:hover': { bgcolor: '#2B5DAF' },
+                    '&.Mui-disabled': { opacity: 0.45 }
                   }}
                 >
-                  {isNavigating ? <CircularProgress size={22} color="inherit" /> : 'Abrir Visor 3D'}
+                  Crear Primer Proyecto
                 </Button>
-              </Box>
+              </span>
+            </Tooltip>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%', gap: 3 }}>
 
-              {/* Panel de gráficos */}
-              <RDIChartsPanel stats={stats} loading={statsLoading} />
-
+            {/* Cabecera del proyecto */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+              <Typography variant="h5" sx={{ color: '#1E1E1E', fontWeight: 'bold' }}>
+                {currentProject.name}
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                disabled={isNavigating}
+                onClick={() => {
+                  setIsNavigating(true);
+                  // refreshStats(); // Se elimina para evitar el cambio de estado 'loading' y el parpadeo de charts antes de navegar
+                  router.push('/viewer');
+                }}
+                sx={{
+                  bgcolor: '#1F3A5F',
+                  px: 4,
+                  py: 1.2,
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  textTransform: 'none',
+                  '&:hover': { bgcolor: '#2B5DAF' }
+                }}
+              >
+                {isNavigating ? <CircularProgress size={22} color="inherit" /> : 'Abrir Visor 3D'}
+              </Button>
             </Box>
-          )}
+
+            {/* Contenido condicional basado en activeView */}
+            {activeView === 'dashboard' ? (
+              <RDIChartsPanel stats={stats} loading={statsLoading} />
+            ) : activeView === 'incidencias' ? (
+              <IncidenciasPanel 
+                key={`${currentProject.id}-${refreshTrigger}`}
+                projectId={currentProject.id} 
+                onCreateClick={() => setShowCreateTypeDialog(true)} 
+              />
+            ) : (
+              <ModelosPanel projectId={currentProject.id} />
+            )}
+
+          </Box>
+        )}
       </Box>
 
       {/* Modales con Material UI */}
@@ -571,6 +742,33 @@ export default function Dashboard({ userProjects = [] }) {
         isOpen={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
         onCreate={handleCreateProject}
+      />
+
+      <CreateIssueTypeDialog
+        isOpen={showCreateTypeDialog}
+        onClose={() => setShowCreateTypeDialog(false)}
+        onSelectType={(type) => {
+          setShowCreateTypeDialog(false);
+          if (type === 'diseno') {
+            setIsNavigating(true);
+            router.push('/viewer?tool=rdi');
+          } else {
+            setSelectedIssueType(type);
+            setShowCreateIssueDialog(true);
+          }
+        }}
+      />
+
+      <CreateIssueDialog
+        isOpen={showCreateIssueDialog}
+        onClose={() => setShowCreateIssueDialog(false)}
+        projectId={currentProject?.id}
+        initialType={selectedIssueType === 'obra' ? 'Obra' : 'Diseño'}
+        onCreated={() => {
+          setShowCreateIssueDialog(false);
+          setActiveView('incidencias');
+          setRefreshTrigger(prev => prev + 1);
+        }}
       />
 
       <EditProjectDialog
