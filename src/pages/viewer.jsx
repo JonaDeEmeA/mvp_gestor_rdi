@@ -33,9 +33,7 @@ import CoordinateInfoWindow from '@/componentes/CoordinateInfoWindow';
 import CategoryColorWindow from '@/componentes/CategoryColorWindow';
 import PropertyWindow from '@/componentes/PropertyWindow';
 import { useLocalModels } from '@/hooks/useLocalModels';
-import { useFloorPlan } from '@/hooks/useFloorPlan';
-import FloorPlanWindow from '@/componentes/FloorPlanWindow';
-import { Warning as WarningIcon, Map as MapIcon } from '@mui/icons-material';
+import { Warning as WarningIcon } from '@mui/icons-material';
 // Constantes
 import { STYLES, VIEWER_CONFIG } from '../constants/viewerConfig';
 import React from 'react';
@@ -104,17 +102,7 @@ export default function Home() {
     createToggleModelVisibility,
   } = useViewerState();
 
-  const {
-    show: showFloorPlan,
-    level: floorPlanLevel,
-    imageUrl: floorPlanImageUrl,
-    generating: floorPlanGenerating,
-    error: floorPlanError,
-    setLevel: setFloorPlanLevel,
-    generate: generateFloorPlan,
-    exportImage: exportFloorPlan,
-    toggle: toggleFloorPlan,
-  } = useFloorPlan(worldRef);
+
 
   // Hook para coordenadas
   const { pickedPoint, pickVertex } = useVertexPicker(componentsRef.current, worldRef.current);
@@ -171,10 +159,7 @@ export default function Home() {
     toggleProperties();
   };
 
-  const handleToggleFloorPlan = () => {
-    if (!showFloorPlan) closeFloatingWindows();
-    toggleFloorPlan();
-  };
+
 
   const [autoOpenForm, setAutoOpenForm] = useState(false);
   const [autoEditId, setAutoEditId] = useState(null);
@@ -582,17 +567,7 @@ export default function Home() {
             onTogglePlane={togglePlane}
           />
 
-          <FloorPlanWindow
-            open={showFloorPlan}
-            onClose={toggleFloorPlan}
-            level={floorPlanLevel}
-            onLevelChange={setFloorPlanLevel}
-            imageUrl={floorPlanImageUrl}
-            generating={floorPlanGenerating}
-            error={floorPlanError}
-            onGenerate={generateFloorPlan}
-            onExport={exportFloorPlan}
-          />
+
 
           <CoordinateInfoWindow
             open={showInfoCoordenada}
@@ -658,20 +633,7 @@ export default function Home() {
               </Fab>
             </Tooltip>
 
-            {/* Botón PLANOS 2D flotante */}
-            <Tooltip title="Generar Planos 2D" placement="left">
-              <Fab
-                color="primary"
-                size="small"
-                onClick={handleToggleFloorPlan}
-                sx={{
-                  bgcolor: showFloorPlan ? '#4CAF50' : 'rgba(31, 58, 95, 0.8)',
-                  '&:hover': { bgcolor: showFloorPlan ? '#43A047' : 'rgba(31, 58, 95, 1)' }
-                }}
-              >
-                <MapIcon />
-              </Fab>
-            </Tooltip>
+
           </Box>
         </Box>
 
