@@ -1,0 +1,335 @@
+📐 Arquitectura del Módulo de Avance de Obra
+1. Arquitectura General del Módulo
+Capas y Responsabilidades
+┌──────────────────────────────────────────────────────────────┐
+│                     UI LAYER (Componentes React)              │
+│  ProgressGroupsPanel │ ProgressDashboard │ ProgressViewer     │
+│  GroupForm │ SnapshotForm │ PhotoCapture │ ModelColorOverlay   │
+└──────────────────────┬───────────────────────────────────────┘
+                       │ props + callbacks
+┌──────────────────────▼───────────────────────────────────────┐
+│                   HOOKS LAYER (Lógica de Negocio)             │
+│  useProgressManager     │  useProgressGroups    │  useBIMColors│
+│  useProgressSnapshots   │  useProgressPhotos    │              │
+└──────────────────────┬───────────────────────────────────────┘
+                       │ interfaz abstracta
+┌──────────────────────▼───────────────────────────────────────┐
+│                  REPOSITORY LAYER (Abstracción)               │
+│  IProgressRepository (interface)                              │
+│  IndexedDBProgressRepository (impl)                           │
+│  FirebaseProgressRepository (future impl)                     │
+└──────────────────────┬───────────────────────────────────────┘
+                       │ llamadas IndexedDB API
+┌──────────────────────▼───────────────────────────────────────┐
+│                  STORAGE LAYER (IndexedDB)                    │
+│  db = ProgressDB                                              │
+│  ObjectStores: ProgressGroups, GroupElements,                 │
+│               ProgressSnapshots, SnapshotPhotos               │
+└───────────────────────────────────────────────────────────────┘
+Principios:
+- Los componentes React nunca acceden a IndexedDB directamente
+- Los hooks orquestan lógica de negocio y llaman a repositorios
+- Los repositorios implementan una interfaz intercambiable
+- La capa de storage maneja solo operaciones crudas de base de datos
+2. Modelo de Dominio
+// /src/domain/models/ProgressGroup.ts
+interface ProgressGroup {
+  id: string;
+  name: string;
+  description: string;
+  progress: number;           // 0-100
+  createdAt: string;          // ISO date
+  updatedAt: string;          // ISO date
+  createdBy?: string;
+}
+
+// /src/domain/models/GroupElement.ts
+interface GroupElement {
+  id: string;
+  groupId: string;           // FK -> ProgressGroup.id
+  ifcGuid: string;           // IFC GlobalId (nunca ExpressID)
+}
+
+// /src/domain/models/ProgressSnapshot.ts
+interface ProgressSnapshot {
+  id: string;
+  groupId: string;           // FK -> ProgressGroup.id
+  progress: number;          // 0-100
+  comment: string;
+  createdAt: string;         // ISO date
+  createdBy?: string;
+}
+
+// /src/domain/models/SnapshotPhoto.ts
+interface SnapshotPhoto {
+  id: string;
+  snapshotId: string;        // FK -> ProgressSnapshot.id
+  imageData: Blob;           // Almacenado como Blob, no Base64
+  caption: string;
+  createdAt: string;         // ISO date
+}
+3. Modelo de Datos IndexedDB
+Base de datos única: ProgressDB (versión 1)
+ObjectStore	keyPath	Índices
+ProgressGroups	id	name
+GroupElements	id	groupId, ifcGuid
+ProgressSnapshots	id	groupId, createdAt
+SnapshotPhotos	id	snapshotId
+Nota: Se crea una base de datos nueva y separada (ProgressDB) en lugar de modificar BCFDatabase o ProjectsIssuesDB, para mantener el desacoplamiento y evitar contaminar el esquema existente.
+4. Estrategia de Repositorios
+Interfaz abstracta (contrato):
+// src/repositories/interfaces/IProgressRepository.ts
+
+interface IProgressRepository {
+  // Grupos
+  getGroups(): Promise<ProgressGroup[]>;
+  getGroupById(id: string): Promise<ProgressGroup | null>;
+  createGroup(data: Omit<ProgressGroup, 'id' | 'createdAt' | 'updatedAt'>): Promise<ProgressGroup>;
+  updateGroup(id: string, data: Partial<ProgressGroup>): Promise<ProgressGroup>;
+  deleteGroup(id: string): Promise<void>;
+
+  // Elementos
+  getElementsByGroup(groupId: string): Promise<GroupElement[]>;
+  addElement(groupId: string, ifcGuid: string): Promise<void>;
+  removeElement(groupId: string, ifcGuid: string): Promise<void>;
+  getGroupsByElement(ifcGuid: string): Promise<ProgressGroup[]>;
+
+  // Snapshots
+  getSnapshotsByGroup(groupId: string): Promise<ProgressSnapshot[]>;
+  createSnapshot(data: Omit<ProgressSnapshot, 'id'>): Promise<ProgressSnapshot>;
+
+  // Fotos
+  getPhotosBySnapshot(snapshotId: string): Promise<SnapshotPhoto[]>;
+  addPhoto(data: Omit<SnapshotPhoto, 'id'>): Promise<SnapshotPhoto>;
+}
+Implementación IndexedDB:
+Archivo único: src/repositories/IndexedDBProgressRepository.js
+- Implementa todos los métodos de la interfaz usando promesas
+- Maneja apertura de DB con esquema de versionado
+- Usa transacciones correctas (readwrite vs readonly)
+- Los métodos devuelven objetos planos (no modelos de dominio)
+Migración futura a Firebase:
+Se crearía FirebaseProgressRepository.js implementando la misma interfaz. El cambio en los hooks sería:
+// Antes:
+const repo = new IndexedDBProgressRepository();
+
+// Después:
+const repo = new FirebaseProgressRepository(firebaseApp);
+Sin cambios en componentes ni lógica de negocio.
+5. Estrategia de Almacenamiento de Fotografías
+Análisis comparativo:
+Estrategia	Almacenamiento	Rendimiento	Migración Futura	Recomendado MVP
+Base64	~33% más grande que binario	Codificación/decodificación costosa en cada carga	Fácil (string portable)	❌
+Blob	Binario nativo, sin overhead	Óptimo, IndexedDB lo soporta nativamente	Requiere manejo de Blob → Firebase Storage	✅
+Object URLs	Solo referencia en memoria, no persistente	Muy rápido para visualización	No persistente	❌ para almacenamiento
+Decisión: Blob + Object URL para visualización
+Justificación:
+1. IndexedDB almacena Blobs nativamente sin conversión
+2. Para mostrar la imagen: URL.createObjectURL(blob) → se renderiza en <img>
+3. Sin overhead de codificación Base64 (ganancia del 33% en espacio)
+4. La migración a Firebase Storage es directa: blob → uploadBytes()
+Flujo de captura y almacenamiento:
+Cámara/dispositivo → File/Blob → IndexedDB (SnapshotPhotos.imageData)
+                                   ↓
+                            URL.createObjectURL() → <img> preview
+                                   ↓
+                            Revocar URL al desmontar componente
+Límite MVP: Máximo 5 fotos por snapshot. Las imágenes se redimensionan a 1200px en el lado más largo antes de almacenar.
+6. Estrategia de Visualización BIM
+Sistema de Color por Avance
+Rango de Avance	Color	Código
+0%	Gris neutro	#888888
+1% – 49%	Amarillo	#FFC107
+50% – 99%	Azul	#2196F3
+100%	Verde	#4CAF50
+Implementación Técnica
+Se usará el sistema de materiales por fragmento de ThatOpen, no el Highlighter:
+// Pseudocódigo del approach
+const fragmentsManager = components.get(OBC.FragmentsManager);
+const fragmentMap = fragmentsManager.list;
+
+// Para cada grupo de avance:
+for (const element of groupElements) {
+  const fragmentId = guidToFragmentMap.get(element.ifcGuid);
+  if (!fragmentId) continue;
+
+  const fragment = fragmentMap.get(fragmentId.modelId);
+  const color = getProgressColor(group.progress); // THREE.Color
+  
+  // No crear material único por elemento.
+  // Usar colorSets del fragmento para modificar colores de instancia.
+  fragment.setColor([color.r, color.g, color.b], fragmentId.instanceId);
+}
+Optimizaciones de rendimiento:
+- No se crean materiales por elemento, se usa setColor() a nivel de instancia de fragmento
+- Se mantiene un mapa guid → { modelId, instanceId } calculado al cargar el modelo
+- Los colores se agrupan por fragmento para minimizar llamadas
+- Los cambios de color se aplican en lote con fragmentsManager.core.update(true)
+Estado inicial (modelo recién cargado):
+Todos los elementos en gris (0%) por defecto, hasta que se asocien a grupos.
+7. Estrategia de Compatibilidad con Nuevas Versiones IFC
+Estrategia basada en GlobalId
+Problema: Cuando se recarga un IFC modificado, los ExpressID cambian. Los GlobalId persisten.
+Solución:
+1. Al cargar el modelo IFC, se construye un mapa bidireccional:
+GlobalId → { modelId, instanceId (expressID) }
+2. Este mapa se recalcula en cada carga del modelo
+3. Los grupos de avance solo almacenan GlobalIds
+4. La visualización consulta el mapa para resolver colores
+Detección de cambios:
+- GlobalIds nuevos → elementos agregados (aparecen en gris)
+- GlobalIds faltantes vs registros existentes → elementos eliminados (se marcan como "no encontrados" pero se conservan en BD)
+- GlobalIds existentes → colores normales según avance
+Mitigaciones:
+Riesgo	Mitigación
+Elemento eliminado del IFC pero con historial	Se muestra advertencia visual, historial preservado
+ExpressID diferente tras recarga	No afecta porque todo se resuelve por GlobalId
+Grupo con GUIDs que ya no existen	Se marca grupo como "parcial", se notifica al usuario
+8. Riesgos Técnicos Identificados
+#	Riesgo	Impacto	Probabilidad	Mitigación
+R1	Degradación de rendimiento con >50,000 elementos coloreados	Alto	Media	Usar setColor() por instancia de fragmento, no highlightByID
+R2	Fotografías grandes saturan IndexedDB	Medio	Alta	Redimensionar a 1200px, límite de 5 fotos/snapshot
+R3	Blobs en IndexedDB pueden causar cuotas excedidas	Medio	Baja	Monitorear navigator.storage.estimate(), mostrar advertencia
+R4	El GlobalId no se extrae actualmente del IFC	Alto	Alta	Implementar en Fase 1, modificar usePropertySelection
+R5	La interfaz de repositorio en JS no tiene enforcements de tipos	Medio	Alta	Usar JSDoc + convención, migrar a TS en fase posterior
+R6	Object URLs no liberadas causan memory leaks	Bajo	Alta	Limpieza en useEffect return, hook dedicado useObjectURL
+9. Riesgos Funcionales Identificados
+#	Riesgo	Impacto	Mitigación
+F1	Usuario en terreno sin conexión	Alto	IndexedDB funciona offline, diseño offline-first
+F2	Confusión entre ExpressID y GlobalId	Alto	Documentación clara, validación en repositorio
+F3	Usuario asigna 100% pero obra no terminada	Medio	Historial permite revertir, sistema de aprobación opcional
+F4	Fotografías sin modelo de referencia	Medio	Al tomar foto, guardar viewpoint asociado
+F5	Múltiples usuarios editando sin sincronización	Bajo (MVP)	Postergado para Firebase migration
+10. Plan de Implementación por Fases
+Fase 1: Infraestructura de datos
+- Crear base de datos IndexedDB ProgressDB
+- Implementar repositorio IndexedDBProgressRepository
+- Implementar interfaz IProgressRepository
+- Crear hook useProgressGroups (CRUD básico)
+- Pruebas de persistencia
+Dependencias: Ninguna
+Fase 2: Extracción de GlobalId
+- Modificar usePropertySelection.js para extraer GlobalId
+- Crear mapa GlobalId → {modelId, instanceId} al cargar modelo
+- Exponer selectedElementGuid en el hook
+- Pruebas de selección y GUID
+Dependencias: Fase 1 (para almacenar GUIDs)
+Fase 3: Gestión de Grupos (UI)
+- Componente ProgressGroupsPanel (lista, crear, editar, eliminar)
+- Componente GroupForm (nombre, descripción, selección de elementos)
+- Integración con visor: seleccionar elementos → asignar a grupo
+- Panel lateral en viewer (similar a TabTools)
+- Pruebas de UI
+Dependencias: Fase 1, Fase 2
+Fase 4: Snapshot de Avance
+- Hook useProgressSnapshots
+- Componente SnapshotForm (porcentaje, comentario)
+- Historial de snapshots por grupo
+- Componente SnapshotHistoryPanel
+- Pruebas de registro histórico
+Dependencias: Fase 3
+Fase 5: Fotografías
+- Hook useProgressPhotos
+- Componente PhotoCapture (cámara + galería)
+- Almacenamiento como Blob en IndexedDB
+- Visualización de fotografías en historial
+- Pruebas de captura y visualización
+Dependencias: Fase 4
+Fase 6: Visualización BIM (color por avance)
+- Hook useBIMColors
+- Mapa de color por grupo/elemento
+- Aplicación de colores en el modelo 3D
+- Actualización dinámica al cambiar avance
+- Manejo de recarga de modelo
+- Pruebas de visualización
+Dependencias: Fase 2, Fase 4
+Fase 7: Dashboard de Avance
+- Componente ProgressDashboard
+- Resumen de avance global
+- KPIs básicos (% avanzado, elementos cubiertos, etc.)
+- Navegación desde Dashboard al visor
+- Pruebas de integración
+Dependencias: Fase 6
+11. Dependencias entre Fases
+Fase 1 (DB + Repos)
+   │
+   ▼
+Fase 2 (GlobalId) ──────────────┐
+   │                             │
+   ▼                             │
+Fase 3 (Grupos UI)              │
+   │                             │
+   ▼                             │
+Fase 4 (Snapshots) ─────────────┤
+   │                             │
+   ▼                             ▼
+Fase 5 (Fotos)           Fase 6 (Visualización BIM)
+   │                             │
+   └──────────┬──────────────────┘
+              ▼
+        Fase 7 (Dashboard)
+Las fases 5 y 6 pueden desarrollarse en paralelo una vez completada la Fase 4.
+12. Plan de Pruebas por Fase
+Fase 1 – Pruebas de Persistencia
+Caso	Descripción	Resultado Esperado
+P1.1	Crear grupo en IndexedDB	Grupo persiste, se recupera por ID
+P1.2	Agregar elemento con GUID a grupo	Elemento se asocia, se consulta por groupId
+P1.3	Crear snapshot y asociar fotos	Snapshot y fotos se persisten y recuperan
+P1.4	Consultar grupos por elemento GUID	Retorna todos los grupos que contienen ese GUID
+P1.5	Eliminar grupo en cascada (elementos asociados)	Elementos se eliminan, snapshots se preservan
+Fase 2 – Pruebas de GlobalId
+Caso	Descripción	Resultado Esperado
+P2.1	Seleccionar elemento IFC	Se extrae GlobalId correctamente
+P2.2	Cargar modelo, construir mapa GUID→ExpressID	Mapa completo y accesible
+P2.3	Recargar modelo	Nuevo mapa, GUIDs coinciden, ExpressIDs distintos
+Fase 3 – Pruebas de UI Grupos
+Caso	Descripción	Resultado Esperado
+P3.1	Crear grupo con nombre y descripción	Grupo visible en lista
+P3.2	Seleccionar elementos 3D y asignar a grupo	Elementos aparecen en detalle del grupo
+P3.3	Editar nombre de grupo	Cambio reflejado en UI y BD
+P3.4	Eliminar grupo	Grupo y asociaciones eliminados
+Fase 6 – Pruebas de Visualización
+Caso	Descripción	Resultado Esperado
+P6.1	Grupo con 0% → elementos en gris	Gris #888888
+P6.2	Grupo con 30% → elementos en amarillo	Amarillo #FFC107
+P6.3	Grupo con 75% → elementos en azul	Azul #2196F3
+P6.4	Grupo con 100% → elementos en verde	Verde #4CAF50
+P6.5	Actualizar avance → color se actualiza dinámicamente	Sin flickering, sin recreación de materiales
+P6.6	Recargar modelo → colores se restauran	Mapa GUID→ExpressID se reconstruye, colores se reaplican
+13. Estrategia Futura de Migración a Firebase
+Plan de migración:
+1. Crear FirebaseProgressRepository implementando IProgressRepository
+2. Cada objeto store de IndexedDB → colección Firestore:
+- ProgressGroups → progressGroups/{id}
+- GroupElements → groupElements/{id} (con índice compuesto groupId+ifcGuid)
+- ProgressSnapshots → progressSnapshots/{id} (con índice groupId)
+- SnapshotPhotos → Firebase Storage (no Firestore) en photos/{snapshotId}/{photoId}.jpg
+3. Estrategia de sincronización: offline-first con Firestore persistence habilitada
+4. Las fotos migran de Blob en IndexedDB → Firebase Storage
+5. Autenticación: ya existe Firebase Auth en el proyecto
+Lo que NO cambia:
+- Los modelos de dominio
+- Los componentes React
+- Los hooks de lógica de negocio
+- La visualización BIM
+Lo que SÍ cambia:
+- El repositorio inyectado
+- useProgressManager recibe repositorio diferente
+- Se agrega sincronización en tiempo real (opcional)
+Estrategia Híbrida Recomendada (Grupos)
+Para el MVP, recomiendo grupos exclusivamente manuales.
+Justificación:
+1. Los grupos automáticos requieren parseo completo de propiedades IFC (IfcRelAggregates, IfcRelContainedInSpatialStructure), lo que añade complejidad significativa
+2. El valor de negocio del MVP es validar el flujo: crear grupo → asignar elementos → reportar avance → ver colores
+3. Los grupos automáticos se pueden agregar en Fase 8 sin cambios en el modelo de datos
+4. La selección manual permite al usuario agrupar elementos de diferentes categorías/niveles en un mismo grupo (ej: "Fachada Norte" que incluye muros, ventanas y puertas)
+Estrategia futura: En Fase 8, se agregaría un botón "Generar desde niveles" que consultaría el IFC y propondría grupos basados en IfcBuildingStorey. El usuario podría aceptarlos o modificarlos antes de confirmar.
+Checklist de Validación de Fase (Formato estándar para todas las fases)
+[ ] ¿Los datos persisten correctamente en IndexedDB?
+[ ] ¿Se pueden recuperar después de recargar la página?
+[ ] ¿No hay fugas de memoria (Object URLs liberados)?
+[ ] ¿La UI responde correctamente a cambios de estado?
+[ ] ¿El rendimiento es aceptable con modelos de prueba?
+[ ] ¿No hay acceso directo a IndexedDB desde componentes?
+[ ] ¿Los GUIDs se manejan correctamente?
+[ ] ¿La visualización BIM se actualiza sin flickering?

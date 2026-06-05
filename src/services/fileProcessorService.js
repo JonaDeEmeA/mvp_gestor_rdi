@@ -1,90 +1,97 @@
-import * as FRAGS from '@thatopen/fragments';
-import { IFC_SETTINGS } from '../constants/viewerConfig';
+import * as OBC from "@thatopen/components";
 import { analyzeModelGeometry, saveFragmentFile } from './geometryAnalyzer';
 
 /**
  * Procesa un archivo IFC y lo convierte a fragmentos
  * @param {File} selectedFile - Archivo IFC seleccionado
+ * @param {Object} components - Componentes de ThatOpen
  * @param {Object} fragmentsManager - Gestor de fragmentos
  * @param {Object} world - Mundo 3D
  * @returns {Promise<Object>} Modelo de fragmentos procesado
- * @throws {Error} Si hay error en el procesamiento del archivo IFC
  */
-export const processIfcFile = async (selectedFile, fragmentsManager, world, options = {}) => {
+export const processIfcFile = async (selectedFile, components, fragmentsManager, world, options = {}) => {
   try {
     console.log(`Iniciando procesamiento de archivo IFC: ${selectedFile.name}`);
 
-    // Validar parámetros
-    if (!selectedFile || !fragmentsManager || !world) {
+    if (!selectedFile || !components) {
       throw new Error('Parámetros requeridos faltantes para procesar archivo IFC');
     }
-
-    const ifcSerializer = new FRAGS.IfcImporter();
-    ifcSerializer.wasm = { absolute: true, path: '/web-ifc/' };
-    ifcSerializer.settings = IFC_SETTINGS;
 
     const fileBuffer = await selectedFile.arrayBuffer();
     const fileBytes = new Uint8Array(fileBuffer);
 
-    // Procesar IFC a fragmentos
-    console.log('Procesando IFC a fragmentos...');
-    const fragmentBytes = await ifcSerializer.process({ bytes: fileBytes });
-
-    if (!fragmentBytes || fragmentBytes.length === 0) {
-      throw new Error('No se pudieron generar fragmentos del archivo IFC');
-    }
-
-    console.log('Fragmentos generados:', fragmentBytes.length, 'bytes');
-
-    // Cargar en el gestor de fragmentos
-    console.log('Cargando fragmentos en el gestor...');
-    const loadedModel = await fragmentsManager.core.load(fragmentBytes, {
-      modelId: selectedFile.name,
-      coordinate: IFC_SETTINGS.coordinate,
-      properties: IFC_SETTINGS.includeProperties
+    // Usar IfcLoader para cargar IFC con todos los atributos y relaciones
+    console.log('Inicializando IfcLoader...');
+    const ifcLoader = components.get(OBC.IfcLoader);
+    await ifcLoader.setup({
+      wasm: { path: '/web-ifc/', absolute: true },
+      autoSetWasm: false,
     });
 
-    // Verificar geometría cargada
-    const fragmentModel = fragmentsManager.list.get(selectedFile.name);
+    console.log('Cargando IFC con todos los atributos...');
+    const model = await ifcLoader.load(fileBytes, false, selectedFile.name, {
+      instanceCallback: (importer) => {
+        importer.includeUniqueAttributes = true;
+        importer.includeRelationNames = true;
+        if (importer.attributesToExclude) {
+          importer.attributesToExclude.clear();
+        }
+      },
+    });
 
-    if (!fragmentModel) {
-      throw new Error('No se pudo obtener el modelo de fragmentos después de la carga');
+    if (!model) {
+      throw new Error('No se pudo cargar el modelo IFC');
     }
 
-    console.log('Modelo IFC cargado exitosamente:', fragmentModel);
-    console.log('Propiedades disponibles:', Object.keys(fragmentModel));
+    console.log('Modelo IFC cargado exitosamente:', model.modelId);
+
+    // Obtener el modelo desde fragmentsManager.list
+    const fragmentModel = fragmentsManager.list.get(model.modelId);
+
+    if (!fragmentModel) {
+      // Si no está en la lista, puede estar con otro ID
+      const modelEntry = fragmentsManager.list.get(selectedFile.name);
+      if (!modelEntry) {
+        throw new Error('No se pudo obtener el modelo de fragmentos después de la carga');
+      }
+    }
+
+    const finalModel = fragmentModel || fragmentsManager.list.get(selectedFile.name);
 
     // Analizar geometría de manera asíncrona
-    analyzeModelGeometry(fragmentModel);
+    if (finalModel) {
+      analyzeModelGeometry(finalModel);
+    }
 
-    // Guardar como .frag
+    // Guardar como .frag usando getBuffer
     try {
       const fragmentFileName = selectedFile.name.replace('.ifc', '.frag').replace('.ifcxml', '.frag');
+      const fragmentBytes = await model.getBuffer(false);
+
       if (options?.onFragGenerated) {
-        // Intentar guardar en carpeta local de origen
-        const savedLocally = await options.onFragGenerated(fragmentFileName, fragmentBytes);
+        const savedLocally = await options.onFragGenerated(fragmentFileName, new Uint8Array(fragmentBytes));
         if (!savedLocally) {
           console.warn(
             `⚠️ No se pudo guardar "${fragmentFileName}" en la carpeta local. ` +
             'Reconecta la carpeta desde el panel de Modelos para obtener permisos de escritura.'
           );
-          // NO descargar al navegador: el usuario eligió gestión local
         }
       } else {
-        // Sin callback local: usar descarga del navegador como comportamiento por defecto
-        await saveFragmentFile(fragmentBytes, fragmentFileName);
+        await saveFragmentFile(new Uint8Array(fragmentBytes), fragmentFileName);
       }
     } catch (saveError) {
       console.warn('Error guardando archivo .frag:', saveError);
     }
 
     // Configurar en la escena
-    loadedModel.useCamera(world.camera.three);
-    world.scene.three.add(loadedModel.object);
+    model.useCamera(world?.camera?.three);
+    if (world?.scene?.three) {
+      world.scene.three.add(model.object);
+    }
     await fragmentsManager.core.update(true);
 
     console.log(`Archivo IFC ${selectedFile.name} procesado exitosamente`);
-    return fragmentModel;
+    return finalModel || model;
 
   } catch (error) {
     console.error('Error procesando archivo IFC:', error);

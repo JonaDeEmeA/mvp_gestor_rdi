@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Box, Typography, Fab, Tooltip,
   Avatar, Button, Divider, CircularProgress,
@@ -32,6 +32,7 @@ import SectionManagerWindow from '@/componentes/SectionManagerWindow';
 import CoordinateInfoWindow from '@/componentes/CoordinateInfoWindow';
 import CategoryColorWindow from '@/componentes/CategoryColorWindow';
 import PropertyWindow from '@/componentes/PropertyWindow';
+import ProgressPanel from '@/componentes/Progress/ProgressPanel';
 import { useLocalModels } from '@/hooks/useLocalModels';
 import { Warning as WarningIcon } from '@mui/icons-material';
 // Constantes
@@ -87,6 +88,7 @@ export default function Home() {
     setImportedModels,
     showBrowser,
     showRDIManager,
+    showProgressManager,
     showInfoCoordenada,
     showCategoryColor,
     showProperties,
@@ -94,6 +96,7 @@ export default function Home() {
     isMobile,
     toggleBrowser,
     toggleRDIManager,
+    toggleProgressManager,
     toggleInfoCoordenada,
     toggleCategoryColor,
     toggleProperties,
@@ -108,14 +111,35 @@ export default function Home() {
   const { pickedPoint, pickVertex } = useVertexPicker(componentsRef.current, worldRef.current);
 
   // Hook para propiedades
-  const { pickEntity } = usePropertySelection(
+  const { pickEntity, selectedGuid } = usePropertySelection(
     componentsRef.current,
     worldRef.current,
     highlighterRef.current,
     setSelectedEntityProps
   );
 
+  const selectedElementType = selectedEntityProps?.attributes?.ObjectType?.value
+    || selectedEntityProps?.attributes?.Name?.value
+    || '';
+
+  const handleHighlightByGuids = useCallback(async (guids) => {
+    const highlighter = highlighterRef.current;
+    const fragmentsManager = fragmentsRef.current;
+    if (!highlighter || !fragmentsManager) return;
+
+    highlighter.clear("select");
+    if (guids.length === 0) return;
+
+    try {
+      const modelIdMap = await fragmentsManager.guidsToModelIdMap(guids);
+      await highlighter.highlightByID("select", modelIdMap);
+    } catch (err) {
+      console.warn('[ProgressPanel] Error al resaltar elementos:', err);
+    }
+  }, [fragmentsRef, highlighterRef]);
+
   const { fileInputRef, openFileDialog, handleFileSelection, processFile, processing } = useFileProcessor(
+    componentsRef,
     worldRef,
     fragmentsRef,
     setImportedModels
@@ -480,6 +504,7 @@ export default function Home() {
         hideModel={handleToggleModelVisibility}
         onCloseBrowser={handleToggleBrowser}
         onCloseRdiManager={toggleRDIManager}
+        onToggleProgressManager={toggleProgressManager}
         onToggleInfoCoordenada={handleToggleInfoCoordenada}
         pickedPoint={pickedPoint}
         onResetCamera={resetCamera}
@@ -488,6 +513,7 @@ export default function Home() {
         sectionPlanes={planesList}
         browserEnabled={showBrowser}
         rdiManagerEnabled={showRDIManager}
+        progressManagerEnabled={showProgressManager}
         infoCoordenadaEnabled={showInfoCoordenada}
         onToggleCategoryColor={handleToggleCategoryColor}
         categoryColorEnabled={showCategoryColor}
@@ -662,6 +688,29 @@ export default function Home() {
             }}
             onClose={() => toggleRDIManager()}
           />
+        )}
+
+        {showProgressManager && (
+          <Box
+            sx={{
+              position: { xs: "static", sm: "absolute" },
+              width: { xs: "100%", sm: "350px" },
+              height: "100%",
+              right: { sm: showRDIManager ? 350 : 0 },
+              top: { sm: 0 },
+              zIndex: 20,
+              borderLeft: { sm: '1px solid' },
+              borderColor: { sm: 'divider' },
+              pointerEvents: "none",
+            }}
+          >
+            <ProgressPanel
+              selectedGuid={selectedGuid}
+              selectedElementType={selectedElementType}
+              onHighlightByGuids={handleHighlightByGuids}
+              onClose={toggleProgressManager}
+            />
+          </Box>
         )}
       </Box>
       <Backdrop

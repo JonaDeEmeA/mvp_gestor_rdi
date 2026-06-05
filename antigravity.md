@@ -5,11 +5,12 @@
 El proyecto está construido sobre el framework **Next.js 15**, utilizando una arquitectura basada en componentes con una clara separación de responsabilidades a través de capas de servicios y hooks personalizados.
 
 ### Patrón de Arquitectura
-Se sigue un patrón de **Arquitectura de Componentes con Capas de Servicio**:
+Se sigue un patrón de **Arquitectura de Componentes con Capas de Servicio y Repositorio**:
 1.  **Capa de Componentes (UI)**: React Components (usando Material UI) que se encargan de la presentación y la interacción directa con el usuario.
 2.  **Capa de Hooks (Lógica de Estado)**: Hooks personalizados en `src/hooks` que gestionan el estado local/global y actúan como puente entre la UI y los servicios.
 3.  **Capa de Servicios (Lógica de Dominio)**: Módulos en `src/services` que encapsulan la lógica compleja y las interacciones con librerías externas (@thatopen, Three.js, Firebase).
-4.  **Capa de Constantes y Configuración**: Definiciones estáticas en `src/constants` y `src/config` para mantener la consistencia en todo el proyecto.
+4.  **Capa de Repositorio (Abstracción de Datos)**: Clases en `src/repositories` (e.g. `IndexedDBProgressRepository`) que implementan contratos de almacenamiento para separar la lógica de negocio de la base de datos.
+5.  **Capa de Constantes y Configuración**: Definiciones estáticas en `src/constants` y `src/config` para mantener la consistencia en todo el proyecto.
 
 ### Tecnologías Principales
 -   **Core**: [Next.js 15](https://nextjs.org/) & [React 19](https://react.dev/)
@@ -18,11 +19,17 @@ Se sigue un patrón de **Arquitectura de Componentes con Capas de Servicio**:
 -   **Backend & Auth**: [Firebase](https://firebase.google.com/) (Firestore & Auth)
 -   **Interfaz de Usuario**: [Material UI (MUI)](https://mui.com/) y [Emotion](https://emotion.sh/)
 -   **Visualización de Datos**: [Chart.js](https://www.chartjs.org/)
+-   **Almacenamiento Local**: IndexedDB para persistencia persistente offline.
 
 ### Flujo de Datos
 1.  **Carga de Modelos**: El usuario selecciona un archivo (IFC/FRAG) -> `useFileProcessor` recibe el archivo -> `processIfcFile` o `processFragFile` convierte/carga los datos -> El modelo se añade al `FragmentsManager` y se renderiza en la escena de Three.js.
 2.  **Gestión de RDI/BCF y Dashboard**: El sistema integra un **MainDashboard** centralizado con navegación lateral que permite alternar entre analítica visual (`RDIChartsPanel`) y gestión de listados (`IncidenciasPanel`). La persistencia local se basa en **IndexedDB** (`BCFDatabase` y `ProjectsIssuesDB`), con una capa de normalización en `IncidenciasPanel` que procesa snapshots (soporte para `ImageData`, Base64 y Blobs binarios). El flujo de creación de incidencias es dual: **"Obra"** abre un formulario rápido local, mientras que **"Diseño"** redirige al **Visor 3D** mediante parámetros de URL (`?tool=rdi`), activando automáticamente la pestaña RDI y el formulario en el componente `TabTools` gracias a una señal de estado persistente (`autoOpenForm`) que garantiza la apertura incluso tras limpiar la URL para permitir el cierre del panel lateral.
 3.  **Estado del Visor**: La configuración de la cámara, secciones (clipping) y herramientas activas se gestionan a través de `useViewerState` y `useViewer3D`, centralizando el control del entorno 3D. El visor soporta activación dinámica de herramientas vía Query Params, permitiendo una integración profunda con el Dashboard de gestión.
+4.  **[Feature: Avance en Obra] Flujo de Gestión de Avance**: 
+    - **Registro de Mapeos**: Durante la carga del IFC mediante `processIfcFile`, se usa `IfcLoader` con atributos únicos habilitados para generar un mapa bidireccional en `GuidMapService` (GUID ↔ {modelId, instanceId (ExpressID)}).
+    - **Selección e Identificación**: Al seleccionar un elemento en el visor 3D, `usePropertySelection` obtiene su GlobalId (GUID) y lo asocia a un grupo de avance.
+    - **Persistencia**: `useProgressManager` delega el almacenamiento en `IndexedDBProgressRepository` (que implementa `IProgressRepository`), guardando la información de grupos, elementos (por GUID), hitos de avance (snapshots) y capturas fotográficas (almacenadas óptimamente como Blobs binarios para evitar el overhead de Base64) en la base de datos `ProgressDB`.
+    - **Visualización BIM**: El estado de avance se mapea visualmente sobre la geometría 3D aplicando colores específicos por rangos de avance directos a nivel de instancia del fragmento via `setColor` para mantener el rendimiento.
 
 ---
 
@@ -31,7 +38,7 @@ Se sigue un patrón de **Arquitectura de Componentes con Capas de Servicio**:
 | Función / Hook | Ubicación | Propósito Técnico |
 | :--- | :--- | :--- |
 | `initializeViewer` | `src/services/viewer3DService.js` | Configura el motor 3D y componentes de ThatOpen. Incluye una lógica de limpieza (`cleanupViewer`) robusta que libera planos de sección antes de la disposición de recursos para evitar errores de renderizado. |
-| `processIfcFile` | `src/services/fileProcessorService.js` | Utiliza `IfcImporter` para convertir archivos IFC pesados en fragmentos indexados (`.frag`) optimizados para la web. |
+| `processIfcFile` | `src/services/fileProcessorService.js` | Utiliza `IfcLoader` de `@thatopen/components` para cargar el archivo IFC, habilitando atributos y relaciones únicos para construir el mapa de GUIDs de forma asíncrona. |
 | `useRDIManager` | `src/hooks/useRDIManager.js` | Gestiona el CRUD de RDIs con persistencia en IndexedDB. Implementa una capa de **normalización bidireccional** (canonical English keys ↔ legacy Spanish keys) para asegurar compatibilidad total entre ambientes. Soporta actualizaciones **"silenciosas"** (vía flag `silent`) que omiten el estado global de carga para evitar parpadeos (flickers) en la UI durante actualizaciones en segundo plano como el añadido de comentarios. |
 | `useBCFTopics` | `src/hooks/useBCFTopics.js` | Implementa el estándar BCF (BIM Collaboration Format) para gestionar incidencias y comentarios. Inicializa `bcfTopicSet` con Sets vacíos por defecto (`statuses`, `types`, `labels`, `users`) para evitar que la UI dependa de la disponibilidad del componente OBC al evaluar estados de carga. |
 | `useIndexedDB` | `src/utilitario/useIndexedDB.js` | Centraliza la apertura y migración de la base de datos IndexedDB (`BCFDatabase`, v2). Ejecuta `onupgradeneeded` para garantizar la existencia del store `topics`. Expone `{ db, loading, error }` con `loading` inicializado en `true` y resuelto en el bloque `finally`. |
@@ -45,6 +52,13 @@ Se sigue un patrón de **Arquitectura de Componentes con Capas de Servicio**:
 | `CreateIssueTypeDialog` | `src/componentes/Dashboard/CreateIssueTypeDialog.jsx` | Selector visual de tipo de incidencia (Obra vs Diseño) que define el flujo de navegación y pre-configuración del reporte. |
 | `RDIView` | `src/componentes/TabTools/RDIView.jsx` | Componente de visualización detallada de incidencias que integra un **sistema de comentarios directo** (sin modo edición) con orden cronológico descendente y formateo de fecha PPPp. |
 | `TabTools` | `src/componentes/TabTools.jsx` | Contenedor principal de herramientas del visor que implementa `handleAddCommentDirect` para persistir comentarios de forma fluida y autoría basada en `useAuth`. |
+| `usePropertySelection` | `src/hooks/usePropertySelection.js` | Gestiona la selección y recuperación de metadatos/Psets del elemento IFC, extrayendo el `selectedGuid` (GlobalId) y mapeándolo en `GuidMapService`. |
+| `[Feature] useProgressManager` | `src/hooks/useProgressManager.js` | Hook que orquesta la lógica de negocio y las llamadas al repositorio para gestionar grupos de avance, snapshots e imágenes. |
+| `[Feature] IndexedDBProgressRepository` | `src/repositories/IndexedDBProgressRepository.js` | Implementación de `IProgressRepository` que interactúa con `ProgressDB` para almacenar y consultar grupos, elementos, snapshots e imágenes. |
+| `[Feature] IProgressRepository` | `src/repositories/interfaces/IProgressRepository.js` | Interfaz (contrato) que define los métodos que cualquier repositorio de avance de obra (IndexedDB, Firebase) debe implementar. |
+| `[Feature] ProgressDB` | `src/database/ProgressDB.js` | Configura e inicializa la base de datos IndexedDB dedicada `ProgressDB` (versión 1) y sus almacenes (`objectStores`). |
+| `[Feature] GuidMapService` | `src/services/guidMapService.js` | Servicio singleton que almacena el mapa bidireccional en memoria entre GlobalId (GUID) y coordenadas `modelId:instanceId`. |
+| `[Feature] ProgressPanel` | `src/componentes/Progress/` | Panel y subcomponentes (`ProgressGroupList`, `ProgressGroupDetail`, `ProgressGroupForm`) para la gestión del avance físico de obra, toma de fotos (Blobs) y visualización. |
 
 ---
 

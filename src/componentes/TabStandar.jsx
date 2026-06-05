@@ -29,7 +29,8 @@ import {
   Layers as LayersIcon,
   Publish as PublishIcon,
   ContentCut as ContentCutIcon,
-  ColorLens as ColorIcon
+  ColorLens as ColorIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 
 
@@ -74,6 +75,8 @@ export default function TabStandar({
   sectionPlanes,
   browserEnabled,
   rdiManagerEnabled,
+  progressManagerEnabled,
+  onToggleProgressManager,
   infoCoordenadaEnabled,
   onToggleCategoryColor,
   categoryColorEnabled, }) {
@@ -193,6 +196,17 @@ export default function TabStandar({
                   <LayersIcon />
                 </ListItemIcon>
                 <ListItemText primary={rdiManagerEnabled ? "Cerrar Gestor RDI" : "Gestor RDI"} sx={getListItemTextStyle(rdiManagerEnabled)} />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton sx={listItemStyle} onClick={() => {
+                onToggleProgressManager();
+                if (isMobile) setDrawerOpen(false);
+              }}>
+                <ListItemIcon sx={getListItemIconStyle(progressManagerEnabled)}>
+                  <TrendingUpIcon />
+                </ListItemIcon>
+                <ListItemText primary={progressManagerEnabled ? "Cerrar Avance" : "Avance de Obra"} sx={getListItemTextStyle(progressManagerEnabled)} />
               </ListItemButton>
             </ListItem>
           </List>
@@ -315,6 +329,9 @@ export default function TabStandar({
               </Button>
               <Button size='small' variant={rdiManagerEnabled ? 'contained' : 'outlined'} startIcon={<LayersIcon />} onClick={onCloseRdiManager} sx={getButtonStyle(rdiManagerEnabled)}>
                 {rdiManagerEnabled ? 'Cerrar RDI' : 'Gestor RDI'}
+              </Button>
+              <Button size='small' variant={progressManagerEnabled ? 'contained' : 'outlined'} startIcon={<TrendingUpIcon />} onClick={onToggleProgressManager} sx={getButtonStyle(progressManagerEnabled)}>
+                {progressManagerEnabled ? 'Cerrar Avance' : 'Avance Obra'}
               </Button>
             </Box>
           </CustomTabPanel>

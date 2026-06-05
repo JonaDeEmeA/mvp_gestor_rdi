@@ -7,12 +7,13 @@ import { useAnalytics } from './useAnalytics';
 
 /**
  * Hook personalizado para manejar el procesamiento de archivos
+ * @param {Object} componentsRef - Referencia a los componentes de ThatOpen
  * @param {Object} worldRef - Referencia al mundo 3D
  * @param {Object} fragmentsRef - Referencia al gestor de fragmentos
  * @param {Function} setImportedModels - Función para actualizar modelos importados
  * @returns {Object} Funciones para manejar archivos
  */
-export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
+export const useFileProcessor = (componentsRef, worldRef, fragmentsRef, setImportedModels) => {
   const fileInputRef = useRef(null);
   const [processing, setProcessing] = useState(false);
   const { trackModelLoad, trackAction } = useAnalytics();
@@ -34,6 +35,7 @@ export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
     if (!selectedFile) return;
 
     const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
+    const components = componentsRef.current;
     const world = worldRef.current;
     const fragmentsManager = fragmentsRef.current;
 
@@ -54,7 +56,7 @@ export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
 
       switch (fileExtension) {
         case 'ifc':
-          processedModel = await processIfcFile(selectedFile, fragmentsManager, world, options);
+          processedModel = await processIfcFile(selectedFile, components, fragmentsManager, world, options);
           setImportedModels(previousModels => [...previousModels, processedModel]);
           trackModelLoad(selectedFile.name, selectedFile.size);
           break;

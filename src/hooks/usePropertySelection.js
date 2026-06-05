@@ -1,29 +1,25 @@
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
+import { getGuidMap } from '../services/guidMapService';
 
-/**
- * Extrae el valor legible de una propiedad IFC.
- */
 const getPropertyValue = (property) => {
   if (property === null || property === undefined) return '';
   if (typeof property !== 'object') return String(property);
   if (property.value !== undefined) return String(property.value);
-  // Soporte para IfcPropertySingleValue (NominalValue)
   if (property.NominalValue && property.NominalValue.value !== undefined) {
     return String(property.NominalValue.value);
   }
   return 'Complejo';
 };
 
-/**
- * Hook para manejar la selección de elementos y la obtención de sus propiedades.
- */
 export const usePropertySelection = (components, world, highlighter, setSelectedEntityProps) => {
+  const [selectedGuid, setSelectedGuid] = useState(null);
 
   const handleSelection = useCallback(async (modelIdMap) => {
     if (!components || !modelIdMap || Object.keys(modelIdMap).length === 0) {
       setSelectedEntityProps(null);
+      setSelectedGuid(null);
       return;
     }
 
@@ -36,9 +32,17 @@ export const usePropertySelection = (components, world, highlighter, setSelected
       const model = fragments.list.get(modelId);
       if (!model) return;
 
-      // Atributos y Property Sets
       let attributes = null;
       let psets = [];
+      let globalId = null;
+
+      try {
+        const guids = await fragments.modelIdMapToGuids(modelIdMap);
+        globalId = (guids && guids.length > 0) ? guids[0] : null;
+      } catch (err) {
+        console.warn('[usePropertySelection] Error en modelIdMapToGuids:', err);
+      }
+
       try {
         const itemsData = await model.getItemsData([Number(expressID)], {
           relations: {
@@ -50,8 +54,7 @@ export const usePropertySelection = (components, world, highlighter, setSelected
 
         if (itemsData && itemsData.length > 0) {
           attributes = itemsData[0];
-          
-          // Extraer property sets
+
           if (Array.isArray(attributes.IsDefinedBy)) {
             for (const pset of attributes.IsDefinedBy) {
               if (pset.Name && "value" in pset.Name && Array.isArray(pset.HasProperties)) {
@@ -70,24 +73,40 @@ export const usePropertySelection = (components, world, highlighter, setSelected
       } catch (err) {
         console.error('[usePropertySelection] Error en getItemsData:', err);
       }
-      
+
       if (!attributes) {
         attributes = { Name: { value: `Elemento ${expressID}` }, type: { value: "IFC Element" }, expressID };
+      }
+
+      if (!globalId) {
+        console.warn(
+          '[usePropertySelection] No se pudo extraer GlobalId.',
+          'ExpressID:', expressID,
+          'ModelId:', modelId,
+          '¿El modelo se cargó con IfcLoader usando addAllAttributes?'
+        );
+      }
+
+      setSelectedGuid(globalId);
+
+      if (globalId) {
+        getGuidMap().addMapping(globalId, modelId, Number(expressID));
       }
 
       setSelectedEntityProps({
         attributes: attributes,
         psets: psets,
-        modelName: model.name || modelId
+        modelName: model.name || modelId,
+        globalId: globalId,
       });
 
     } catch (error) {
       console.error('[usePropertySelection] Error:', error);
       setSelectedEntityProps(null);
+      setSelectedGuid(null);
     }
   }, [components, setSelectedEntityProps]);
 
-  // Suscribirse al evento de resaltado
   useEffect(() => {
     if (!highlighter) return;
 
@@ -102,7 +121,6 @@ export const usePropertySelection = (components, world, highlighter, setSelected
     };
   }, [highlighter, handleSelection]);
 
-  // Función para ejecutar el raycast al hacer clic
   const pickEntity = useCallback(async () => {
     if (!components || !world || !highlighter) return;
     if (!world.renderer) return;
@@ -117,16 +135,16 @@ export const usePropertySelection = (components, world, highlighter, setSelected
         const modelIdMap = { [result.fragments.modelId]: new Set([result.localId]) };
         await highlighter.highlightByID("select", modelIdMap);
 
-        // Ejecución directa de la selección para asegurar actualización de UI inmediata
         handleSelection(modelIdMap);
       } else {
         highlighter.clear("select");
         setSelectedEntityProps(null);
+        setSelectedGuid(null);
       }
     } catch (error) {
       console.error('[usePropertySelection] Error en pickEntity:', error);
     }
   }, [components, world, highlighter, setSelectedEntityProps]);
 
-  return { pickEntity };
+  return { pickEntity, selectedGuid };
 };

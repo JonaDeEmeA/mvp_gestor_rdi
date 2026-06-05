@@ -216,7 +216,7 @@ export default function ModelosPanel({ projectId }) {
                 Se requiere permiso de lectura y escritura
               </Typography>
               <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                Para guardar automáticamente los archivos .frag generados en la carpeta local, reconecta la carpeta haciendo clic en "Cambiar Carpeta" y acepta el permiso de <strong>lectura y escritura</strong>.
+                Para guardar automáticamente los archivos .frag generados en la carpeta local, reconecta la carpeta haciendo clic en &ldquo;Cambiar Carpeta&rdquo; y acepta el permiso de <strong>lectura y escritura</strong>.
               </Typography>
             </Box>
           </Box>

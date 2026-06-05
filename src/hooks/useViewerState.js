@@ -13,6 +13,7 @@ export const useViewerState = () => {
   const [showInfoCoordenada, setShowInfoCoordenada] = useState(false);
   const [showCategoryColor, setShowCategoryColor] = useState(false);
   const [showProperties, setShowProperties] = useState(false);
+  const [showProgressManager, setShowProgressManager] = useState(false);
   const [selectedEntityProps, setSelectedEntityProps] = useState(null);
 
   // Hook para detectar dispositivos móviles
@@ -34,8 +35,11 @@ export const useViewerState = () => {
   };
 
   const toggleRDIManager = () => {
-    // RDIManager es independiente, no cierra las otras ventanas
     setShowRDIManager(!showRDIManager);
+  };
+
+  const toggleProgressManager = () => {
+    setShowProgressManager(!showProgressManager);
   };
 
   const toggleInfoCoordenada = () => {
@@ -84,6 +88,7 @@ export const useViewerState = () => {
     setImportedModels,
     showBrowser,
     showRDIManager,
+    showProgressManager,
     showInfoCoordenada,
     showCategoryColor,
     showProperties,
@@ -91,6 +96,7 @@ export const useViewerState = () => {
     isMobile,
     toggleBrowser,
     toggleRDIManager,
+    toggleProgressManager,
     toggleInfoCoordenada,
     toggleCategoryColor,
     toggleProperties,
