@@ -12,7 +12,14 @@ import {
   CircularProgress,
   Paper,
   Divider,
-  Avatar
+  Avatar,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip
 } from '@mui/material';
 import {
   FolderOpen as FolderIcon,
@@ -100,7 +107,13 @@ export default function ModelosPanel({ projectId }) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Cabecera de la sección */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: { xs: 'column', md: 'row' }, 
+        justifyContent: 'space-between', 
+        alignItems: { xs: 'stretch', md: 'center' },
+        gap: 2 
+      }}>
         <Box>
           <Typography variant="h6" sx={{ color: '#1E1E1E', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
             <StorageIcon sx={{ color: '#1F3A5F' }} />
@@ -111,13 +124,22 @@ export default function ModelosPanel({ projectId }) {
           </Typography>
         </Box>
         
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' }, 
+          gap: 1.5,
+          width: { xs: '100%', md: 'auto' }
+        }}>
           {folderHandle && !needsPermission && (
             <Button
               variant="outlined"
               startIcon={<RefreshIcon />}
               onClick={refresh}
-              sx={{ textTransform: 'none', fontWeight: 'bold' }}
+              sx={{ 
+                textTransform: 'none', 
+                fontWeight: 'bold',
+                width: { xs: '100%', sm: 'auto' }
+              }}
             >
               Refrescar
             </Button>
@@ -130,6 +152,7 @@ export default function ModelosPanel({ projectId }) {
               bgcolor: '#1F3A5F', 
               textTransform: 'none', 
               fontWeight: 'bold',
+              width: { xs: '100%', sm: 'auto' },
               '&:hover': { bgcolor: '#2B5DAF' }
             }}
           >
@@ -143,7 +166,7 @@ export default function ModelosPanel({ projectId }) {
         <Paper 
           variant="outlined" 
           sx={{ 
-            p: 4, 
+            p: { xs: 3, sm: 4 }, 
             textAlign: 'center', 
             bgcolor: 'white', 
             borderRadius: 2, 
@@ -153,7 +176,7 @@ export default function ModelosPanel({ projectId }) {
           }}
         >
           <ConnectIcon sx={{ fontSize: 48, color: '#D9DEE5', mb: 2 }} />
-          <Typography variant="h6" sx={{ color: '#5F6B7A', mb: 1 }}>
+          <Typography variant="h6" sx={{ color: '#5F6B7A', mb: 1, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
             No hay una carpeta conectada
           </Typography>
           <Typography variant="body2" sx={{ color: '#9AA4AF', mb: 3, maxWidth: 400, mx: 'auto' }}>
@@ -162,7 +185,11 @@ export default function ModelosPanel({ projectId }) {
           <Button
             variant="outlined"
             onClick={connect}
-            sx={{ textTransform: 'none', fontWeight: 'bold' }}
+            sx={{ 
+              textTransform: 'none', 
+              fontWeight: 'bold',
+              width: { xs: '100%', sm: 'auto' }
+            }}
           >
             Configurar Repositorio Local
           </Button>
@@ -174,112 +201,270 @@ export default function ModelosPanel({ projectId }) {
             bgcolor: '#FFF4E5', 
             color: '#663C00', 
             display: 'flex', 
-            alignItems: 'center', 
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { xs: 'stretch', md: 'center' }, 
             justifyContent: 'space-between',
             borderRadius: 2,
-            border: '1px solid #FFD599'
+            border: '1px solid #FFD599',
+            gap: 2
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <WarningIcon color="warning" />
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+            <WarningIcon color="warning" sx={{ mt: 0.5 }} />
             <Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                Se requiere permiso de acceso
+                Se requiere permiso de lectura y escritura
               </Typography>
-              <Typography variant="body2">
-                El navegador requiere que confirmes el acceso a la carpeta para esta sesión.
+              <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                Para guardar automáticamente los archivos .frag generados en la carpeta local, reconecta la carpeta haciendo clic en "Cambiar Carpeta" y acepta el permiso de <strong>lectura y escritura</strong>.
               </Typography>
             </Box>
           </Box>
-          <Button 
-            variant="contained" 
-            color="warning" 
-            onClick={authorize}
-            sx={{ textTransform: 'none', fontWeight: 'bold' }}
-          >
-            Permitir Acceso
-          </Button>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', sm: 'row' }, 
+            gap: 1.5,
+            justifyContent: 'flex-end'
+          }}>
+            <Button 
+              variant="outlined"
+              color="warning"
+              onClick={authorize}
+              sx={{ 
+                textTransform: 'none', 
+                fontWeight: 'bold', 
+                whiteSpace: 'nowrap',
+                width: { xs: '100%', sm: 'auto' }
+              }}
+            >
+              Re-autorizar
+            </Button>
+            <Button 
+              variant="contained" 
+              color="warning" 
+              onClick={connect}
+              sx={{ 
+                textTransform: 'none', 
+                fontWeight: 'bold', 
+                whiteSpace: 'nowrap',
+                width: { xs: '100%', sm: 'auto' }
+              }}
+            >
+              Reconectar Carpeta
+            </Button>
+          </Box>
         </Paper>
       ) : (
         <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, px: 1 }}>
-            <FolderIcon sx={{ color: '#9AA4AF', fontSize: '1rem' }} />
-            <Typography variant="caption" sx={{ color: '#9AA4AF', fontWeight: 'medium' }}>
-              Carpeta conectada: {folderHandle.name}
-            </Typography>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', sm: 'row' }, 
+            alignItems: { xs: 'flex-start', sm: 'center' }, 
+            gap: 1, 
+            mb: 2, 
+            px: 1 
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <FolderIcon sx={{ color: '#9AA4AF', fontSize: '1rem' }} />
+              <Typography variant="caption" sx={{ color: '#9AA4AF', fontWeight: 'medium', wordBreak: 'break-all' }}>
+                Carpeta conectada: {folderHandle.name}
+              </Typography>
+            </Box>
             <Button 
               size="small" 
               color="error" 
               onClick={disconnect}
-              sx={{ fontSize: '0.65rem', minWidth: 'auto', ml: 1 }}
+              sx={{ 
+                fontSize: '0.65rem', 
+                minWidth: 'auto', 
+                ml: { xs: 0, sm: 1 },
+                mt: { xs: 0.5, sm: 0 },
+                alignSelf: { xs: 'flex-start', sm: 'center' }
+              }}
             >
               Desconectar
             </Button>
           </Box>
 
-          <Grid container spacing={2}>
+          {/* Desktop Table View */}
+          <TableContainer component={Paper} elevation={0} sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #E2E8F0', borderRadius: 2, overflow: 'hidden' }}>
+            <Table sx={{ minWidth: 600 }}>
+              <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold', color: '#64748B' }}>Modelo / Archivo</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: '#64748B' }}>Formato</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: '#64748B' }}>Ubicación</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: '#64748B' }} align="center">Acciones</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {models.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} align="center" sx={{ py: 6 }}>
+                      <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+                        No se encontraron archivos .ifc o .frag en esta carpeta.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  models.map((model) => {
+                    const isIfc = model.name.toLowerCase().endsWith('.ifc') || model.name.toLowerCase().endsWith('.ifcxml');
+                    return (
+                      <TableRow key={model.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Avatar sx={{ 
+                              width: 36, 
+                              height: 36, 
+                              bgcolor: isIfc ? '#E3F2FD' : '#F3E5F5', 
+                              color: isIfc ? '#1976D2' : '#7B1FA2', 
+                              borderRadius: 1.5 
+                            }}>
+                              <FileIcon sx={{ fontSize: '1.2rem' }} />
+                            </Avatar>
+                            <Box sx={{ overflow: 'hidden' }}>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1E293B', noWrap: true }}>
+                                {model.name}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: '#64748B', display: 'block' }}>
+                                {isIfc ? 'Modelo de Información de Construcción' : 'Modelo Optimizado para Visualización'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={isIfc ? 'IFC' : 'FRAG'} 
+                            size="small" 
+                            sx={{ 
+                              bgcolor: isIfc ? '#E3F2FD' : '#F3E5F5', 
+                              color: isIfc ? '#0D47A1' : '#4A148C', 
+                              fontWeight: 'bold',
+                              borderRadius: '4px',
+                              fontSize: '0.7rem'
+                            }} 
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: '#475569', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981' }}></span>
+                            Carpeta Local
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<ViewIcon />}
+                              onClick={() => handleViewModel(model)}
+                              sx={{
+                                color: '#1F3A5F',
+                                borderColor: 'rgba(31, 58, 95, 0.4)',
+                                textTransform: 'none',
+                                fontWeight: 'bold',
+                                fontSize: '0.75rem',
+                                '&:hover': { 
+                                  bgcolor: 'rgba(31, 58, 95, 0.04)',
+                                  borderColor: '#1F3A5F'
+                                }
+                              }}
+                            >
+                              Ver en Visor 3D
+                            </Button>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* Mobile Cards View */}
+          <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 2 }}>
             {models.length === 0 ? (
-              <Grid item xs={12}>
-                <Box sx={{ p: 4, textAlign: 'center', bgcolor: 'rgba(0,0,0,0.02)', borderRadius: 2 }}>
-                  <Typography variant="body2" sx={{ color: '#9AA4AF' }}>
-                    No se encontraron archivos .ifc o .frag en esta carpeta.
-                  </Typography>
-                </Box>
-              </Grid>
+              <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', borderRadius: 2, borderColor: '#E2E8F0' }}>
+                <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+                  No se encontraron archivos .ifc o .frag en esta carpeta.
+                </Typography>
+              </Paper>
             ) : (
-              models.map((model) => (
-                <Grid item xs={12} sm={6} md={4} key={model.id}>
+              models.map((model) => {
+                const isIfc = model.name.toLowerCase().endsWith('.ifc') || model.name.toLowerCase().endsWith('.ifcxml');
+                return (
                   <Card 
-                    elevation={0} 
+                    key={model.id} 
+                    variant="outlined" 
                     sx={{ 
                       borderRadius: 2, 
-                      border: '1px solid #E0E4E8',
-                      transition: 'all 0.2s',
-                      '&:hover': {
-                        borderColor: '#1F3A5F',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                        transform: 'translateY(-2px)'
-                      }
+                      borderColor: '#E2E8F0',
+                      boxShadow: 'none',
+                      bgcolor: 'white'
                     }}
                   >
-                    <CardContent sx={{ pb: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                        <Avatar sx={{ bgcolor: model.name.endsWith('.ifc') ? '#E3F2FD' : '#F3E5F5', color: model.name.endsWith('.ifc') ? '#1976D2' : '#7B1FA2', borderRadius: 1.5 }}>
-                          <FileIcon />
+                    <CardContent sx={{ p: 2, pb: 1.5 }}>
+                      <Box sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
+                        <Avatar sx={{ 
+                          width: 40, 
+                          height: 40, 
+                          bgcolor: isIfc ? '#E3F2FD' : '#F3E5F5', 
+                          color: isIfc ? '#1976D2' : '#7B1FA2', 
+                          borderRadius: 1.5 
+                        }}>
+                          <FileIcon sx={{ fontSize: '1.4rem' }} />
                         </Avatar>
-                        <Box sx={{ overflow: 'hidden' }}>
-                          <Typography variant="subtitle2" noWrap sx={{ fontWeight: 'bold', color: '#1E1E1E' }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1E293B', wordBreak: 'break-all' }}>
                             {model.name}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: '#9AA4AF' }}>
-                            {model.name.endsWith('.ifc') ? 'IFC Model' : 'Fragment Model'}
+                          <Typography variant="caption" sx={{ color: '#64748B', display: 'block', mt: 0.5 }}>
+                            {isIfc ? 'Modelo de Información de Construcción' : 'Modelo Optimizado para Visualización'}
                           </Typography>
                         </Box>
                       </Box>
-                    </CardContent>
-                    <Divider sx={{ opacity: 0.6 }} />
-                    <CardActions sx={{ justifyContent: 'space-between', px: 2, py: 1 }}>
-                      <Typography variant="caption" sx={{ color: '#4CAF50', fontWeight: 'bold' }}>
-                        Local
-                      </Typography>
-                      <Box>
-                        <Tooltip title="Visualizar en 3D">
-                          <IconButton size="small" onClick={() => handleViewModel(model)} sx={{ color: '#1F3A5F' }}>
-                            <ViewIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Quitar de la lista">
-                          <IconButton size="small" color="error" sx={{ opacity: 0.5 }}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                        <Chip 
+                          label={isIfc ? 'IFC' : 'FRAG'} 
+                          size="small" 
+                          sx={{ 
+                            bgcolor: isIfc ? '#E3F2FD' : '#F3E5F5', 
+                            color: isIfc ? '#0D47A1' : '#4A148C', 
+                            fontWeight: 'bold',
+                            borderRadius: '4px',
+                            fontSize: '0.7rem'
+                          }} 
+                        />
+                        <Typography variant="caption" sx={{ color: '#475569', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981' }}></span>
+                          Carpeta Local
+                        </Typography>
                       </Box>
+                    </CardContent>
+                    <Divider />
+                    <CardActions sx={{ p: 1.5, bgcolor: '#F8FAFC' }}>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        startIcon={<ViewIcon />}
+                        onClick={() => handleViewModel(model)}
+                        sx={{
+                          bgcolor: '#1F3A5F',
+                          textTransform: 'none',
+                          fontWeight: 'bold',
+                          '&:hover': { bgcolor: '#2B5DAF' }
+                        }}
+                      >
+                        Ver en Visor 3D
+                      </Button>
                     </CardActions>
                   </Card>
-                </Grid>
-              ))
+                );
+              })
             )}
-          </Grid>
+          </Box>
         </Box>
       )}
 

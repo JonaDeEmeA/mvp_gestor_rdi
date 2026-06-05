@@ -10,7 +10,7 @@ import { analyzeModelGeometry, saveFragmentFile } from './geometryAnalyzer';
  * @returns {Promise<Object>} Modelo de fragmentos procesado
  * @throws {Error} Si hay error en el procesamiento del archivo IFC
  */
-export const processIfcFile = async (selectedFile, fragmentsManager, world) => {
+export const processIfcFile = async (selectedFile, fragmentsManager, world, options = {}) => {
   try {
     console.log(`Iniciando procesamiento de archivo IFC: ${selectedFile.name}`);
 
@@ -59,8 +59,21 @@ export const processIfcFile = async (selectedFile, fragmentsManager, world) => {
 
     // Guardar como .frag
     try {
-      const fragmentFileName = selectedFile.name.replace('.ifc', '.frag');
-      await saveFragmentFile(fragmentBytes, fragmentFileName);
+      const fragmentFileName = selectedFile.name.replace('.ifc', '.frag').replace('.ifcxml', '.frag');
+      if (options?.onFragGenerated) {
+        // Intentar guardar en carpeta local de origen
+        const savedLocally = await options.onFragGenerated(fragmentFileName, fragmentBytes);
+        if (!savedLocally) {
+          console.warn(
+            `⚠️ No se pudo guardar "${fragmentFileName}" en la carpeta local. ` +
+            'Reconecta la carpeta desde el panel de Modelos para obtener permisos de escritura.'
+          );
+          // NO descargar al navegador: el usuario eligió gestión local
+        }
+      } else {
+        // Sin callback local: usar descarga del navegador como comportamiento por defecto
+        await saveFragmentFile(fragmentBytes, fragmentFileName);
+      }
     } catch (saveError) {
       console.warn('Error guardando archivo .frag:', saveError);
     }

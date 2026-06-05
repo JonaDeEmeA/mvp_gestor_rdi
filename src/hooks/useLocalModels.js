@@ -6,14 +6,15 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  getSavedFolderHandle, 
-  requestFolderPermission, 
-  listModelsInFolder, 
+import {
+  getSavedFolderHandle,
+  requestFolderPermission,
+  listModelsInFolder,
   verifyPermission,
   disconnectFolder,
   getFileFromHandle,
-  isFileSystemApiSupported
+  isFileSystemApiSupported,
+  saveFileToFolder
 } from '../utilitario/localModelManager';
 
 export const useLocalModels = () => {
@@ -31,12 +32,14 @@ export const useLocalModels = () => {
         const handle = await getSavedFolderHandle();
         if (handle) {
           setFolderHandle(handle);
-          // Verificar si ya tenemos permiso
-          const hasPermission = (await handle.queryPermission()) === 'granted';
+          // Verificar si ya tenemos permiso de LECTURA Y ESCRITURA (readwrite)
+          // Es necesario readwrite para poder guardar los .frag generados en la carpeta local
+          const hasPermission = (await handle.queryPermission({ mode: 'readwrite' })) === 'granted';
           if (hasPermission) {
             const fileList = await listModelsInFolder(handle);
             setModels(fileList);
           } else {
+            // Sin readwrite: mostrar banner para que el usuario re-autorice
             setNeedsPermission(true);
           }
         }
@@ -97,6 +100,15 @@ export const useLocalModels = () => {
     }
   }, [folderHandle, needsPermission]);
 
+  const saveFrag = useCallback(async (fileName, fileBytes) => {
+    if (!folderHandle) return false;
+    const success = await saveFileToFolder(folderHandle, fileName, fileBytes);
+    if (success) {
+      await refresh();
+    }
+    return success;
+  }, [folderHandle, refresh]);
+
   return {
     models,
     loading,
@@ -107,6 +119,7 @@ export const useLocalModels = () => {
     authorize,
     disconnect,
     refresh,
-    getFileFromHandle
+    getFileFromHandle,
+    saveFrag
   };
 };

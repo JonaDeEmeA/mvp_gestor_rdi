@@ -28,6 +28,9 @@ import {
   useMediaQuery,
   useTheme,
   Drawer,
+  Collapse,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -73,6 +76,7 @@ const IncidenciasPanel = ({ projectId, onCreateClick }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Estados para filtros
+  const [showFilters, setShowFilters] = useState(false);
   const [filterEstado, setFilterEstado] = useState('Todos');
   const [filterTipo, setFilterTipo] = useState('Todos');
   const [filterPrioridad, setFilterPrioridad] = useState('Todos');
@@ -86,6 +90,7 @@ const IncidenciasPanel = ({ projectId, onCreateClick }) => {
   const [viewedIssueId, setViewedIssueId] = useState(null);
   const [drawerMode, setDrawerMode] = useState('view'); // 'view' o 'edit'
   const [localFormData, setLocalFormData] = useState(null);
+  const [navigatingToViewer, setNavigatingToViewer] = useState(false);
 
   const handleEnterEditMode = () => {
     const issue = issues.find(i => i.id === viewedIssueId);
@@ -491,7 +496,13 @@ const IncidenciasPanel = ({ projectId, onCreateClick }) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Cabecera del Panel */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: { xs: 'column', sm: 'row' }, 
+        justifyContent: 'space-between', 
+        alignItems: { xs: 'stretch', sm: 'flex-start' },
+        gap: 2 
+      }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1E1E1E' }}>
             Incidencias
@@ -510,6 +521,8 @@ const IncidenciasPanel = ({ projectId, onCreateClick }) => {
             fontWeight: 'bold',
             px: 3,
             py: 1,
+            width: { xs: '100%', sm: 'auto' },
+            alignSelf: { xs: 'stretch', sm: 'flex-start' },
             '&:hover': { bgcolor: '#2B5DAF' }
           }}
         >
@@ -520,63 +533,130 @@ const IncidenciasPanel = ({ projectId, onCreateClick }) => {
       {/* Barra de Filtros */}
       <Paper elevation={0} sx={{ p: 2, border: `1px solid ${PALETTE.border}`, borderRadius: 2 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={1.8}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Estado</InputLabel>
-              <Select value={filterEstado} label="Estado" onChange={(e) => setFilterEstado(e.target.value)}>
-                <MenuItem value="Todos">Todos</MenuItem>
-                {uniqueStatuses.map(status => (
-                  <MenuItem key={status} value={status}>{status}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={1.8}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Tipo</InputLabel>
-              <Select value={filterTipo} label="Tipo" onChange={(e) => setFilterTipo(e.target.value)}>
-                <MenuItem value="Todos">Todos</MenuItem>
-                {uniqueTypes.map(type => (
-                  <MenuItem key={type} value={type}>{type}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={1.8}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Asignado a</InputLabel>
-              <Select value={filterAsignado} label="Asignado a" onChange={(e) => setFilterAsignado(e.target.value)}>
-                <MenuItem value="Todos">Todos</MenuItem>
-                {uniqueAssignees.map(user => (
-                  <MenuItem key={user} value={user}>{user}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} md={4.8} sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Buscar incidencia..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: '#9AA4AF', fontSize: 20 }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button
-              variant="outlined"
-              startIcon={<FilterIcon />}
-              sx={{ color: '#1E1E1E', borderColor: PALETTE.border, textTransform: 'none' }}
-            >
-              Filtros
-            </Button>
-          </Grid>
+          {isMobile ? (
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Buscar incidencia..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon sx={{ color: '#9AA4AF', fontSize: 20 }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <Button
+                    variant={showFilters ? "contained" : "outlined"}
+                    startIcon={<FilterIcon />}
+                    onClick={() => setShowFilters(!showFilters)}
+                    sx={{ 
+                      color: showFilters ? 'white' : '#1E1E1E', 
+                      bgcolor: showFilters ? PALETTE.primary : 'transparent',
+                      borderColor: showFilters ? PALETTE.primary : PALETTE.border, 
+                      textTransform: 'none',
+                      fontWeight: 'bold',
+                      whiteSpace: 'nowrap',
+                      '&:hover': {
+                        bgcolor: showFilters ? '#2B5DAF' : 'rgba(0,0,0,0.04)',
+                        borderColor: showFilters ? '#2B5DAF' : PALETTE.border
+                      }
+                    }}
+                  >
+                    Filtros
+                  </Button>
+                </Box>
+                <Collapse in={showFilters}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Estado</InputLabel>
+                      <Select value={filterEstado} label="Estado" onChange={(e) => setFilterEstado(e.target.value)}>
+                        <MenuItem value="Todos">Todos</MenuItem>
+                        {uniqueStatuses.map(status => (
+                          <MenuItem key={status} value={status}>{status}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Tipo</InputLabel>
+                      <Select value={filterTipo} label="Tipo" onChange={(e) => setFilterTipo(e.target.value)}>
+                        <MenuItem value="Todos">Todos</MenuItem>
+                        {uniqueTypes.map(type => (
+                          <MenuItem key={type} value={type}>{type}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Asignado a</InputLabel>
+                      <Select value={filterAsignado} label="Asignado a" onChange={(e) => setFilterAsignado(e.target.value)}>
+                        <MenuItem value="Todos">Todos</MenuItem>
+                        {uniqueAssignees.map(user => (
+                          <MenuItem key={user} value={user}>{user}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                </Collapse>
+              </Box>
+            </Grid>
+          ) : (
+            <>
+              <Grid item xs={12} sm={6} md={2}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Estado</InputLabel>
+                  <Select value={filterEstado} label="Estado" onChange={(e) => setFilterEstado(e.target.value)}>
+                    <MenuItem value="Todos">Todos</MenuItem>
+                    {uniqueStatuses.map(status => (
+                      <MenuItem key={status} value={status}>{status}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Tipo</InputLabel>
+                  <Select value={filterTipo} label="Tipo" onChange={(e) => setFilterTipo(e.target.value)}>
+                    <MenuItem value="Todos">Todos</MenuItem>
+                    {uniqueTypes.map(type => (
+                      <MenuItem key={type} value={type}>{type}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Asignado a</InputLabel>
+                  <Select value={filterAsignado} label="Asignado a" onChange={(e) => setFilterAsignado(e.target.value)}>
+                    <MenuItem value="Todos">Todos</MenuItem>
+                    {uniqueAssignees.map(user => (
+                      <MenuItem key={user} value={user}>{user}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6} sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Buscar incidencia..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ color: '#9AA4AF', fontSize: 20 }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+            </>
+          )}
         </Grid>
       </Paper>
 
@@ -828,6 +908,7 @@ const IncidenciasPanel = ({ projectId, onCreateClick }) => {
                   onVerSnapshot={() => {
                      const id = viewedIssueId;
                      setViewedIssueId(null);
+                     setNavigatingToViewer(true);
                      router.push(`/viewer?tool=rdi&viewId=${id}`);
                   }}
                 />
@@ -845,8 +926,10 @@ const IncidenciasPanel = ({ projectId, onCreateClick }) => {
                     onAddComment={handleAddComment}
                     onVerSnapshotPV={() => {
                       const id = viewedIssueId;
+                      const hasSnapshot = !!(localFormData?.snapshot?.imageData);
                       setViewedIssueId(null);
-                      router.push(`/viewer?tool=rdi&viewId=${id}`);
+                      setNavigatingToViewer(true);
+                      router.push(`/viewer?tool=rdi&${hasSnapshot ? 'viewId' : 'editId'}=${id}`);
                     }}
                     isEditing={true}
                     snapshotUrl={localFormData?.snapshot?.imageData ? 
@@ -858,6 +941,27 @@ const IncidenciasPanel = ({ projectId, onCreateClick }) => {
           )}
         </Drawer>
       </LocalizationProvider>
+
+      <Backdrop
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(6px)'
+        }}
+        open={navigatingToViewer}
+      >
+        <CircularProgress size={50} sx={{ color: '#38bdf8' }} />
+        <Typography variant="h6" sx={{ color: '#f8fafc', fontWeight: '500' }}>
+          Abriendo visor 3D...
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+          Preparando el entorno de visualización.
+        </Typography>
+      </Backdrop>
     </Box>
   );
 };

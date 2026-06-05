@@ -4,7 +4,7 @@ import {
   Box, Typography, Fab, Tooltip,
   Avatar, Button, Divider, CircularProgress,
   AppBar, Toolbar, IconButton, Drawer, List,
-  ListItem, ListItemIcon, ListItemText,
+  ListItem, ListItemIcon, ListItemText, Backdrop,
 } from '@mui/material';
 import {
   Home as HomeIcon,
@@ -33,7 +33,9 @@ import CoordinateInfoWindow from '@/componentes/CoordinateInfoWindow';
 import CategoryColorWindow from '@/componentes/CategoryColorWindow';
 import PropertyWindow from '@/componentes/PropertyWindow';
 import { useLocalModels } from '@/hooks/useLocalModels';
-import { Warning as WarningIcon } from '@mui/icons-material';
+import { useFloorPlan } from '@/hooks/useFloorPlan';
+import FloorPlanWindow from '@/componentes/FloorPlanWindow';
+import { Warning as WarningIcon, Map as MapIcon } from '@mui/icons-material';
 // Constantes
 import { STYLES, VIEWER_CONFIG } from '../constants/viewerConfig';
 import React from 'react';
@@ -102,6 +104,18 @@ export default function Home() {
     createToggleModelVisibility,
   } = useViewerState();
 
+  const {
+    show: showFloorPlan,
+    level: floorPlanLevel,
+    imageUrl: floorPlanImageUrl,
+    generating: floorPlanGenerating,
+    error: floorPlanError,
+    setLevel: setFloorPlanLevel,
+    generate: generateFloorPlan,
+    exportImage: exportFloorPlan,
+    toggle: toggleFloorPlan,
+  } = useFloorPlan(worldRef);
+
   // Hook para coordenadas
   const { pickedPoint, pickVertex } = useVertexPicker(componentsRef.current, worldRef.current);
 
@@ -113,17 +127,19 @@ export default function Home() {
     setSelectedEntityProps
   );
 
-  const { fileInputRef, openFileDialog, handleFileSelection, processFile } = useFileProcessor(
+  const { fileInputRef, openFileDialog, handleFileSelection, processFile, processing } = useFileProcessor(
     worldRef,
     fragmentsRef,
     setImportedModels
   );
 
-  const { 
-    models: localModels, 
-    needsPermission: localNeedsPermission, 
-    authorize: localAuthorize, 
-    getFileFromHandle 
+  const {
+    models: localModels,
+    needsPermission: localNeedsPermission,
+    authorize: localAuthorize,
+    connect: localConnect,
+    getFileFromHandle,
+    saveFrag
   } = useLocalModels();
 
   // Crear función de toggle de visibilidad con fragmentsRef
@@ -155,16 +171,22 @@ export default function Home() {
     toggleProperties();
   };
 
+  const handleToggleFloorPlan = () => {
+    if (!showFloorPlan) closeFloatingWindows();
+    toggleFloorPlan();
+  };
+
   const [autoOpenForm, setAutoOpenForm] = useState(false);
   const [autoEditId, setAutoEditId] = useState(null);
   const [autoViewId, setAutoViewId] = useState(null);
+  const loadingModelsRef = useRef(new Set());
 
   // Efecto para activar herramientas desde la URL (ej: desde el Dashboard)
   useEffect(() => {
     if (router.query.tool === 'rdi' && !showRDIManager) {
       toggleRDIManager();
     }
-    
+
     if (router.query.tool === 'rdi') {
       if (router.query.editId) {
         setAutoEditId(router.query.editId);
@@ -173,7 +195,7 @@ export default function Home() {
       } else if (!showRDIManager) {
         setAutoOpenForm(true);
       }
-      
+
       // Limpiar parámetros de RDI
       const { tool, editId, viewId, ...restQuery } = router.query;
       router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
@@ -183,27 +205,41 @@ export default function Home() {
   // Efecto para cargar modelo local desde URL
   useEffect(() => {
     const loadModelFromUrl = async () => {
-      if (router.query.model && isViewerReady && localModels.length > 0) {
-        const modelName = router.query.model;
+      const modelName = router.query.model;
+      if (modelName && isViewerReady && localModels.length > 0) {
+        // Evitar procesar si ya está cargado en escena o si ya está en cola de procesamiento
+        const alreadyLoaded = importedModels.some(m => m?.object?.name === modelName);
+        const alreadyLoading = loadingModelsRef.current.has(modelName);
+
+        if (alreadyLoaded || alreadyLoading) {
+          console.log(`ℹ️ Modelo "${modelName}" ya está cargado o cargándose. Omitiendo duplicado.`);
+          // Limpiar el parámetro de la URL para evitar bucles
+          const { model, ...restQuery } = router.query;
+          router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+          return;
+        }
+
         const modelToLoad = localModels.find(m => m.name === modelName);
-        
+
         if (modelToLoad) {
           try {
+            loadingModelsRef.current.add(modelName);
             console.log(`🚀 Cargando modelo local solicitado: ${modelName}`);
             const file = await getFileFromHandle(modelToLoad.handle);
-            await processFile(file);
-            
+            await processFile(file, { onFragGenerated: saveFrag });
+          } catch (error) {
+            console.error("Error cargando modelo desde URL:", error);
+          } finally {
+            loadingModelsRef.current.delete(modelName);
             // Limpiar parámetro de la URL
             const { model, ...restQuery } = router.query;
             router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
-          } catch (error) {
-            console.error("Error cargando modelo desde URL:", error);
           }
         }
       }
     };
     loadModelFromUrl();
-  }, [router.query.model, isViewerReady, localModels, getFileFromHandle, processFile, router]);
+  }, [router.query.model, isViewerReady, localModels, getFileFromHandle, processFile, router, importedModels, saveFrag]);
 
   // Evitar que la selección interfiera con otras herramientas
   useEffect(() => {
@@ -428,11 +464,11 @@ export default function Home() {
 
       {/* Banner de Permiso Local */}
       {localNeedsPermission && (
-        <Box sx={{ 
-          position: 'fixed', 
-          top: APPBAR_HEIGHT + 10, 
-          left: '50%', 
-          transform: 'translateX(-50%)', 
+        <Box sx={{
+          position: 'fixed',
+          top: APPBAR_HEIGHT + 10,
+          left: '50%',
+          transform: 'translateX(-50%)',
           zIndex: 2000,
           bgcolor: '#FFF4E5',
           p: 1.5,
@@ -528,13 +564,14 @@ export default function Home() {
             onLoadLocal={async (model) => {
               try {
                 const file = await getFileFromHandle(model.handle);
-                await processFile(file);
+                await processFile(file, { onFragGenerated: saveFrag });
               } catch (error) {
                 console.error("Error al cargar modelo desde el explorador:", error);
               }
             }}
             localNeedsPermission={localNeedsPermission}
             onAuthorizeLocal={localAuthorize}
+            onConnectLocal={localConnect}
           />
 
           <SectionManagerWindow
@@ -543,6 +580,18 @@ export default function Home() {
             planes={planesList}
             onDeletePlane={deletePlane}
             onTogglePlane={togglePlane}
+          />
+
+          <FloorPlanWindow
+            open={showFloorPlan}
+            onClose={toggleFloorPlan}
+            level={floorPlanLevel}
+            onLevelChange={setFloorPlanLevel}
+            imageUrl={floorPlanImageUrl}
+            generating={floorPlanGenerating}
+            error={floorPlanError}
+            onGenerate={generateFloorPlan}
+            onExport={exportFloorPlan}
           />
 
           <CoordinateInfoWindow
@@ -608,6 +657,21 @@ export default function Home() {
                 <PropertyIcon />
               </Fab>
             </Tooltip>
+
+            {/* Botón PLANOS 2D flotante */}
+            <Tooltip title="Generar Planos 2D" placement="left">
+              <Fab
+                color="primary"
+                size="small"
+                onClick={handleToggleFloorPlan}
+                sx={{
+                  bgcolor: showFloorPlan ? '#4CAF50' : 'rgba(31, 58, 95, 0.8)',
+                  '&:hover': { bgcolor: showFloorPlan ? '#43A047' : 'rgba(31, 58, 95, 1)' }
+                }}
+              >
+                <MapIcon />
+              </Fab>
+            </Tooltip>
           </Box>
         </Box>
 
@@ -638,6 +702,47 @@ export default function Home() {
           />
         )}
       </Box>
+      <Backdrop
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(6px)'
+        }}
+        open={!isViewerReady && !processing}
+      >
+        <CircularProgress size={50} sx={{ color: '#38bdf8' }} />
+        <Typography variant="h6" sx={{ color: '#f8fafc', fontWeight: '500' }}>
+          Inicializando visor 3D...
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+          Preparando el entorno de visualización.
+        </Typography>
+      </Backdrop>
+
+      <Backdrop
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(6px)'
+        }}
+        open={processing}
+      >
+        <CircularProgress size={50} sx={{ color: '#38bdf8' }} />
+        <Typography variant="h6" sx={{ color: '#f8fafc', fontWeight: '500' }}>
+          Procesando y convirtiendo modelo...
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+          Por favor espere mientras cargamos la geometría 3D.
+        </Typography>
+      </Backdrop>
     </Box>
   );
 }

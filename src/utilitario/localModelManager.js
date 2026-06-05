@@ -27,9 +27,9 @@ export const requestFolderPermission = async () => {
   }
   try {
     const handle = await window.showDirectoryPicker({
-      mode: 'read'
+      mode: 'readwrite'
     });
-    
+
     // Guardar el handle en IndexedDB para persistencia entre sesiones
     await set(STORAGE_KEY, handle);
     return handle;
@@ -50,9 +50,9 @@ export const getSavedFolderHandle = async () => {
     if (!handle) return null;
 
     // Verificar si aún tenemos permiso (el navegador suele pedir confirmación al recargar)
-    const permission = await handle.queryPermission({ mode: 'read' });
+    const permission = await handle.queryPermission({ mode: 'readwrite' });
     if (permission === 'granted') return handle;
-    
+
     return handle; // Devolvemos el handle aunque necesite re-verificación
   } catch (error) {
     console.error('Error al recuperar handle guardado:', error);
@@ -65,7 +65,7 @@ export const getSavedFolderHandle = async () => {
  */
 export const verifyPermission = async (handle) => {
   if (!handle) return false;
-  const permission = await handle.requestPermission({ mode: 'read' });
+  const permission = await handle.requestPermission({ mode: 'readwrite' });
   return permission === 'granted';
 };
 
@@ -74,7 +74,7 @@ export const verifyPermission = async (handle) => {
  */
 export const listModelsInFolder = async (handle) => {
   if (!handle) return [];
-  
+
   const models = [];
   try {
     for await (const entry of handle.values()) {
@@ -110,3 +110,48 @@ export const getFileFromHandle = async (fileHandle) => {
 export const disconnectFolder = async () => {
   await del(STORAGE_KEY);
 };
+
+/**
+ * Guarda un archivo de bytes en la carpeta local.
+ * Solicita permiso de lectura/escritura si aún no se cuenta con él.
+ * @param {FileSystemDirectoryHandle} folderHandle
+ * @param {string} fileName
+ * @param {Uint8Array} fileBytes
+ * @returns {Promise<boolean>}
+ */
+/**
+ * Guarda un archivo de bytes en la carpeta local.
+ * IMPORTANTE: Solo consulta el permiso (queryPermission), NUNCA llama a requestPermission.
+ * El permiso de escritura debe haber sido solicitado previamente durante la acción del usuario
+ * al conectar la carpeta (showDirectoryPicker con mode: 'readwrite').
+ * @param {FileSystemDirectoryHandle} folderHandle
+ * @param {string} fileName
+ * @param {Uint8Array} fileBytes
+ * @returns {Promise<boolean>}
+ */
+export const saveFileToFolder = async (folderHandle, fileName, fileBytes) => {
+  if (!folderHandle) return false;
+  try {
+    // Solo verificar el permiso actual — no solicitar (evita SecurityError en contextos async)
+    const permission = await folderHandle.queryPermission({ mode: 'readwrite' });
+    if (permission !== 'granted') {
+      console.warn(
+        'Sin permiso de escritura en la carpeta local. ' +
+        'Reconecta la carpeta para que el sistema pueda guardar archivos .frag automáticamente.'
+      );
+      return false;
+    }
+
+    const fileHandle = await folderHandle.getFileHandle(fileName, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(fileBytes);
+    await writable.close();
+
+    console.log(`✅ Archivo ${fileName} guardado automáticamente en el repositorio local.`);
+    return true;
+  } catch (error) {
+    console.error('Error guardando archivo en la carpeta local:', error);
+    return false;
+  }
+};
+

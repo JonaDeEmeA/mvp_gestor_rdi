@@ -66,8 +66,8 @@ export const useViewpoints = (component, world) => {
       updateSnapshotDisplay(vp);
       setSnapShotReady(true);
 
-      // ✅ Marcar como snapshot nuevo (no restaurado)
-      setIsSnapshotUpdated(false);
+      // ✅ Marcar como snapshot actualizado para que se guarde al editar
+      setIsSnapshotUpdated(true);
 
       return vp;
     } catch (error) {

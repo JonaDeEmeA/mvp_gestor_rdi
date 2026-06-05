@@ -37,7 +37,8 @@ export default function Browser({
   localModels = [],
   onLoadLocal,
   localNeedsPermission,
-  onAuthorizeLocal
+  onAuthorizeLocal,
+  onConnectLocal
 }) {
   const [tabValue, setTabValue] = useState(0);
 
@@ -101,13 +102,30 @@ export default function Browser({
         {tabValue === 1 && (
           <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             {localNeedsPermission ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ mb: 2, color: '#5F6B7A' }}>
-                  Se requiere permiso para listar los archivos de la carpeta local.
+              <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Typography variant="body2" sx={{ color: '#5F6B7A', fontSize: '0.75rem' }}>
+                  Para guardar archivos .frag en la carpeta local, se necesita permiso de <strong>lectura y escritura</strong>. Reconecta la carpeta para otorgarlo.
                 </Typography>
-                <Button variant="contained" size="small" onClick={onAuthorizeLocal} sx={{ textTransform: 'none' }}>
-                  Dar Permiso
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={onAuthorizeLocal}
+                    sx={{ textTransform: 'none', flex: 1 }}
+                  >
+                    Re-autorizar
+                  </Button>
+                  {onConnectLocal && (
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={onConnectLocal}
+                      sx={{ textTransform: 'none', flex: 1 }}
+                    >
+                      Reconectar
+                    </Button>
+                  )}
+                </Box>
               </Box>
             ) : localModels.length === 0 ? (
               <Box sx={{ p: 4, textAlign: 'center', opacity: 0.5 }}>

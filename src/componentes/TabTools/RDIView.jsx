@@ -282,7 +282,36 @@ const RDIView = ({ rdi, bcfTopicSet, onEdit, onVerSnapshot, snapshotUrl, onClose
             return null;
           };
           const src = getSnapshotSrc();
-          if (!src) return null;
+
+          if (!src) {
+            return (
+              <Box sx={{ mb: 3 }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                  <CameraIcon sx={{ fontSize: 18, color: BIM_COLORS.neutral.text.secondary }} />
+                  <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    Vista del Modelo
+                  </Typography>
+                </Stack>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 3,
+                    textAlign: 'center',
+                    borderRadius: 1,
+                    borderColor: BIM_COLORS.neutral.border,
+                    bgcolor: BIM_COLORS.neutral.background.secondary
+                  }}
+                >
+                  <Stack spacing={1.5} alignItems="center">
+                    <CameraIcon sx={{ fontSize: 40, color: BIM_COLORS.neutral.text.secondary }} />
+                    <Typography variant="body2" sx={{ color: BIM_COLORS.neutral.text.secondary }}>
+                      Sin captura de vista disponible
+                    </Typography>
+                  </Stack>
+                </Paper>
+              </Box>
+            );
+          }
 
           return (
             <Box sx={{ mb: 3 }}>

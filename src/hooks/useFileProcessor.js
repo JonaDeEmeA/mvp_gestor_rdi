@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { processIfcFile, processFragFile, processJsonFile } from '../services/fileProcessorService';
 import { showErrorMessage } from '../utils/errorHandler';
 import { VIEWER_CONFIG, ERROR_MESSAGES } from '../constants/viewerConfig';
@@ -14,6 +14,7 @@ import { useAnalytics } from './useAnalytics';
  */
 export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
   const fileInputRef = useRef(null);
+  const [processing, setProcessing] = useState(false);
   const { trackModelLoad, trackAction } = useAnalytics();
 
 
@@ -29,7 +30,7 @@ export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
     }
   };
 
-  const processFile = async (selectedFile) => {
+  const processFile = async (selectedFile, options = {}) => {
     if (!selectedFile) return;
 
     const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
@@ -48,11 +49,12 @@ export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
     }
 
     try {
+      setProcessing(true);
       let processedModel = null;
 
       switch (fileExtension) {
         case 'ifc':
-          processedModel = await processIfcFile(selectedFile, fragmentsManager, world);
+          processedModel = await processIfcFile(selectedFile, fragmentsManager, world, options);
           setImportedModels(previousModels => [...previousModels, processedModel]);
           trackModelLoad(selectedFile.name, selectedFile.size);
           break;
@@ -77,6 +79,8 @@ export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
     } catch (error) {
       console.error('Error procesando archivo:', error);
       showErrorMessage(ERROR_MESSAGES.FILE_PROCESSING, error);
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -89,6 +93,7 @@ export const useFileProcessor = (worldRef, fragmentsRef, setImportedModels) => {
     fileInputRef,
     openFileDialog,
     handleFileSelection,
-    processFile
+    processFile,
+    processing
   };
 };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { BIM_COLORS } from '../../constants/designTokens';
 import { Box, Typography, FormControl, InputLabel, Select, MenuItem, TextField, Button, Collapse, Divider, Stack, Avatar, Paper } from '@mui/material';
-import { ChatBubbleOutline as CommentIcon, Send as SendIcon } from '@mui/icons-material';
+import { ChatBubbleOutline as CommentIcon, Send as SendIcon, CameraAlt as CameraIcon } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { RDI_STANDARDS } from '../../constants/rdiStandards';
 
@@ -85,21 +85,38 @@ const RDIForm = ({
         {showForm && (
           <Box display="flex" gap={1} sx={{ mb: 3 }}>
             {!snapShotReady ? (
-              // En el dashboard o cuando no está listo el motor 3D, mostramos "Ver en 3D" en lugar de "Agregar Captura"
-              <Button
-                variant="contained"
-                onClick={onVerSnapshotPV}
-                fullWidth
-                size="small"
-                sx={{
-                  bgcolor: BIM_COLORS.primary.main,
-                  textTransform: 'none',
-                  fontWeight: 'bold',
-                  '&:hover': { bgcolor: BIM_COLORS.primary.active }
-                }}
-              >
-                Ver en 3D
-              </Button>
+              onCreateViewpoint ? (
+                <Button
+                  variant="contained"
+                  onClick={onCreateViewpoint}
+                  fullWidth
+                  size="small"
+                  sx={{
+                    bgcolor: BIM_COLORS.primary.main,
+                    textTransform: 'none',
+                    fontWeight: 'bold',
+                    '&:hover': { bgcolor: BIM_COLORS.primary.active }
+                  }}
+                >
+                  Agregar Captura
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  onClick={onVerSnapshotPV}
+                  fullWidth
+                  size="small"
+                  startIcon={<CameraIcon />}
+                  sx={{
+                    bgcolor: BIM_COLORS.primary.main,
+                    textTransform: 'none',
+                    fontWeight: 'bold',
+                    '&:hover': { bgcolor: BIM_COLORS.primary.active }
+                  }}
+                >
+                  {snapshotUrl ? 'Ver en 3D' : 'Agregar Captura'}
+                </Button>
+              )
             ) : (
               <>
                 <Button
@@ -118,7 +135,7 @@ const RDIForm = ({
                   Actualizar
                 </Button>
                 <Button
-                  disabled={!isEditing}
+                  disabled={!onVerSnapshotPV}
                   variant="outlined"
                   onClick={onVerSnapshotPV}
                   fullWidth

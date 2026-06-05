@@ -678,6 +678,7 @@ export default function TabTools({ sx, topic, world, component, onClose, autoOpe
             snapShotReady={editViewpointsLogic.snapShotReady}
             onUpdateSnapshot={editViewpointsLogic.updateSnapshot}
             onVerSnapshotPV={onVerSnapshotPV}
+            onCreateViewpoint={editViewpointsLogic.createViewpoint}
             onAddComment={editFormLogic.handleAddComment}
           />
         )}
@@ -814,6 +815,11 @@ export default function TabTools({ sx, topic, world, component, onClose, autoOpe
                     snapShotReady={addViewpointsLogic.snapShotReady}
                     onCreateViewpoint={addViewpointsLogic.createViewpoint}
                     onUpdateSnapshot={addViewpointsLogic.updateSnapshot}
+                    onVerSnapshotPV={() => {
+                      if (addViewpointsLogic.viewpoint) {
+                        addViewpointsLogic.updateCameraFromViewpoint({ camera: addViewpointsLogic.viewpoint.camera });
+                      }
+                    }}
                     onAddComment={addFormLogic.handleAddComment}
                   />
                 </Box>

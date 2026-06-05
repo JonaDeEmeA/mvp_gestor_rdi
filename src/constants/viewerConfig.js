@@ -6,7 +6,12 @@ export const VIEWER_CONFIG = {
     target: [0, 0, 0]
   },
   supportedExtensions: ['ifc', 'frag', 'json'],
-  fileAccept: '.ifc,.frag,.json'
+  fileAccept: '.ifc,.frag,.json',
+  FLOOR_PLAN: {
+    defaultLevel: 1.2,
+    imageWidth: 1024,
+    imageHeight: 768,
+  },
 };
 
 export const IFC_SETTINGS = {

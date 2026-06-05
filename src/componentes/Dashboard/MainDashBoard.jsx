@@ -636,7 +636,7 @@ export default function Dashboard({ userProjects = [] }) {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: { xs: 1.5, sm: 2, md: 3 },
           mt: 8,
           width: { md: drawerOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%' },
           transition: theme.transitions.create(['width', 'margin'], {
@@ -693,31 +693,10 @@ export default function Dashboard({ userProjects = [] }) {
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%', gap: 3 }}>
 
             {/* Cabecera del proyecto */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-              <Typography variant="h5" sx={{ color: '#1E1E1E', fontWeight: 'bold' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Typography variant="h4" sx={{ color: '#1F3A5F', fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
                 {currentProject.name}
               </Typography>
-              <Button
-                variant="contained"
-                size="large"
-                disabled={isNavigating}
-                onClick={() => {
-                  setIsNavigating(true);
-                  // refreshStats(); // Se elimina para evitar el cambio de estado 'loading' y el parpadeo de charts antes de navegar
-                  router.push('/viewer');
-                }}
-                sx={{
-                  bgcolor: '#1F3A5F',
-                  px: 4,
-                  py: 1.2,
-                  fontSize: '1rem',
-                  fontWeight: 'bold',
-                  textTransform: 'none',
-                  '&:hover': { bgcolor: '#2B5DAF' }
-                }}
-              >
-                {isNavigating ? <CircularProgress size={22} color="inherit" /> : 'Abrir Visor 3D'}
-              </Button>
             </Box>
 
             {/* Contenido condicional basado en activeView */}
