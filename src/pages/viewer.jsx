@@ -12,6 +12,7 @@ import {
   Logout as LogoutIcon,
   Assignment as PropertyIcon,
   Menu as MenuIcon,
+  Palette as PaletteIcon,
 } from '@mui/icons-material';
 
 import { useAuth } from '../hooks/useAuth';
@@ -34,6 +35,7 @@ import CategoryColorWindow from '@/componentes/CategoryColorWindow';
 import PropertyWindow from '@/componentes/PropertyWindow';
 import ProgressPanel from '@/componentes/Progress/ProgressPanel';
 import { useLocalModels } from '@/hooks/useLocalModels';
+import { useBIMColors } from '@/hooks/useBIMColors';
 import { Warning as WarningIcon } from '@mui/icons-material';
 // Constantes
 import { STYLES, VIEWER_CONFIG } from '../constants/viewerConfig';
@@ -89,6 +91,7 @@ export default function Home() {
     showBrowser,
     showRDIManager,
     showProgressManager,
+    showBIMColors,
     showInfoCoordenada,
     showCategoryColor,
     showProperties,
@@ -97,6 +100,7 @@ export default function Home() {
     toggleBrowser,
     toggleRDIManager,
     toggleProgressManager,
+    toggleBIMColors,
     toggleInfoCoordenada,
     toggleCategoryColor,
     toggleProperties,
@@ -117,6 +121,20 @@ export default function Home() {
     highlighterRef.current,
     setSelectedEntityProps
   );
+
+  const bimColors = useBIMColors(fragmentsRef.current, highlighterRef.current);
+  const bimDataRef = useRef({ groups: [], getElementsByGroup: null });
+
+  useEffect(() => {
+    if (showBIMColors) {
+      const { groups, getElementsByGroup } = bimDataRef.current;
+      if (groups.length > 0 && getElementsByGroup) {
+        bimColors.applyAllGroups(groups, getElementsByGroup);
+      }
+    } else {
+      bimColors.clearAll();
+    }
+  }, [showBIMColors, bimColors]);
 
   const selectedElementType = selectedEntityProps?.attributes?.ObjectType?.value
     || selectedEntityProps?.attributes?.Name?.value
@@ -209,7 +227,13 @@ export default function Home() {
       const { tool, editId, viewId, ...restQuery } = router.query;
       router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
     }
-  }, [router.query.tool, router.query.editId, router.query.viewId, showRDIManager, toggleRDIManager, router]);
+
+    if (router.query.tool === 'progress' && !showProgressManager) {
+      toggleProgressManager();
+      const { tool, ...restQuery } = router.query;
+      router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    }
+  }, [router.query.tool, router.query.editId, router.query.viewId, showRDIManager, toggleRDIManager, showProgressManager, toggleProgressManager, router]);
 
   // Efecto para cargar modelo local desde URL
   useEffect(() => {
@@ -659,6 +683,20 @@ export default function Home() {
               </Fab>
             </Tooltip>
 
+            {/* Botón PINTADO POR AVANCE flotante */}
+            <Tooltip title={showBIMColors ? "Desactivar pintado por avance" : "Activar pintado por avance"} placement="left">
+              <Fab
+                color="primary"
+                size="small"
+                onClick={toggleBIMColors}
+                sx={{
+                  bgcolor: showBIMColors ? '#4CAF50' : 'rgba(31, 58, 95, 0.8)',
+                  '&:hover': { bgcolor: showBIMColors ? '#43A047' : 'rgba(31, 58, 95, 1)' }
+                }}
+              >
+                <PaletteIcon />
+              </Fab>
+            </Tooltip>
 
           </Box>
         </Box>
@@ -709,6 +747,10 @@ export default function Home() {
               selectedElementType={selectedElementType}
               onHighlightByGuids={handleHighlightByGuids}
               onClose={toggleProgressManager}
+              showBIMColors={showBIMColors}
+              onApplyBIMColors={bimColors.applyAllGroups}
+              onClearBIMColors={bimColors.clearAll}
+              bimDataRef={bimDataRef}
             />
           </Box>
         )}

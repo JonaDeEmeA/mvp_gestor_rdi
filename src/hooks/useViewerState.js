@@ -14,6 +14,7 @@ export const useViewerState = () => {
   const [showCategoryColor, setShowCategoryColor] = useState(false);
   const [showProperties, setShowProperties] = useState(false);
   const [showProgressManager, setShowProgressManager] = useState(false);
+  const [showBIMColors, setShowBIMColors] = useState(false);
   const [selectedEntityProps, setSelectedEntityProps] = useState(null);
 
   // Hook para detectar dispositivos móviles
@@ -40,6 +41,10 @@ export const useViewerState = () => {
 
   const toggleProgressManager = () => {
     setShowProgressManager(!showProgressManager);
+  };
+
+  const toggleBIMColors = () => {
+    setShowBIMColors((prev) => !prev);
   };
 
   const toggleInfoCoordenada = () => {
@@ -89,6 +94,7 @@ export const useViewerState = () => {
     showBrowser,
     showRDIManager,
     showProgressManager,
+    showBIMColors,
     showInfoCoordenada,
     showCategoryColor,
     showProperties,
@@ -97,6 +103,7 @@ export const useViewerState = () => {
     toggleBrowser,
     toggleRDIManager,
     toggleProgressManager,
+    toggleBIMColors,
     toggleInfoCoordenada,
     toggleCategoryColor,
     toggleProperties,

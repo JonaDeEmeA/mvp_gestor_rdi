@@ -58,7 +58,10 @@ Se sigue un patrón de **Arquitectura de Componentes con Capas de Servicio y Rep
 | `[Feature] IProgressRepository` | `src/repositories/interfaces/IProgressRepository.js` | Interfaz (contrato) que define los métodos que cualquier repositorio de avance de obra (IndexedDB, Firebase) debe implementar. |
 | `[Feature] ProgressDB` | `src/database/ProgressDB.js` | Configura e inicializa la base de datos IndexedDB dedicada `ProgressDB` (versión 1) y sus almacenes (`objectStores`). |
 | `[Feature] GuidMapService` | `src/services/guidMapService.js` | Servicio singleton que almacena el mapa bidireccional en memoria entre GlobalId (GUID) y coordenadas `modelId:instanceId`. |
-| `[Feature] ProgressPanel` | `src/componentes/Progress/` | Panel y subcomponentes (`ProgressGroupList`, `ProgressGroupDetail`, `ProgressGroupForm`) para la gestión del avance físico de obra, toma de fotos (Blobs) y visualización. |
+| `[Feature] ProgressPanel` | `src/componentes/Progress/` | Panel y subcomponentes (`ProgressGroupList`, `ProgressGroupDetail`, `ProgressGroupForm`, `PhotoCapture`, `SnapshotForm`, `SnapshotHistoryPanel`) para la gestión del avance físico de obra, toma de fotos (Blobs) y visualización. |
+| `[Feature] useBIMColors` | `src/hooks/useBIMColors.js` | Hook para aplicar de forma interactiva y con alto rendimiento los colores de avance físico (BIM) a las instancias de los elementos 3D del visor utilizando estilos de highlighter personalizados. |
+| `[Feature] useProgressPhotos` | `src/hooks/useProgressPhotos.js` | Hook que encapsula el CRUD de fotografías vinculadas a hitos/snapshots de avance, gestionando la optimización de imágenes (redimensionamiento en Canvas) y la liberación de Object URLs para evitar fugas de memoria. |
+| `[Feature] useProgressSnapshots` | `src/hooks/useProgressSnapshots.js` | Hook para gestionar el historial de hitos de avance (snapshots) de un grupo de obra y disparar la actualización de progreso correspondiente. |
 
 ---
 

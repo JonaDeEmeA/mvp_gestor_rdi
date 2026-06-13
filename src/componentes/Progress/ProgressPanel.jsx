@@ -1,18 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Box, Typography, CircularProgress, Alert, IconButton,
+  Box, Typography, CircularProgress, Alert, Paper,
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button,
 } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
 import { useProgressManager } from '../../hooks/useProgressManager';
 import ProgressGroupList from './ProgressGroupList';
 import ProgressGroupForm from './ProgressGroupForm';
 import ProgressGroupDetail from './ProgressGroupDetail';
+import CloseButton from '../CloseButton';
+import { BIM_COLORS } from '../../constants/designTokens';
 
-const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGuids, onClose }) => {
+const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGuids, onClose, showBIMColors = false, onApplyBIMColors, onClearBIMColors, bimDataRef }) => {
   const {
     groups, loading, error,
-    createGroup, deleteGroup,
+    createGroup, deleteGroup, updateGroup,
     addElementToGroup, removeElementFromGroup,
     getElementsByGroup, getGroupsByElement,
   } = useProgressManager();
@@ -40,10 +41,25 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
   }, [groups, getElementsByGroup]);
 
   useEffect(() => {
-    if (groups.length > 0) {
-      loadElementCounts();
+    if (bimDataRef) {
+      bimDataRef.current = { groups, getElementsByGroup };
     }
-  }, [groups, loadElementCounts]);
+  });
+
+  useEffect(() => {
+    if (groups.length > 0 && showBIMColors) {
+      loadElementCounts();
+      if (onApplyBIMColors) {
+        onApplyBIMColors(groups, getElementsByGroup);
+      }
+    }
+  }, [groups, loadElementCounts, onApplyBIMColors, getElementsByGroup, showBIMColors]);
+
+  useEffect(() => {
+    if (groups.length === 0 && onClearBIMColors) {
+      onClearBIMColors();
+    }
+  }, [groups.length, onClearBIMColors]);
 
   const loadGroupElements = useCallback(async (groupId) => {
     const elements = await getElementsByGroup(groupId);
@@ -85,6 +101,9 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
   };
 
   const handleDeleteGroup = async (groupId) => {
+    if (onClearBIMColors) {
+      onClearBIMColors();
+    }
     await deleteGroup(groupId);
     if (selectedGroup?.id === groupId) {
       handleBack();
@@ -115,6 +134,9 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
     await addElementToGroup(groupId, ifcGuid, elementType);
     await loadGroupElements(groupId);
     await loadElementCounts();
+    if (showBIMColors && onApplyBIMColors) {
+      onApplyBIMColors(groups, getElementsByGroup);
+    }
   };
 
   const handleConfirmAssign = async () => {
@@ -124,6 +146,9 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
     await addElementToGroup(targetGroupId, ifcGuid, elementType);
     await loadGroupElements(targetGroupId);
     await loadElementCounts();
+    if (showBIMColors && onApplyBIMColors) {
+      onApplyBIMColors(groups, getElementsByGroup);
+    }
   };
 
   const handleCancelDialog = () => {
@@ -134,6 +159,20 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
     await removeElementFromGroup(groupId, ifcGuid);
     await loadGroupElements(groupId);
     await loadElementCounts();
+    if (showBIMColors && onApplyBIMColors) {
+      onApplyBIMColors(groups, getElementsByGroup);
+    }
+  };
+
+  const handleGroupProgressUpdate = async (groupId, progress) => {
+    await updateGroup(groupId, { progress });
+    if (selectedGroup?.id === groupId) {
+      setSelectedGroup((prev) => prev ? { ...prev, progress } : prev);
+    }
+    await loadElementCounts();
+    if (showBIMColors && onApplyBIMColors) {
+      onApplyBIMColors(groups, getElementsByGroup);
+    }
   };
 
   if (loading && groups.length === 0) {
@@ -145,31 +184,34 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
   }
 
   return (
-    <Box
+    <Paper
+      elevation={3}
       sx={{
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: 'background.paper',
+        bgcolor: BIM_COLORS.neutral.background.main,
         pointerEvents: 'auto',
+        borderRadius: 0,
+        borderLeft: { sm: `1px solid ${BIM_COLORS.neutral.border}` },
+        position: 'relative',
       }}
     >
       <Box
         sx={{
+          bgcolor: BIM_COLORS.primary.main,
+          color: 'white',
+          p: 2,
+          pr: 1,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          p: 1.5,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
+          position: 'relative',
         }}
       >
-        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', fontSize: '1rem' }}>
           Avance de Obra
         </Typography>
-        <IconButton size="small" onClick={onClose}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
+        <CloseButton onClose={onClose} tooltip="Cerrar Avance de Obra" />
       </Box>
 
       {error && (
@@ -209,6 +251,8 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
             onBack={handleBack}
             onAssignElement={handleAssignElement}
             onRemoveElement={handleRemoveElement}
+            onGroupProgressUpdate={handleGroupProgressUpdate}
+            onHighlightByGuids={onHighlightByGuids}
           />
         )}
       </Box>
@@ -224,13 +268,23 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelDialog}>Cancelar</Button>
-          <Button onClick={handleConfirmAssign} variant="contained" autoFocus>
+          <Button onClick={handleCancelDialog} sx={{ color: BIM_COLORS.neutral.text.secondary }}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmAssign}
+            variant="contained"
+            autoFocus
+            sx={{
+              bgcolor: BIM_COLORS.accent.main,
+              '&:hover': { bgcolor: BIM_COLORS.accent.active }
+            }}
+          >
             Sí, continuar
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Paper>
   );
 };
 

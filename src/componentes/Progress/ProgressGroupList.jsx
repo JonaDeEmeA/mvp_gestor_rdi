@@ -13,15 +13,22 @@ const GroupListItem = ({ group, elementCount, isActive, onHighlight, onViewDetai
     <ListItem
       disablePadding
       secondaryAction={
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
           <IconButton
             size="small"
             onClick={(e) => { e.stopPropagation(); onHighlight(group); }}
             sx={{ color: BIM_COLORS.primary.active }}
+            title="Resaltar en 3D"
           >
             <VisibilityIcon fontSize="small" />
           </IconButton>
-          <IconButton edge="end" size="small" onClick={(e) => { e.stopPropagation(); onDelete(group.id); }}>
+          <IconButton
+            edge="end"
+            size="small"
+            onClick={(e) => { e.stopPropagation(); onDelete(group.id); }}
+            sx={{ color: BIM_COLORS.status.error.main }}
+            title="Eliminar"
+          >
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -31,11 +38,17 @@ const GroupListItem = ({ group, elementCount, isActive, onHighlight, onViewDetai
         onClick={() => onViewDetail(group.id)}
         sx={{
           borderRadius: 1,
-          mb: 0.5,
-          bgcolor: isActive ? 'rgba(76, 175, 80, 0.08)' : 'transparent',
-          border: isActive ? '1px solid' : '1px solid transparent',
-          borderColor: isActive ? BIM_COLORS.accent.main : 'transparent',
-          '&:hover': { bgcolor: isActive ? 'rgba(76, 175, 80, 0.12)' : 'rgba(0,0,0,0.04)' },
+          mb: 1.5,
+          border: '1px solid',
+          borderColor: isActive ? BIM_COLORS.accent.main : BIM_COLORS.neutral.border,
+          bgcolor: isActive ? BIM_COLORS.accent.soft : 'white',
+          transition: 'all 0.2s',
+          '&:hover': {
+            borderColor: isActive ? BIM_COLORS.accent.main : BIM_COLORS.primary.main,
+            bgcolor: isActive ? BIM_COLORS.accent.soft : 'rgba(0,0,0,0.02)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+            transform: 'translateY(-2px)'
+          },
         }}
       >
         <ListItemText
@@ -45,7 +58,7 @@ const GroupListItem = ({ group, elementCount, isActive, onHighlight, onViewDetai
           }}
           primary={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" sx={{ fontWeight: isActive ? 'bold' : 'medium', flex: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', color: BIM_COLORS.neutral.text.primary, flex: 1 }}>
                 {group.name}
               </Typography>
               <Chip
@@ -73,7 +86,7 @@ const GroupListItem = ({ group, elementCount, isActive, onHighlight, onViewDetai
                   '& .MuiLinearProgress-bar': { bgcolor: color },
                 }}
               />
-              <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, mt: 0.3, display: 'block' }}>
+              <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, mt: 0.5, display: 'block' }}>
                 {elementCount} elemento{elementCount !== 1 ? 's' : ''}
                 {isActive ? ' · Activo' : ''}
                 {group.description ? ` · ${group.description}` : ''}
@@ -89,11 +102,11 @@ const GroupListItem = ({ group, elementCount, isActive, onHighlight, onViewDetai
 const ProgressGroupList = ({ groups, elementCounts, activeGroupId, onHighlightGroup, onViewDetail, onAddGroup, onDeleteGroup }) => {
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: BIM_COLORS.neutral.text.primary }}>
           Grupos de Avance ({groups.length})
         </Typography>
-        <IconButton size="small" onClick={onAddGroup} sx={{ color: BIM_COLORS.accent.main }}>
+        <IconButton size="small" onClick={onAddGroup} sx={{ color: BIM_COLORS.accent.main }} title="Nuevo Grupo">
           <AddIcon />
         </IconButton>
       </Box>
@@ -119,7 +132,7 @@ const ProgressGroupList = ({ groups, elementCounts, activeGroupId, onHighlightGr
       )}
 
       {activeGroupId && (
-        <Typography variant="caption" sx={{ color: BIM_COLORS.accent.main, display: 'block', textAlign: 'center', mt: 1 }}>
+        <Typography variant="caption" sx={{ color: BIM_COLORS.accent.main, display: 'block', textAlign: 'center', mt: 1, fontWeight: 'medium' }}>
           Un grupo está activo. Los elementos 3D seleccionados se asignarán automáticamente.
         </Typography>
       )}

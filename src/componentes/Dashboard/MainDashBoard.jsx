@@ -13,6 +13,7 @@ import CreateIssueTypeDialog from './CreateIssueTypeDialog';
 import RDIChartsPanel from './RDIChartsPanel';
 import IncidenciasPanel from './IncidenciasPanel';
 import ModelosPanel from './ModelosPanel';
+import ProgressDashboard from '../Progress/ProgressDashboard';
 import { useRDIStats } from '../../hooks/useRDIStats';
 
 import {
@@ -53,7 +54,9 @@ import {
   Map as MapIcon,
   Assignment as AssignmentIcon,
   Settings as SettingsIcon,
-  Folder as FolderIcon
+  Folder as FolderIcon,
+  ShowChart as ProgressIcon,
+  Timeline as TimelineIcon
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 280;
@@ -80,6 +83,7 @@ export default function Dashboard({ userProjects = [] }) {
   // Estados para menús colapsables
   const [incidenciasOpen, setIncidenciasOpen] = useState(true);
   const [modelosOpen, setModelosOpen] = useState(true);
+  const [avanceOpen, setAvanceOpen] = useState(true);
   const [activeView, setActiveView] = useState('dashboard');
   const [showCreateTypeDialog, setShowCreateTypeDialog] = useState(false);
   const [showCreateIssueDialog, setShowCreateIssueDialog] = useState(false);
@@ -457,6 +461,57 @@ export default function Dashboard({ userProjects = [] }) {
             </Collapse>
           </ListItem>
 
+          {/* Avance de Obra (Collapsible) */}
+          <ListItem disablePadding sx={{ flexDirection: 'column', alignItems: 'stretch' }}>
+            <ListItemButton
+              onClick={() => setAvanceOpen(!avanceOpen)}
+              sx={{
+                py: 1.5,
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 45 }}>
+                <ProgressIcon sx={{ color: activeView === 'avance' ? '#4CAF50' : 'rgba(255,255,255,0.7)' }} />
+              </ListItemIcon>
+              <ListItemText primary="Avance de Obra" primaryTypographyProps={{ fontSize: '0.95rem' }} />
+              {avanceOpen ? <ExpandLess sx={{ fontSize: '1.2rem', opacity: 0.7 }} /> : <ExpandMore sx={{ fontSize: '1.2rem', opacity: 0.7 }} />}
+            </ListItemButton>
+
+            <Collapse in={avanceOpen} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                <ListItemButton
+                  selected={activeView === 'avance'}
+                  sx={{
+                    pl: 6,
+                    py: 1,
+                    '&.Mui-selected': { bgcolor: 'rgba(255,255,255,0.1)' },
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+                  }}
+                  onClick={() => setActiveView('avance')}
+                >
+                  <ListItemIcon sx={{ minWidth: 30 }}>
+                    <TimelineIcon sx={{ color: activeView === 'avance' ? '#4CAF50' : 'rgba(255,255,255,0.5)', fontSize: '1.1rem' }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Panel de Avance" primaryTypographyProps={{ fontSize: '0.85rem', color: activeView === 'avance' ? 'white' : 'rgba(255,255,255,0.8)', fontWeight: activeView === 'avance' ? 'bold' : 'normal' }} />
+                </ListItemButton>
+
+                <ListItemButton
+                  sx={{
+                    pl: 6,
+                    py: 1,
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+                  }}
+                  onClick={() => router.push('/viewer?tool=progress')}
+                >
+                  <ListItemIcon sx={{ minWidth: 30 }}>
+                    <CubeIcon sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem' }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Visor 3D de Avance" primaryTypographyProps={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }} />
+                </ListItemButton>
+              </List>
+            </Collapse>
+          </ListItem>
+
           {/* Configuración */}
           <ListItem disablePadding>
             <ListItemButton
@@ -708,6 +763,8 @@ export default function Dashboard({ userProjects = [] }) {
                 projectId={currentProject.id} 
                 onCreateClick={() => setShowCreateTypeDialog(true)} 
               />
+            ) : activeView === 'avance' ? (
+              <ProgressDashboard />
             ) : (
               <ModelosPanel projectId={currentProject.id} />
             )}
