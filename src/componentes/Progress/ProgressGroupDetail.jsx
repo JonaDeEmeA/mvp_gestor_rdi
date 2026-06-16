@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box, Typography, LinearProgress, Chip, List, ListItemButton,
-  ListItemText, Button, IconButton, Paper, Tabs, Tab,
+  ListItemText, Button, IconButton, Paper, Tabs, Tab, Tooltip,
 } from '@mui/material';
-import { ArrowBack as BackIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
-import { getProgressColor } from '../../constants/progressStandards';
+import { ArrowBack as BackIcon, Delete as DeleteIcon, Add as AddIcon, Warning as WarningIcon } from '@mui/icons-material';
+import { getProgressColor, getWeightUnitLabel, formatWeight } from '../../constants/progressStandards';
+import { calculateCompliance } from '../../services/progressCalculator';
 import { BIM_COLORS } from '../../constants/designTokens';
 import { useProgressSnapshots } from '../../hooks/useProgressSnapshots';
 import { useProgressPhotos } from '../../hooks/useProgressPhotos';
@@ -81,8 +82,13 @@ const ProgressGroupDetail = ({ group, elements, selectedGuid, onBack, onAssignEl
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', flex: 1, color: BIM_COLORS.neutral.text.primary }}>
           {group.name}
         </Typography>
+        {group.isCritical && (
+          <Tooltip title="Grupo crítico">
+            <WarningIcon sx={{ fontSize: 18, color: BIM_COLORS.status.warning.main }} />
+          </Tooltip>
+        )}
         <Chip
-          label={`${group.progress}%`}
+          label={`${Number(group.progress).toFixed(1)}%`}
           size="small"
           sx={{
             fontWeight: 'bold',
@@ -103,6 +109,42 @@ const ProgressGroupDetail = ({ group, elements, selectedGuid, onBack, onAssignEl
           '& .MuiLinearProgress-bar': { bgcolor: color },
         }}
       />
+
+      <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
+        <Chip
+          label={formatWeight(group.weight ?? 1.0, group.weightUnit)}
+          size="small"
+          variant="outlined"
+          sx={{ fontSize: '0.65rem', height: 20, borderColor: BIM_COLORS.neutral.border, color: BIM_COLORS.neutral.text.secondary }}
+        />
+        <Chip
+          label={getWeightUnitLabel(group.weightUnit)}
+          size="small"
+          variant="outlined"
+          sx={{ fontSize: '0.65rem', height: 20, borderColor: BIM_COLORS.neutral.border, color: BIM_COLORS.neutral.text.secondary }}
+        />
+        {group.plannedProgress > 0 && (
+          <Chip
+            label={`Meta: ${Number(group.plannedProgress).toFixed(1)}%`}
+            size="small"
+            variant="outlined"
+            sx={{ fontSize: '0.65rem', height: 20, borderColor: BIM_COLORS.neutral.border, color: BIM_COLORS.neutral.text.secondary }}
+          />
+        )}
+        {group.plannedProgress > 0 && (
+          <Chip
+            label={`Cumplimiento: ${calculateCompliance(group.progress, group.plannedProgress).toFixed(1)}%`}
+            size="small"
+            sx={{
+              fontSize: '0.65rem',
+              height: 20,
+              fontWeight: 'bold',
+              bgcolor: group.progress >= group.plannedProgress ? BIM_COLORS.accent.soft : BIM_COLORS.status.warning.soft,
+              color: group.progress >= group.plannedProgress ? BIM_COLORS.accent.main : BIM_COLORS.status.warning.main,
+            }}
+          />
+        )}
+      </Box>
 
       {group.description && (
         <Typography variant="body2" sx={{ color: BIM_COLORS.neutral.text.secondary, mb: 1.5 }}>

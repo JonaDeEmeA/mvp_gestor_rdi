@@ -1,4 +1,5 @@
 import { getDB, STORES } from '../database/ProgressDB';
+import { DEFAULT_WEIGHT, round2 } from '../constants/progressStandards';
 
 const generateId = () => `progress-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -36,7 +37,12 @@ class IndexedDBProgressRepository {
       id: generateId(),
       name: data.name || '',
       description: data.description || '',
-      progress: data.progress || 0,
+      progress: round2(data.progress ?? 0),
+      weight: data.weight ?? DEFAULT_WEIGHT,
+      weightUnit: data.weightUnit || 'porcentaje',
+      plannedProgress: round2(data.plannedProgress ?? 0),
+      isCritical: data.isCritical ?? false,
+      parentId: data.parentId || null,
       createdAt: now,
       updatedAt: now,
       createdBy: data.createdBy || '',
@@ -68,6 +74,9 @@ class IndexedDBProgressRepository {
           ...existing,
           ...data,
           id,
+          progress: data.progress !== undefined ? round2(data.progress) : existing.progress,
+          weight: data.weight !== undefined ? data.weight : existing.weight,
+          plannedProgress: data.plannedProgress !== undefined ? round2(data.plannedProgress) : existing.plannedProgress,
           updatedAt: new Date().toISOString(),
         };
 
@@ -259,6 +268,50 @@ class IndexedDBProgressRepository {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
+  }
+
+  async getChildGroups(parentId) {
+    return executeTransaction(STORES.PROGRESS_GROUPS, 'readonly', (store, resolve) => {
+      const index = store.index('parentId');
+      const request = index.getAll(IDBKeyRange.only(parentId));
+      request.onsuccess = () => resolve(request.result || []);
+    });
+  }
+
+  async getRootGroups() {
+    return executeTransaction(STORES.PROGRESS_GROUPS, 'readonly', (store, resolve) => {
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const all = request.result || [];
+        resolve(all.filter((g) => !g.parentId));
+      };
+    });
+  }
+
+  async getGroupsByParent(parentId) {
+    if (!parentId) return this.getRootGroups();
+    return this.getChildGroups(parentId);
+  }
+
+  async getGroupTree() {
+    const all = await this.getGroups();
+    const map = new Map();
+    const roots = [];
+
+    for (const group of all) {
+      map.set(group.id, { ...group, children: [] });
+    }
+
+    for (const group of all) {
+      const node = map.get(group.id);
+      if (group.parentId && map.has(group.parentId)) {
+        map.get(group.parentId).children.push(node);
+      } else if (!group.parentId) {
+        roots.push(node);
+      }
+    }
+
+    return roots;
   }
 }
 

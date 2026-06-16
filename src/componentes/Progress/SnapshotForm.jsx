@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import {
-  Box, Slider, TextField, Button, Typography, Paper,
+  Box, Slider, TextField, Button, Typography, Paper, Grid,
 } from '@mui/material';
 import { BIM_COLORS } from '../../constants/designTokens';
+import { round2 } from '../../constants/progressStandards';
 
 const SnapshotForm = ({ currentProgress, onSave, onCancel }) => {
   const [progress, setProgress] = useState(currentProgress || 0);
@@ -13,7 +14,7 @@ const SnapshotForm = ({ currentProgress, onSave, onCancel }) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await onSave(progress, comment.trim());
+      await onSave(round2(Number(progress)), comment.trim());
       setComment('');
     } finally {
       setSaving(false);
@@ -37,16 +38,16 @@ const SnapshotForm = ({ currentProgress, onSave, onCancel }) => {
       <Box component="form" onSubmit={handleSubmit}>
         <Box sx={{ px: 1, mb: 2 }}>
           <Typography variant="caption" sx={{ color: BIM_COLORS.neutral.text.secondary, mb: 1, display: 'block' }}>
-            Porcentaje de avance: <strong>{progress}%</strong>
+            Porcentaje de avance: <strong>{Number(progress).toFixed(2)}%</strong>
           </Typography>
           <Slider
-            value={progress}
+            value={typeof progress === 'number' ? progress : 0}
             onChange={(e, val) => setProgress(val)}
             min={0}
             max={100}
-            step={5}
+            step={0.5}
             valueLabelDisplay="auto"
-            valueLabelFormat={(val) => `${val}%`}
+            valueLabelFormat={(val) => `${val.toFixed(1)}%`}
             sx={{
               color: BIM_COLORS.primary.active,
               '& .MuiSlider-thumb': {
@@ -56,6 +57,20 @@ const SnapshotForm = ({ currentProgress, onSave, onCancel }) => {
             }}
           />
         </Box>
+
+        <Grid container spacing={1.5} sx={{ mb: 2, px: 1 }}>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Valor exacto"
+              type="number"
+              value={progress}
+              onChange={(e) => setProgress(Number(e.target.value) || 0)}
+              inputProps={{ min: 0, max: 100, step: 0.1 }}
+            />
+          </Grid>
+        </Grid>
 
         <TextField
           fullWidth

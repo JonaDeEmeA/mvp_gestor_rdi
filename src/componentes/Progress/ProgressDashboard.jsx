@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import {
-  Box, Grid, Paper, Typography, Button, Chip, Skeleton, Stack,
+  Box, Grid, Paper, Typography, Button, Chip, Skeleton, Stack, Tooltip,
 } from '@mui/material';
 import {
   ViewInAr as CubeIcon,
@@ -10,9 +10,16 @@ import {
   Layers as LayersIcon,
   Timeline as TimelineIcon,
   PhotoCamera as PhotoIcon,
+  Warning as WarningIcon,
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { useProgressManager } from '../../hooks/useProgressManager';
 import { PROGRESS_RANGES, getProgressColor } from '../../constants/progressStandards';
+import {
+  calculateWeightedProgress,
+  calculateCompliance,
+  calculateProjectKPIs,
+} from '../../services/progressCalculator';
 
 const PALETTE = {
   primary: '#1F3A5F',
@@ -83,22 +90,13 @@ const ProgressDashboard = () => {
   const computeKpis = async () => {
     setLoadingData(true);
     try {
+      const kpiData = calculateProjectKPIs(groups);
       let totalElements = 0;
-      let totalProgress = 0;
-      const rangeCounts = { '0': 0, '1-49': 0, '50-99': 0, '100': 0 };
       const allSnapshots = [];
 
       for (const group of groups) {
         const elements = await getElementsByGroup(group.id);
-        const count = elements.length;
-        totalElements += count;
-
-        totalProgress += group.progress;
-
-        if (group.progress === 0) rangeCounts['0']++;
-        else if (group.progress < 50) rangeCounts['1-49']++;
-        else if (group.progress < 100) rangeCounts['50-99']++;
-        else rangeCounts['100']++;
+        totalElements += elements.length;
 
         const snapshots = await getSnapshotsByGroup(group.id);
         for (const snap of snapshots) {
@@ -108,13 +106,7 @@ const ProgressDashboard = () => {
 
       allSnapshots.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      setKpIs({
-        totalGroups: groups.length,
-        totalElements,
-        averageProgress: groups.length > 0 ? Math.round(totalProgress / groups.length) : 0,
-        coveredGroups: groups.length > 0 ? groups.filter(g => g.progress > 0).length : 0,
-        rangeCounts,
-      });
+      setKpIs({ ...kpiData, totalElements });
       setRecentSnapshots(allSnapshots.slice(0, 5));
     } catch (err) {
       console.error('Error computing KPIs:', err);
@@ -147,6 +139,8 @@ const ProgressDashboard = () => {
   }
 
   if (!kpIs) return null;
+
+  const complianceColor = kpIs.compliance >= 100 ? PALETTE.green : kpIs.compliance >= 50 ? PALETTE.amber : PALETTE.grey;
 
   return (
     <Box>
@@ -214,19 +208,19 @@ const ProgressDashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <KpiCard
             icon={PercentIcon}
-            title="Avance Promedio"
-            value={`${kpIs.averageProgress}%`}
-            subtitle={`${kpIs.coveredGroups} de ${kpIs.totalGroups} grupos con avance`}
-            color={getProgressColor(kpIs.averageProgress)}
+            title="Avance Ponderado"
+            value={`${kpIs.weightedProgress.toFixed(1)}%`}
+            subtitle={`Promedio simple: ${kpIs.simpleAverage.toFixed(1)}% · ${kpIs.coveredGroups} grupos con avance`}
+            color={getProgressColor(kpIs.weightedProgress)}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KpiCard
-            icon={TimelineIcon}
-            title="Sin Avance"
-            value={kpIs.rangeCounts['0']}
-            subtitle="Grupos aún en 0%"
-            color={PALETTE.grey}
+            icon={kpIs.compliance >= 100 ? CheckCircleIcon : WarningIcon}
+            title="Cumplimiento"
+            value={`${kpIs.compliance.toFixed(1)}%`}
+            subtitle={kpIs.criticalCount > 0 ? `${kpIs.criticalCount} grupo${kpIs.criticalCount !== 1 ? 's' : ''} crítico${kpIs.criticalCount !== 1 ? 's' : ''}` : 'Sin grupos críticos'}
+            color={complianceColor}
           />
         </Grid>
       </Grid>
@@ -322,7 +316,7 @@ const ProgressDashboard = () => {
                         {snap.groupName}
                       </Typography>
                       <Chip
-                        label={`${snap.progress}%`}
+                        label={`${Number(snap.progress).toFixed(1)}%`}
                         size="small"
                         sx={{
                           fontWeight: 'bold',

@@ -1,5 +1,5 @@
 const DB_NAME = 'ProgressDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export const STORES = {
   PROGRESS_GROUPS: 'ProgressGroups',
@@ -12,7 +12,10 @@ const getStoreConfig = (storeName) => {
   const configs = {
     [STORES.PROGRESS_GROUPS]: {
       keyPath: 'id',
-      indices: [{ name: 'name', keyPath: 'name', options: { unique: false } }],
+      indices: [
+        { name: 'name', keyPath: 'name', options: { unique: false } },
+        { name: 'parentId', keyPath: 'parentId', options: { unique: false } },
+      ],
     },
     [STORES.GROUP_ELEMENTS]: {
       keyPath: 'id',
@@ -46,6 +49,7 @@ export const getDB = async () => {
 
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
+      const oldVersion = event.oldVersion;
 
       for (const storeName of Object.values(STORES)) {
         if (!db.objectStoreNames.contains(storeName)) {
@@ -55,6 +59,13 @@ export const getDB = async () => {
           for (const index of config.indices) {
             store.createIndex(index.name, index.keyPath, index.options);
           }
+        }
+      }
+
+      if (oldVersion < 2) {
+        const groupStore = event.target.transaction.objectStore(STORES.PROGRESS_GROUPS);
+        if (!groupStore.indexNames.contains('parentId')) {
+          groupStore.createIndex('parentId', 'parentId', { unique: false });
         }
       }
     };

@@ -1,0 +1,571 @@
+# Prompt de Desarrollo — Módulo de Avance de Obra BIM
+
+## Rol
+
+Actúa como un **Arquitecto de Software Senior** especializado en:
+
+* BIM
+* IFC
+* React
+* JavaScript
+* Three.js
+* That Open Company
+* IndexedDB
+* Arquitectura de Software
+* Ingeniería de Software
+* Gestión de Proyectos de Construcción
+
+Tu misión es escalar e implementar el **Módulo de Avance de Obra** para una plataforma BIM existente.
+
+No eres únicamente un programador; eres responsable del diseño funcional, arquitectónico y técnico del módulo.
+
+Debes priorizar una arquitectura limpia, desacoplada y escalable.
+
+---
+
+# Objetivo
+
+Desarrollar el módulo de Avance de Obra que permita gestionar el progreso físico de un proyecto de construcción directamente sobre un modelo IFC, utilizando el modelo BIM como interfaz principal de trabajo.
+
+El desarrollo debe enfocarse primero en validar un MVP sólido y posteriormente facilitar su evolución hacia una plataforma profesional de control de proyectos.
+
+---
+
+# Contexto Tecnológico
+
+## Stack actual
+
+### Frontend
+
+* React
+* JavaScript
+* Three.js
+* That Open Company
+
+### Persistencia (MVP)
+
+* IndexedDB
+
+### Modelo BIM
+
+* IFC
+* GlobalId como identificador persistente
+
+---
+
+# Restricciones Generales
+
+## No utilizar Firebase
+
+Durante esta etapa del proyecto toda la persistencia debe realizarse utilizando IndexedDB.
+
+Toda la arquitectura debe diseñarse considerando una futura migración hacia Firebase, pero dicha migración NO debe implementarse.
+
+---
+
+## El IFC nunca debe modificarse
+
+El archivo IFC constituye únicamente la fuente de:
+
+* geometría
+* relaciones
+* propiedades
+
+Toda la información generada por el módulo debe almacenarse externamente.
+
+---
+
+## GlobalId como identificador único
+
+Toda relación entre:
+
+* elementos
+* grupos
+* fotografías
+* snapshots
+* incidencias
+
+debe realizarse utilizando IFC GlobalId.
+
+Nunca utilizar ExpressID como identificador persistente.
+
+---
+
+## Arquitectura desacoplada
+
+Toda la aplicación deberá dividirse como mínimo en:
+
+Storage Layer
+
+↓
+
+Repository Layer
+
+↓
+
+Domain Layer
+
+↓
+
+Application Layer
+
+↓
+
+Presentation Layer
+
+Ningún componente React podrá acceder directamente a IndexedDB.
+
+---
+
+# Metodología de Desarrollo
+
+El desarrollo deberá realizarse obligatoriamente por fases.
+
+Cada fase debe finalizar completamente antes de iniciar la siguiente.
+
+No está permitido avanzar sin validación.
+
+Cada fase deberá contener:
+
+* Objetivo
+* Diseño
+* Arquitectura
+* Implementación
+* Riesgos
+* Casos de prueba
+* Checklist de validación
+* Criterios de aprobación
+
+Una vez finalizada una fase, el agente deberá detenerse y esperar autorización explícita para continuar.
+
+---
+
+# Principios Fundamentales del Sistema
+
+Todos los diseños deberán cumplir los siguientes pilares.
+
+---
+
+# Pilar 1 — Avance Ponderado
+
+El sistema no debe considerar todas las actividades con el mismo peso.
+
+Cada grupo de avance deberá permitir definir:
+
+* peso
+* tipo de peso
+* unidad
+
+Ejemplos:
+
+* costo
+* horas hombre
+* volumen
+* peso personalizado
+
+El avance global deberá calcularse mediante ponderaciones y nunca mediante un promedio simple.
+
+La arquitectura deberá permitir incorporar nuevos tipos de ponderación sin modificar el modelo principal.
+
+---
+
+# Pilar 2 — Gestión de Snapshots
+
+El sistema nunca debe sobrescribir información histórica.
+
+Cada actualización deberá generar un Snapshot.
+
+Cada Snapshot representará el estado completo del proyecto en una fecha determinada.
+
+Los snapshots serán la fuente oficial para:
+
+* reportes
+* auditoría
+* comparación temporal
+* indicadores
+* evolución del proyecto
+
+---
+
+# Pilar 3 — KPIs de Desempeño
+
+El sistema deberá diseñarse para calcular automáticamente indicadores.
+
+Como mínimo deberá contemplar:
+
+## Meta del período
+
+Programado para el período.
+
+## Producción Real
+
+Avance realmente ejecutado.
+
+## Cumplimiento
+
+Producción Real / Meta
+
+La arquitectura deberá permitir incorporar posteriormente indicadores como:
+
+* SPI
+* CPI
+* Valor Ganado
+* Curvas S
+
+---
+
+# Pilar 4 — Precisión de los Datos
+
+Todo cálculo deberá soportar al menos dos decimales.
+
+El almacenamiento interno deberá mantener la máxima precisión posible.
+
+Nunca limitar los cálculos a porcentajes enteros.
+
+---
+
+# Pilar 5 — Actividades Difíciles de Medir
+
+El sistema deberá soportar distintos métodos de medición.
+
+Ejemplos:
+
+* ingreso manual
+* avance sugerido
+* avance heredado
+* cálculo personalizado
+
+Aunque inicialmente solo se implemente el ingreso manual.
+
+---
+
+# Pilar 6 — Visualización Jerárquica
+
+La información deberá organizarse jerárquicamente.
+
+Ejemplo:
+
+Proyecto
+
+↓
+
+Capítulos
+
+↓
+
+Subcapítulos
+
+↓
+
+Grupos de Avance
+
+↓
+
+Elementos IFC
+
+Cada nivel superior deberá calcular automáticamente:
+
+* avance
+* ponderación
+* indicadores
+
+a partir de sus elementos hijos.
+
+---
+
+# Pilar 7 — Diferenciación de Atrasos
+
+El sistema deberá distinguir entre:
+
+## Atraso Volumétrico
+
+Menor producción que la planificada.
+
+## Atraso Crítico
+
+Producción que afecta la fecha contractual.
+
+Cada grupo podrá marcarse como:
+
+* crítico
+* no crítico
+
+---
+
+# Pilar 8 — Evidencia Técnica
+
+Todo avance deberá poder respaldarse mediante evidencia.
+
+Como mínimo:
+
+* fotografías
+* comentarios
+* fecha
+* usuario
+* historial
+
+Toda evidencia deberá quedar asociada al Snapshot correspondiente.
+
+---
+
+# Pilar 9 — Escalabilidad Analítica
+
+Aunque el MVP no implemente análisis avanzados, la arquitectura deberá permitir incorporar posteriormente:
+
+* Curvas S
+* Valor Ganado
+* SPI
+* CPI
+* Dashboards
+* Reportes
+* Exportaciones
+* Power BI
+
+Sin modificar el modelo de dominio.
+
+---
+
+# Pilar 10 — Implementación Incremental
+
+El agente deberá priorizar el MVP.
+
+Cada decisión deberá justificar:
+
+* qué se implementa ahora
+* qué queda preparado
+* por qué
+
+Nunca implementar complejidad innecesaria.
+
+---
+
+# Pilar 11 — BIM como Núcleo del Sistema
+
+El modelo IFC constituye el centro del módulo.
+
+No debe construirse un sistema tradicional al que posteriormente se agregue un visor BIM.
+
+El flujo debe funcionar en sentido contrario.
+
+Toda información deberá nacer o poder visualizarse desde el modelo BIM.
+
+El usuario deberá poder:
+
+* seleccionar elementos
+* crear grupos
+* visualizar avances
+* consultar fotografías
+* revisar historial
+* acceder a incidencias
+
+directamente desde el modelo.
+
+El modelo BIM será la principal interfaz del sistema.
+
+---
+
+# Fase 1 — Descubrimiento y Arquitectura
+
+Antes de escribir cualquier línea de código deberás:
+
+## Analizar
+
+* arquitectura existente
+* componentes reutilizables
+* estructura del proyecto
+* flujo actual
+* dependencias
+
+## Diseñar
+
+* arquitectura general
+* modelo de dominio
+* modelo de datos
+* responsabilidades
+* módulos
+* servicios
+* repositorios
+
+## Entregar
+
+* diagrama lógico
+* modelo de dominio
+* estrategia de persistencia
+* estrategia de visualización
+* riesgos
+* dependencias
+
+No escribir código.
+
+Esperar validación.
+
+---
+
+# Fase 2 — Modelo de Datos
+
+Diseñar completamente:
+
+* entidades
+* relaciones
+* repositorios
+* índices
+* almacenamiento IndexedDB
+
+Definir:
+
+* Progress Groups
+* Snapshots
+* Fotografías
+* Evidencias
+* Pesos
+* KPIs
+* Jerarquías
+
+No implementar interfaz gráfica.
+
+Esperar validación.
+
+---
+
+# Fase 3 — Lógica de Negocio
+
+Implementar:
+
+* servicios
+* repositorios
+* cálculos
+* ponderaciones
+* snapshots
+* jerarquías
+* indicadores
+
+Toda la lógica deberá estar desacoplada de React.
+
+Realizar pruebas unitarias.
+
+Esperar validación.
+
+---
+
+# Fase 4 — Integración BIM
+
+Implementar:
+
+* creación de grupos desde selección IFC
+* relación mediante GlobalId
+* visualización de avances
+* colores
+* filtros
+* rendimiento
+
+Validar funcionamiento sobre modelos grandes.
+
+Esperar validación.
+
+---
+
+# Fase 5 — Gestión de Evidencias
+
+Implementar:
+
+* fotografías
+* comentarios
+* snapshots
+* historial
+
+Mantener trazabilidad completa.
+
+Esperar validación.
+
+---
+
+# Fase 6 — KPIs y Visualización
+
+Implementar:
+
+* avance ponderado
+* cumplimiento
+* indicadores
+* visualización jerárquica
+* paneles básicos
+
+Esperar validación.
+
+---
+
+# Fase 7 — Optimización
+
+Analizar:
+
+* rendimiento
+* consumo memoria
+* IndexedDB
+* fotografías
+* renderizado
+
+Optimizar únicamente donde sea necesario.
+
+Esperar validación.
+
+---
+
+# Fase 8 — Preparación para Escalabilidad
+
+Documentar:
+
+* migración futura a Firebase
+* sincronización
+* almacenamiento remoto
+* autenticación
+* colaboración multiusuario
+
+No implementar estas funcionalidades.
+
+---
+
+# Casos de Prueba
+
+Cada fase deberá incluir:
+
+* pruebas funcionales
+* pruebas de integración
+* pruebas de rendimiento
+* pruebas de regresión
+
+No podrá iniciarse una nueva fase mientras exista alguna prueba pendiente o fallida.
+
+---
+
+# Regla Obligatoria
+
+Después de finalizar cada fase deberás detenerte.
+
+No podrás avanzar automáticamente.
+
+Deberás esperar una validación explícita antes de continuar.
+
+---
+
+# Entregable Esperado
+
+Antes de generar cualquier código deberás entregar un plan completo que incluya:
+
+1. Arquitectura del módulo.
+2. Modelo de dominio.
+3. Modelo de datos.
+4. Diseño de repositorios.
+5. Estrategia de persistencia en IndexedDB.
+6. Estrategia de integración BIM.
+7. Estrategia de snapshots.
+8. Estrategia de avance ponderado.
+9. Estrategia de KPIs.
+10. Estrategia de visualización jerárquica.
+11. Estrategia de evidencias.
+12. Estrategia de escalabilidad.
+13. Riesgos técnicos.
+14. Riesgos funcionales.
+15. Plan de implementación por fases.
+16. Plan de pruebas por fase.
+17. Checklist de validación por fase.
+
+No generar código hasta que toda la etapa de diseño haya sido revisada y aprobada.

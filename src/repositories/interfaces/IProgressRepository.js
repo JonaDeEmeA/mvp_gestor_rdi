@@ -23,4 +23,9 @@ export const IProgressRepositoryMethods = [
   'getPhotosBySnapshot',
   'addPhoto',
   'deletePhoto',
+  // Jerarquía y ponderación
+  'getChildGroups',
+  'getRootGroups',
+  'getGroupTree',
+  'getGroupsByParent',
 ];

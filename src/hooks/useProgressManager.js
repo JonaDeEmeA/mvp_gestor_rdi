@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import IndexedDBProgressRepository from '../repositories/IndexedDBProgressRepository';
+import {
+  calculateWeightedProgress,
+  calculateCompliance,
+  buildGroupTree,
+  calculateProjectKPIs,
+} from '../services/progressCalculator';
 
 export const useProgressManager = () => {
   const [groups, setGroups] = useState([]);
@@ -156,6 +162,50 @@ export const useProgressManager = () => {
     }
   }, []);
 
+  const weightedProgress = useCallback(() => {
+    return calculateWeightedProgress(groups);
+  }, [groups]);
+
+  const compliance = useCallback(() => {
+    const wp = calculateWeightedProgress(groups);
+    const avgPlanned = groups.length > 0
+      ? groups.reduce((s, g) => s + (g.plannedProgress ?? 0), 0) / groups.length
+      : 0;
+    return calculateCompliance(wp, avgPlanned);
+  }, [groups]);
+
+  const groupTree = useCallback(() => {
+    return buildGroupTree(groups);
+  }, [groups]);
+
+  const projectKPIs = useCallback(async () => {
+    const kpis = calculateProjectKPIs(groups);
+    let totalElements = 0;
+    for (const group of groups) {
+      const elements = await repo.getElementsByGroup(group.id);
+      totalElements += elements.length;
+    }
+    return { ...kpis, totalElements };
+  }, [groups]);
+
+  const getChildGroups = useCallback(async (parentId) => {
+    try {
+      return await repo.getChildGroups(parentId);
+    } catch (err) {
+      setError(err.message || 'Error al obtener subgrupos');
+      return [];
+    }
+  }, []);
+
+  const getRootGroups = useCallback(async () => {
+    try {
+      return await repo.getRootGroups();
+    } catch (err) {
+      setError(err.message || 'Error al obtener grupos raíz');
+      return [];
+    }
+  }, []);
+
   return {
     groups,
     loading,
@@ -173,5 +223,11 @@ export const useProgressManager = () => {
     createSnapshot,
     addPhoto,
     getPhotosBySnapshot,
+    weightedProgress,
+    compliance,
+    groupTree,
+    projectKPIs,
+    getChildGroups,
+    getRootGroups,
   };
 };

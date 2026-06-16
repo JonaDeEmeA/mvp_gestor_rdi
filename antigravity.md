@@ -28,7 +28,8 @@ Se sigue un patrón de **Arquitectura de Componentes con Capas de Servicio y Rep
 4.  **[Feature: Avance en Obra] Flujo de Gestión de Avance**: 
     - **Registro de Mapeos**: Durante la carga del IFC mediante `processIfcFile`, se usa `IfcLoader` con atributos únicos habilitados para generar un mapa bidireccional en `GuidMapService` (GUID ↔ {modelId, instanceId (ExpressID)}).
     - **Selección e Identificación**: Al seleccionar un elemento en el visor 3D, `usePropertySelection` obtiene su GlobalId (GUID) y lo asocia a un grupo de avance.
-    - **Persistencia**: `useProgressManager` delega el almacenamiento en `IndexedDBProgressRepository` (que implementa `IProgressRepository`), guardando la información de grupos, elementos (por GUID), hitos de avance (snapshots) y capturas fotográficas (almacenadas óptimamente como Blobs binarios para evitar el overhead de Base64) en la base de datos `ProgressDB`.
+    - **Persistencia**: `useProgressManager` delega el almacenamiento en `IndexedDBProgressRepository` (que implementa `IProgressRepository`), guardando la información de grupos (soportando jerarquía de árbol mediante `parentId`, pesos y avances programados), elementos (por GUID), hitos de avance (snapshots) y capturas fotográficas (almacenadas óptimamente como Blobs binarios para evitar el overhead de Base64) en la base de datos `ProgressDB`.
+    - **Cálculo de Progreso**: La lógica de negocio realiza cálculos avanzados ponderados (porcentaje, costo, horas hombre, volumen) y cálculo de cumplimiento (real vs planificado) propagando el progreso de manera ascendente en el árbol.
     - **Visualización BIM**: El estado de avance se mapea visualmente sobre la geometría 3D aplicando colores específicos por rangos de avance directos a nivel de instancia del fragmento via `setColor` para mantener el rendimiento.
 
 ---
@@ -53,15 +54,16 @@ Se sigue un patrón de **Arquitectura de Componentes con Capas de Servicio y Rep
 | `RDIView` | `src/componentes/TabTools/RDIView.jsx` | Componente de visualización detallada de incidencias que integra un **sistema de comentarios directo** (sin modo edición) con orden cronológico descendente y formateo de fecha PPPp. |
 | `TabTools` | `src/componentes/TabTools.jsx` | Contenedor principal de herramientas del visor que implementa `handleAddCommentDirect` para persistir comentarios de forma fluida y autoría basada en `useAuth`. |
 | `usePropertySelection` | `src/hooks/usePropertySelection.js` | Gestiona la selección y recuperación de metadatos/Psets del elemento IFC, extrayendo el `selectedGuid` (GlobalId) y mapeándolo en `GuidMapService`. |
-| `[Feature] useProgressManager` | `src/hooks/useProgressManager.js` | Hook que orquesta la lógica de negocio y las llamadas al repositorio para gestionar grupos de avance, snapshots e imágenes. |
-| `[Feature] IndexedDBProgressRepository` | `src/repositories/IndexedDBProgressRepository.js` | Implementación de `IProgressRepository` que interactúa con `ProgressDB` para almacenar y consultar grupos, elementos, snapshots e imágenes. |
-| `[Feature] IProgressRepository` | `src/repositories/interfaces/IProgressRepository.js` | Interfaz (contrato) que define los métodos que cualquier repositorio de avance de obra (IndexedDB, Firebase) debe implementar. |
-| `[Feature] ProgressDB` | `src/database/ProgressDB.js` | Configura e inicializa la base de datos IndexedDB dedicada `ProgressDB` (versión 1) y sus almacenes (`objectStores`). |
+| `[Feature] useProgressManager` | `src/hooks/useProgressManager.js` | Hook que orquesta la lógica de negocio y las llamadas al repositorio para gestionar grupos de avance, snapshots e imágenes. Soporta jerarquía en árbol, cálculo de progreso ponderado, cumplimiento de metas y KPIs de proyecto. |
+| `[Feature] IndexedDBProgressRepository` | `src/repositories/IndexedDBProgressRepository.js` | Implementación de `IProgressRepository` que interactúa con `ProgressDB` para almacenar y consultar grupos (con soporte de parentId), elementos, snapshots e imágenes. |
+| `[Feature] IProgressRepository` | `src/repositories/interfaces/IProgressRepository.js` | Interfaz (contrato) que define los métodos que cualquier repositorio de avance de obra (IndexedDB, Firebase) debe implementar. Incluye métodos de jerarquía como `getChildGroups`, `getRootGroups` y `getGroupTree`. |
+| `[Feature] ProgressDB` | `src/database/ProgressDB.js` | Configura e inicializa la base de datos IndexedDB dedicada `ProgressDB` (versión 2) y sus almacenes (`objectStores`), incluyendo índices para la consulta jerárquica de subgrupos (`parentId`). |
 | `[Feature] GuidMapService` | `src/services/guidMapService.js` | Servicio singleton que almacena el mapa bidireccional en memoria entre GlobalId (GUID) y coordenadas `modelId:instanceId`. |
 | `[Feature] ProgressPanel` | `src/componentes/Progress/` | Panel y subcomponentes (`ProgressGroupList`, `ProgressGroupDetail`, `ProgressGroupForm`, `PhotoCapture`, `SnapshotForm`, `SnapshotHistoryPanel`) para la gestión del avance físico de obra, toma de fotos (Blobs) y visualización. |
 | `[Feature] useBIMColors` | `src/hooks/useBIMColors.js` | Hook para aplicar de forma interactiva y con alto rendimiento los colores de avance físico (BIM) a las instancias de los elementos 3D del visor utilizando estilos de highlighter personalizados. |
 | `[Feature] useProgressPhotos` | `src/hooks/useProgressPhotos.js` | Hook que encapsula el CRUD de fotografías vinculadas a hitos/snapshots de avance, gestionando la optimización de imágenes (redimensionamiento en Canvas) y la liberación de Object URLs para evitar fugas de memoria. |
 | `[Feature] useProgressSnapshots` | `src/hooks/useProgressSnapshots.js` | Hook para gestionar el historial de hitos de avance (snapshots) de un grupo de obra y disparar la actualización de progreso correspondiente. |
+| `[Feature] progressCalculator` | `src/services/progressCalculator.js` | Módulo de servicio con funciones puras para calcular el progreso ponderado de grupos, el porcentaje de cumplimiento contra la planificación, la estructura de árbol jerárquica y los KPIs agregados del proyecto. |
 
 ---
 

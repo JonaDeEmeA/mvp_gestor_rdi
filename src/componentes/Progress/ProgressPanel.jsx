@@ -228,6 +228,7 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
             show={true}
             onCancel={handleBack}
             onSave={handleCreateGroup}
+            existingGroups={groups}
           />
         )}
 
