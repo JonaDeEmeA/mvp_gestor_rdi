@@ -173,7 +173,7 @@ const EditPanel = ({
   );
 };
 
-export default function TabTools({ sx, topic, world, component, onClose, autoOpenForm, autoEditId, autoViewId, onFormOpened }) {
+export default function TabTools({ sx, topic, world, component, onClose, autoOpenForm, autoEditId, autoViewId, onFormOpened, selectedGuid, metadataService }) {
   const router = useRouter();
   const [tabValue, setTabValue] = useState(0)
   
@@ -230,7 +230,7 @@ export default function TabTools({ sx, topic, world, component, onClose, autoOpe
     updateCameraFromViewpoint
   } = useViewpoints(component, world)
 
-  // Hook de gestión de RDIs (nuevo sistema unificado)
+  // Hook de gestión de RDIs (soporta metadataService + legacy IndexedDB)
   const {
     rdiList,
     loading: rdiLoading,
@@ -247,7 +247,7 @@ export default function TabTools({ sx, topic, world, component, onClose, autoOpe
     exportRDIToBCF,
     exportAllRDIsToBCF,
     refreshRDIs,
-  } = useRDIManager(db);
+  } = useRDIManager(db, { metadataService, selectedGuid });
 
   useEffect(() => {
     if (rdiList.length > 0 && autoEditId) {

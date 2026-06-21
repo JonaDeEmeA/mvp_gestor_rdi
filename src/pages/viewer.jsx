@@ -37,8 +37,13 @@ import ProgressPanel from '@/componentes/Progress/ProgressPanel';
 import { useLocalModels } from '@/hooks/useLocalModels';
 import { useBIMColors } from '@/hooks/useBIMColors';
 import { Warning as WarningIcon } from '@mui/icons-material';
+import MetadataService from '../services/metadataService';
+import { useVersionSync } from '../hooks/useVersionSync';
+import VersionSyncPanel from '../componentes/VersionSyncPanel';
+import ElementDashboard from '../componentes/ElementDashboard';
 // Constantes
 import { STYLES, VIEWER_CONFIG } from '../constants/viewerConfig';
+import { PROGRESS_RANGES } from '../constants/progressStandards';
 import React from 'react';
 
 const APPBAR_HEIGHT = 48; // px — barra compacta estilo Autodesk
@@ -111,6 +116,29 @@ export default function Home() {
 
 
 
+  // Dashboard unificado por GlobalId
+  const [showElementDashboard, setShowElementDashboard] = useState(false);
+
+  // Servicio de metadatos BIM (MVP: solo IndexedDB, canvas para Firebase)
+  const metadataServiceRef = useRef(null);
+  if (!metadataServiceRef.current) {
+    const projectId = typeof window !== 'undefined'
+      ? localStorage.getItem('bimProjectId') || 'proyecto-default'
+      : 'proyecto-default';
+    metadataServiceRef.current = new MetadataService(projectId);
+  }
+  const metadataService = metadataServiceRef.current;
+
+  // Sincronización de versiones IFC
+  const {
+    syncSummary,
+    ifcVersionId,
+    lastSyncTime,
+    syncing: versionSyncing,
+    runSync: runVersionSync,
+    resetSync: resetVersionSync,
+  } = useVersionSync(metadataService);
+
   // Hook para coordenadas
   const { pickedPoint, pickVertex } = useVertexPicker(componentsRef.current, worldRef.current);
 
@@ -121,6 +149,11 @@ export default function Home() {
     highlighterRef.current,
     setSelectedEntityProps
   );
+
+  // Auto-abrir dashboard al seleccionar elemento
+  useEffect(() => {
+    if (selectedGuid) setShowElementDashboard(true);
+  }, [selectedGuid]);
 
   const bimColors = useBIMColors(fragmentsRef.current, highlighterRef.current);
   const bimDataRef = useRef({ groups: [], getElementsByGroup: null });
@@ -637,6 +670,83 @@ export default function Home() {
             properties={selectedEntityProps}
           />
 
+          <ElementDashboard
+            open={showElementDashboard}
+            onClose={() => setShowElementDashboard(false)}
+            selectedGuid={selectedGuid}
+            metadataService={metadataService}
+          />
+
+          {/* Leyenda de colores de avance BIM */}
+          {showBIMColors && (
+            <Box
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              sx={{
+                position: 'absolute',
+                bottom: 16,
+                left: 16,
+                zIndex: 10,
+                bgcolor: 'rgba(15, 25, 45, 0.82)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 2,
+                px: 1.5,
+                py: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 0.6,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'rgba(255,255,255,0.5)',
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  mb: 0.4,
+                }}
+              >
+                Avance físico
+              </Typography>
+              {PROGRESS_RANGES.map((range) => (
+                <Box
+                  key={range.label}
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                >
+                  <Box
+                    sx={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: '3px',
+                      backgroundColor: range.color,
+                      flexShrink: 0,
+                      boxShadow: `0 0 6px ${range.color}80`,
+                    }}
+                  />
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}
+                  >
+                    {range.label}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', ml: 'auto', pl: 1 }}
+                  >
+                    {range.min === range.max
+                      ? `${range.min}%`
+                      : `${range.min}–${range.max}%`}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+
           {/* Grupo de botones flotantes */}
           <Box
             onPointerDown={(e) => e.stopPropagation()}
@@ -701,6 +811,27 @@ export default function Home() {
           </Box>
         </Box>
 
+        {/* Panel de sincronización de versiones IFC */}
+        {importedModels.length > 0 && (
+          <Box
+            sx={{
+              position: { xs: "static", sm: "absolute" },
+              width: { xs: "100%", sm: "280px" },
+              bottom: { sm: 16 },
+              right: { sm: showRDIManager ? 366 : 16 },
+              zIndex: 25,
+            }}
+          >
+            <VersionSyncPanel
+              onSync={runVersionSync}
+              summary={syncSummary}
+              loading={versionSyncing}
+              ifcVersionId={ifcVersionId}
+              lastSyncTime={lastSyncTime}
+            />
+          </Box>
+        )}
+
         {/* TabTools */}
         {showRDIManager && (
           <TabTools data-testid="DOS B"
@@ -715,6 +846,8 @@ export default function Home() {
               setAutoEditId(null);
               setAutoViewId(null);
             }}
+            selectedGuid={selectedGuid}
+            metadataService={metadataService}
             sx={{
               position: { xs: "static", sm: "absolute" },
               width: { xs: "100%", sm: "350px" },

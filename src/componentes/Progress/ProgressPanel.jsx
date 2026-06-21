@@ -175,6 +175,20 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
     }
   };
 
+  const handlePlannedProgressUpdate = async (groupId, plannedProgress) => {
+    await updateGroup(groupId, { plannedProgress });
+    if (selectedGroup?.id === groupId) {
+      setSelectedGroup((prev) => prev ? { ...prev, plannedProgress } : prev);
+    }
+  };
+
+  const handleCurveUpdate = async (groupId, plannedCurve) => {
+    await updateGroup(groupId, { plannedCurve });
+    if (selectedGroup?.id === groupId) {
+      setSelectedGroup((prev) => prev ? { ...prev, plannedCurve } : prev);
+    }
+  };
+
   if (loading && groups.length === 0) {
     return (
       <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
@@ -247,12 +261,15 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
         {view === 'detail' && selectedGroup && (
           <ProgressGroupDetail
             group={selectedGroup}
+            groups={groups}
             elements={groupElements[selectedGroup.id] || []}
             selectedGuid={selectedGuid}
             onBack={handleBack}
             onAssignElement={handleAssignElement}
             onRemoveElement={handleRemoveElement}
             onGroupProgressUpdate={handleGroupProgressUpdate}
+            onPlannedProgressUpdate={handlePlannedProgressUpdate}
+            onCurveUpdate={handleCurveUpdate}
             onHighlightByGuids={onHighlightByGuids}
           />
         )}

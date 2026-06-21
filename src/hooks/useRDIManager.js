@@ -2,219 +2,213 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAnalytics } from './useAnalytics';
 import { RDI_STANDARDS } from '../constants/rdiStandards';
 
+const normalizeRDI = (item) => {
+  if (!item) return null;
 
-export const useRDIManager = (db) => {
+  const normalizedStatus = item.status || item.estado || 'Abierta';
+  const normalizedType = item.type || item.tipo || 'General';
+  const normalizedLabel = item.label || item.etiqueta || 'General';
+
+  return {
+    ...item,
+    id: item.id || item.guid || `rdi-${Date.now()}`,
+    title: item.title || item.titulo || 'Sin título',
+    description: item.description || item.comentario || item.descripcion || '',
+    status: RDI_STANDARDS.statuses.includes(normalizedStatus) ? normalizedStatus : 'Abierta',
+    type: RDI_STANDARDS.types.includes(normalizedType) ? normalizedType : 'General',
+    label: RDI_STANDARDS.labels.includes(normalizedLabel) ? normalizedLabel : 'General',
+    assignedTo: item.assignedTo || item.assigned_to || item.asignado_a || '',
+    dueDate: item.dueDate || item.fecha || null,
+    creationDate: item.creationDate || item.creation_date || item.createdAt || item.fecha || new Date().toISOString(),
+    creationAuthor: item.creationAuthor || item.creation_author || item.autor || '',
+    updatedAt: item.updatedAt || item.modified_date || item.fecha_modificacion || new Date().toISOString(),
+    comments: (item.comments && Array.isArray(item.comments) && item.comments.length > 0)
+      ? item.comments
+      : (item.comentario ? [{
+          guid: `c-legacy-${item.id || item.guid}`,
+          comment: item.comentario,
+          author: item.creationAuthor || item.creation_author || item.autor || 'Usuario',
+          date: item.creationDate || item.creation_date || item.createdAt || item.fecha || new Date().toISOString()
+        }] : [])
+  };
+};
+
+const loadFromDB = (db) => new Promise((resolve, reject) => {
+  if (!db || !db.objectStoreNames.contains('topics')) {
+    resolve([]);
+    return;
+  }
+  const transaction = db.transaction(['topics'], 'readonly');
+  const store = transaction.objectStore('topics');
+  const request = store.getAll();
+  request.onsuccess = () => resolve(request.result || []);
+  request.onerror = () => reject(request.error);
+  transaction.onabort = () => resolve([]);
+});
+
+const saveToDB = (db, data) => new Promise((resolve, reject) => {
+  if (!db) return reject(new Error('IndexedDB no disponible'));
+  const transaction = db.transaction(['topics'], 'readwrite');
+  const store = transaction.objectStore('topics');
+  const request = store.add(data);
+  request.onsuccess = () => resolve(data);
+  request.onerror = () => reject(request.error);
+});
+
+const updateInDB = (db, id, data) => new Promise((resolve, reject) => {
+  if (!db) return reject(new Error('IndexedDB no disponible'));
+  const transaction = db.transaction(['topics'], 'readwrite');
+  const store = transaction.objectStore('topics');
+  const getRequest = store.get(id);
+  getRequest.onsuccess = () => {
+    const existing = getRequest.result;
+    if (!existing) return reject(new Error(`RDI ${id} no encontrado`));
+    const updated = { ...existing, ...data, id, updatedAt: new Date().toISOString() };
+    const putRequest = store.put(updated);
+    putRequest.onsuccess = () => resolve(updated);
+    putRequest.onerror = () => reject(putRequest.error);
+  };
+  getRequest.onerror = () => reject(getRequest.error);
+});
+
+const deleteFromDB = (db, id) => new Promise((resolve, reject) => {
+  if (!db) return reject(new Error('IndexedDB no disponible'));
+  const transaction = db.transaction(['topics'], 'readwrite');
+  const store = transaction.objectStore('topics');
+  const request = store.delete(id);
+  request.onsuccess = () => resolve(true);
+  request.onerror = () => reject(request.error);
+});
+
+const clearDB = (db) => new Promise((resolve, reject) => {
+  if (!db) return reject(new Error('IndexedDB no disponible'));
+  const transaction = db.transaction(['topics'], 'readwrite');
+  const store = transaction.objectStore('topics');
+  const request = store.clear();
+  request.onsuccess = () => resolve(true);
+  request.onerror = () => reject(request.error);
+});
+
+const collectAllIssues = async (metadataService) => {
+  const all = await metadataService.getAllByProject();
+  const issues = [];
+  for (const el of all) {
+    const elIssues = el.management?.issues || [];
+    for (const issue of elIssues) {
+      issues.push({ ...issue, _sourceGlobalId: el.globalId });
+    }
+  }
+  return issues.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+};
+
+export const useRDIManager = (db, { metadataService, selectedGuid } = {}) => {
   const [rdiList, setRdiList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { trackRDIAction } = useAnalytics();
-  
-  // Helper para normalizar datos (Legacy Spanish -> Canonical English)
-  const normalizeRDI = useCallback((item) => {
-    if (!item) return null;
-    
-    const normalizedStatus = item.status || item.estado || 'Abierta';
-    const normalizedType = item.type || item.tipo || 'General';
-    const normalizedLabel = item.label || item.etiqueta || 'General';
 
-    return {
-      ...item,
-      id: item.id || item.guid || `rdi-${Date.now()}`,
-      title: item.title || item.titulo || 'Sin título',
-      description: item.description || item.comentario || item.descripcion || '',
-      status: RDI_STANDARDS.statuses.includes(normalizedStatus) ? normalizedStatus : 'Abierta',
-      type: RDI_STANDARDS.types.includes(normalizedType) ? normalizedType : 'General',
-      label: RDI_STANDARDS.labels.includes(normalizedLabel) ? normalizedLabel : 'General',
-      assignedTo: item.assignedTo || item.assigned_to || item.asignado_a || '',
-      dueDate: item.dueDate || item.fecha || null,
-      creationDate: item.creationDate || item.creation_date || item.createdAt || item.fecha || new Date().toISOString(),
-      creationAuthor: item.creationAuthor || item.creation_author || item.autor || '',
-      updatedAt: item.updatedAt || item.modified_date || item.fecha_modificacion || new Date().toISOString(),
-      comments: (item.comments && Array.isArray(item.comments) && item.comments.length > 0)
-        ? item.comments
-        : (item.comentario ? [{
-            guid: `c-legacy-${item.id || item.guid}`,
-            comment: item.comentario,
-            author: item.creationAuthor || item.creation_author || item.autor || 'Usuario',
-            date: item.creationDate || item.creation_date || item.createdAt || item.fecha || new Date().toISOString()
-          }] : [])
-    };
-  }, []);
+  // Determinar si usamos metadata service o legacy IndexedDB
+  const useMetadata = !!metadataService;
 
-  // ── Carga inicial desde IndexedDB ────────────────────────────────────
-  // La lógica está inlineada para evitar problemas de stale closure con useCallback.
+  // Carga inicial (merge entre MetadataDB y legacy BCFDatabase)
   useEffect(() => {
-    // Si db aún no está disponible, no podemos cargar datos.
-    // Mantenemos loading=true hasta que db esté listo.
-    if (!db) return;
-
     let cancelled = false;
-
-    const loadData = () => {
+    const load = async () => {
       setLoading(true);
       setError(null);
-      console.log('🔄 [useRDIManager] Carga inicial: db disponible, cargando RDIs...');
-
       try {
-        if (!db.objectStoreNames.contains('topics')) {
-          console.warn('⚠️ [useRDIManager] Store "topics" no existe en la DB');
-          if (!cancelled) {
-            setRdiList([]);
-            setLoading(false);
-          }
-          return;
+        let all = [];
+
+        if (useMetadata) {
+          const fromMetadata = await collectAllIssues(metadataService);
+          all = fromMetadata;
         }
 
-        const transaction = db.transaction(['topics'], 'readonly');
-        const store = transaction.objectStore('topics');
-        const request = store.getAll();
-
-        request.onsuccess = () => {
-          if (!cancelled) {
-            const rdisFromDB = request.result || [];
-            console.log('✅ [useRDIManager] RDIs cargados:', rdisFromDB.length);
-            const normalized = rdisFromDB.map(normalizeRDI);
-            setRdiList(normalized);
-            setLoading(false);
+        if (db) {
+          const fromLegacy = await loadFromDB(db);
+          const legacyNormalized = (fromLegacy || []).map(normalizeRDI);
+          // Merge: legacy tiene prioridad si el ID ya existe en metadata
+          const existingIds = new Set(all.map((i) => i.id));
+          for (const item of legacyNormalized) {
+            if (!existingIds.has(item.id)) {
+              all.push(item);
+            }
           }
-        };
+        }
 
-        request.onerror = (event) => {
-          if (!cancelled) {
-            console.error('❌ [useRDIManager] Error en request:', event.target.error);
-            setError(event.target.error);
-            setLoading(false);
-          }
-        };
-
-        // Safeguard: si la transacción se aborta, asegurar que loading se libere
-        transaction.onabort = () => {
-          if (!cancelled) {
-            console.error('❌ [useRDIManager] Transacción abortada');
-            setLoading(false);
-          }
-        };
+        if (!cancelled) setRdiList(all.map(normalizeRDI));
       } catch (err) {
-        if (!cancelled) {
-          console.error('❌ [useRDIManager] Error capturado:', err);
-          setError(err);
-          setLoading(false);
-        }
+        if (!cancelled) setError(err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
+    if (useMetadata || db) load();
+    else setLoading(false);
+    return () => { cancelled = true; };
+  }, [db, useMetadata, metadataService]);
 
-    loadData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [db]);
-
-  // ── Función de recarga manual (para refresh, post-CRUD, etc.) ────────
   const loadRDIsFromDB = useCallback(async (silent = false) => {
-    if (!db) return;
-
     if (!silent) setLoading(true);
     setError(null);
-
     try {
-      if (!db.objectStoreNames.contains('topics')) {
-        setRdiList([]);
-        setLoading(false);
-        return;
+      let all = [];
+
+      if (useMetadata) {
+        const fromMetadata = await collectAllIssues(metadataService);
+        all = fromMetadata;
       }
-      const transaction = db.transaction(['topics'], 'readonly');
-      const store = transaction.objectStore('topics');
-      const request = store.getAll();
 
-      request.onsuccess = () => {
-        const rdisFromDB = request.result || [];
-        const normalized = rdisFromDB.map(normalizeRDI);
-        setRdiList(normalized);
-        setLoading(false);
-      };
+      if (db) {
+        const fromLegacy = await loadFromDB(db);
+        const legacyNormalized = (fromLegacy || []).map(normalizeRDI);
+        const existingIds = new Set(all.map((i) => i.id));
+        for (const item of legacyNormalized) {
+          if (!existingIds.has(item.id)) {
+            all.push(item);
+          }
+        }
+      }
 
-      request.onerror = (event) => {
-        setError(event.target.error);
-        setLoading(false);
-      };
-
-      transaction.onabort = () => {
-        setLoading(false);
-      };
+      setRdiList(all.map(normalizeRDI));
     } catch (err) {
       setError(err);
+    } finally {
       setLoading(false);
     }
-  }, [db]);
+  }, [db, useMetadata, metadataService]);
 
-  // Consultar RDI por ID directamente desde IndexedDB
   const getRDIByIdFromDB = useCallback(async (id) => {
-    if (!db) {
-      console.warn('IndexedDB no está listo');
-      return null;
+    if (useMetadata) {
+      const issues = await collectAllIssues(metadataService);
+      const found = issues.find((i) => i.id === id);
+      return normalizeRDI(found || null);
     }
-
+    if (!db) return null;
     try {
-      if (!db.objectStoreNames.contains('topics')) {
-        console.warn('Store "topics" no encontrado');
-        return null;
-      }
+      if (!db.objectStoreNames.contains('topics')) return null;
       const transaction = db.transaction(['topics'], 'readonly');
       const store = transaction.objectStore('topics');
       const request = store.get(id);
-
-      return new Promise((resolve, reject) => {
-        request.onsuccess = () => {
-          const result = normalizeRDI(request.result);
-          if (result) {
-            console.log('RDI encontrado en IndexedDB:', result);
-            resolve(result);
-          } else {
-            console.log(`RDI con ID ${id} no encontrado en IndexedDB`);
-            resolve(null);
-          }
-        };
-
-        request.onerror = (event) => {
-          console.error('Error consultando RDI por ID:', event.target.error);
-          reject(event.target.error);
-        };
+      return new Promise((resolve) => {
+        request.onsuccess = () => resolve(normalizeRDI(request.result));
+        request.onerror = () => resolve(null);
       });
-    } catch (err) {
-      console.error('Error en getRDIByIdFromDB:', err);
-      throw err;
-    }
-  }, [db]);
+    } catch { return null; }
+  }, [db, useMetadata, metadataService]);
 
-  // Guardar nuevo RDI en IndexedDB y actualizar lista local
-  // Solo guarda los datos del formulario (formData)
   const saveRDI = useCallback(async (formData, snapshotData = null) => {
-    if (!db) {
-      console.warn('IndexedDB no está listo');
-      return null;
-    }
-
     setLoading(true);
     setError(null);
-
     try {
-      if (!db.objectStoreNames.contains('topics')) {
-        throw new Error('Store "topics" no encontrado. La base de datos podría estar corrupta o desactualizada.');
-      }
-      const transaction = db.transaction(['topics'], 'readwrite');
-      const store = transaction.objectStore('topics');
-
-      // Preparar los datos del formulario para guardar
       const rdiToSave = {
-        ...formData, // Incluye title, description, status, type, label, dueDate, etc.
+        ...formData,
         comments: formData.comments || [],
-        // Metadatos de gestión
-        id: formData.id || Date.now(),
-        creationAuthor: formData.creationAuthor || "signed.user@mail.com",
+        id: formData.id || `rdi-${Date.now()}`,
+        globalId: formData.globalId || selectedGuid || '',
+        creationAuthor: formData.creationAuthor || 'signed.user@mail.com',
         creationDate: formData.creationDate || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        // Datos del snapshot: priorizar snapshotData, fallback a formData.snapshot
         snapshot: snapshotData ? {
           imageData: snapshotData.imageData,
           viewpointData: snapshotData.viewpointData,
@@ -222,227 +216,118 @@ export const useRDIManager = (db) => {
         } : (formData.snapshot || null)
       };
 
-      const request = store.add(rdiToSave);
+      if (useMetadata && rdiToSave.globalId) {
+        await metadataService.addIssue(rdiToSave.globalId, rdiToSave);
+      } else if (db) {
+        await saveToDB(db, rdiToSave);
+      }
 
-      return new Promise((resolve, reject) => {
-        request.onsuccess = () => {
-          console.log('RDI (formData + snapshot) guardado en IndexedDB:', rdiToSave);
-
-          // Actualizar lista local
-          setRdiList(prev => [...prev, rdiToSave]);
-          setLoading(false);
-          resolve(rdiToSave);
-        };
-
-        request.onerror = (event) => {
-          console.error('Error guardando RDI:', event.target.error);
-          setError(event.target.error);
-          setLoading(false);
-          reject(event.target.error);
-        };
-      });
+      setRdiList(prev => [...prev, rdiToSave]);
+      setLoading(false);
+      return rdiToSave;
     } catch (err) {
-      console.error('Error en saveRDI:', err);
       setError(err);
       setLoading(false);
       throw err;
     }
-  }, [db]);
+  }, [db, useMetadata, metadataService, selectedGuid]);
 
-  // Actualizar RDI existente en IndexedDB y lista local
   const updateRDI = useCallback(async (id, updatedData, snapshotData = null, silent = false) => {
-    if (!db) {
-      console.warn('IndexedDB no está listo');
-      return null;
-    }
-
     if (!silent) setLoading(true);
     setError(null);
-
     try {
-      if (!db.objectStoreNames.contains('topics')) {
-        throw new Error('Store "topics" no encontrado');
+      let updated;
+
+      if (useMetadata) {
+        const issues = await collectAllIssues(metadataService);
+        const target = issues.find((i) => i.id === id);
+        if (target) {
+          await metadataService.updateIssue(target._sourceGlobalId, id, updatedData);
+        }
       }
-      const transaction = db.transaction(['topics'], 'readwrite');
-      const store = transaction.objectStore('topics');
 
-      // Primero obtener el RDI existente
-      const getRequest = store.get(id);
+      // Fallback o primary: legacy BCFDatabase
+      if (db) {
+        const fromLegacy = await loadFromDB(db);
+        const legacyTarget = (fromLegacy || []).find((i) => (i.id || i.guid) === id);
+        if (legacyTarget) {
+          await updateInDB(db, id, updatedData);
+        } else if (!useMetadata) {
+          throw new Error(`RDI ${id} no encontrado`);
+        }
+      }
 
-      return new Promise((resolve, reject) => {
-        getRequest.onsuccess = () => {
-          const existingRDI = getRequest.result;
-
-          if (!existingRDI) {
-            const error = new Error(`RDI con ID ${id} no encontrado`);
-            setError(error);
-            setLoading(false);
-            reject(error);
-            return;
-          }
-
-          // Preparar datos actualizados
-          const updatedRDI = {
-            ...existingRDI,
-            ...updatedData,
-            id: id,
-            // Sincronizar llaves legadas para asegurar compatibilidad total bidireccional
-            titulo: updatedData.title || updatedData.titulo || existingRDI.titulo || existingRDI.title,
-            estado: updatedData.status || updatedData.estado || existingRDI.estado || existingRDI.status,
-            tipo: updatedData.type || updatedData.tipo || existingRDI.tipo || existingRDI.type,
-            etiqueta: updatedData.label || updatedData.etiqueta || existingRDI.etiqueta || existingRDI.label,
-            comentario: updatedData.description || updatedData.comentario || existingRDI.comentario || existingRDI.description,
-            
-            comments: updatedData.comments || existingRDI.comments || [],
-            creationAuthor: existingRDI.creationAuthor || existingRDI.creation_author || "signed.user@mail.com",
-            creationDate: existingRDI.creationDate || existingRDI.creation_date || existingRDI.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            // Actualizar snapshot: priorizar snapshotData, fallback a updatedData.snapshot, fallback a existingRDI.snapshot
-            snapshot: snapshotData ? {
-              imageData: snapshotData.imageData,
-              viewpointData: snapshotData.viewpointData,
-              createdAt: new Date().toISOString()
-            } : (updatedData.snapshot || existingRDI.snapshot || null)
-          };
-
-          // Actualizar en IndexedDB
-          const putRequest = store.put(updatedRDI);
-
-          putRequest.onsuccess = () => {
-            console.log('RDI actualizado en IndexedDB:', updatedRDI);
-
-            // Actualizar lista local
-            setRdiList(prev =>
-              prev.map(rdi => rdi.id === id ? updatedRDI : rdi)
-            );
-            setLoading(false);
-            resolve(updatedRDI);
-          };
-
-          putRequest.onerror = (event) => {
-            console.error('Error actualizando RDI:', event.target.error);
-            setError(event.target.error);
-            setLoading(false);
-            reject(event.target.error);
-          };
-        };
-
-        getRequest.onerror = (event) => {
-          console.error('Error obteniendo RDI para actualizar:', event.target.error);
-          setError(event.target.error);
-          setLoading(false);
-          reject(event.target.error);
-        };
-      });
+      updated = { ...updatedData, id, updatedAt: new Date().toISOString() };
+      setRdiList(prev => prev.map(rdi => rdi.id === id ? { ...rdi, ...updated } : rdi));
+      setLoading(false);
+      return updated;
     } catch (err) {
-      console.error('Error en updateRDI:', err);
       setError(err);
       setLoading(false);
       throw err;
     }
-  }, [db]);
+  }, [db, useMetadata, metadataService]);
 
-  // Eliminar RDI de IndexedDB y lista local
   const deleteRDI = useCallback(async (id) => {
-    if (!db) {
-      console.warn('IndexedDB no está listo');
-      return false;
-    }
-
     setLoading(true);
     setError(null);
-
     try {
-      if (!db.objectStoreNames.contains('topics')) {
-        throw new Error('Store "topics" no encontrado');
+      if (useMetadata) {
+        const issues = await collectAllIssues(metadataService);
+        const target = issues.find((i) => i.id === id);
+        if (target) {
+          await metadataService.removeIssue(target._sourceGlobalId, id);
+        }
       }
-      const transaction = db.transaction(['topics'], 'readwrite');
-      const store = transaction.objectStore('topics');
-      const request = store.delete(id);
-
-      return new Promise((resolve, reject) => {
-        request.onsuccess = () => {
-          console.log('RDI eliminado de IndexedDB:', id);
-
-          // Actualizar lista local
-          setRdiList(prev => prev.filter(rdi => rdi.id !== id));
-          setLoading(false);
-          trackRDIAction('delete', id);
-          resolve(true);
-        };
-
-        request.onerror = (event) => {
-          console.error('Error eliminando RDI:', event.target.error);
-          setError(event.target.error);
-          setLoading(false);
-          reject(event.target.error);
-        };
-      });
+      if (db) {
+        await deleteFromDB(db, id).catch(() => {});
+      }
+      setRdiList(prev => prev.filter(rdi => rdi.id !== id));
+      setLoading(false);
+      trackRDIAction('delete', id);
+      return true;
     } catch (err) {
-      console.error('Error en deleteRDI:', err);
       setError(err);
       setLoading(false);
       throw err;
     }
-  }, [db]);
+  }, [db, useMetadata, metadataService]);
 
-  // Actualizar solo el estado de un RDI
   const updateRDIStatus = useCallback(async (id, newStatus) => {
     return updateRDI(id, { status: newStatus });
   }, [updateRDI]);
 
-  // Obtener RDI por ID
   const getRDIById = useCallback((id) => {
     return rdiList.find(rdi => rdi.id === id);
   }, [rdiList]);
 
-  // Limpiar todos los RDIs
   const clearAllRDIs = useCallback(async () => {
-    if (!db) {
-      console.warn('IndexedDB no está listo');
-      return false;
-    }
-
     setLoading(true);
     setError(null);
-
     try {
-      if (!db.objectStoreNames.contains('topics')) {
-        throw new Error('Store "topics" no encontrado');
+      if (useMetadata) {
+        const issues = await collectAllIssues(metadataService);
+        for (const issue of issues) {
+          await metadataService.removeIssue(issue._sourceGlobalId, issue.id).catch(() => {});
+        }
       }
-      const transaction = db.transaction(['topics'], 'readwrite');
-      const store = transaction.objectStore('topics');
-      const request = store.clear();
-
-      return new Promise((resolve, reject) => {
-        request.onsuccess = () => {
-          console.log('Todos los RDIs eliminados de IndexedDB');
-          setRdiList([]);
-          setLoading(false);
-          resolve(true);
-        };
-
-        request.onerror = (event) => {
-          console.error('Error limpiando RDIs:', event.target.error);
-          setError(event.target.error);
-          setLoading(false);
-          reject(event.target.error);
-        };
-      });
+      if (db) {
+        await clearDB(db).catch(() => {});
+      }
+      setRdiList([]);
+      setLoading(false);
+      return true;
     } catch (err) {
-      console.error('Error en clearAllRDIs:', err);
       setError(err);
       setLoading(false);
       throw err;
     }
-  }, [db]);
+  }, [db, useMetadata, metadataService]);
 
-  // Recargar datos desde DB
   const refreshRDIs = useCallback(() => {
     loadRDIsFromDB();
   }, [loadRDIsFromDB]);
 
-  // Obtener estadísticas
   const getRDIStats = useCallback(() => {
     const total = rdiList.length;
     const byStatus = rdiList.reduce((acc, rdi) => {
@@ -450,20 +335,17 @@ export const useRDIManager = (db) => {
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {});
-
     const byType = rdiList.reduce((acc, rdi) => {
       const type = rdi.type || 'Sin tipo';
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {});
-
     return { total, byStatus, byType };
   }, [rdiList]);
 
-  // Convertir datos de RDI a formato BCF Topic
   const convertRDIToBCFTopic = useCallback((rdiData) => {
     return {
-      guid: rdiData.guid || rdiData.id, 
+      guid: rdiData.guid || rdiData.id,
       title: rdiData.title || 'Sin título',
       description: rdiData.description || '',
       topic_type: rdiData.type || 'General',
@@ -481,74 +363,41 @@ export const useRDIManager = (db) => {
     };
   }, []);
 
-  // Exportar un RDI individual a formato BCF
   const exportRDIToBCF = useCallback(async (rdiId) => {
     const rdi = getRDIById(rdiId);
-    if (!rdi) {
-      throw new Error(`RDI con ID ${rdiId} no encontrado`);
-    }
-
+    if (!rdi) throw new Error(`RDI con ID ${rdiId} no encontrado`);
     const bcfTopic = convertRDIToBCFTopic(rdi);
-
-    // Crear estructura BCF básica
-    const bcfData = {
-      version: '3.0',
-      topics: [bcfTopic],
-      project: {
-        name: 'Proyecto RDI',
-        project_id: 'rdi-project'
-      }
-    };
-
-    // Convertir a JSON para descarga
+    const bcfData = { version: '3.0', topics: [bcfTopic], project: { name: 'Proyecto RDI', project_id: 'rdi-project' } };
     const jsonString = JSON.stringify(bcfData, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
-
-    // Crear enlace de descarga
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `RDI_${rdi.id}_${rdi.titulo.replace(/[^a-zA-Z0-9]/g, '_')}.bcf.json`;
+    link.download = `RDI_${rdi.id}_${rdi.titulo || rdi.title}.bcf.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-
-    console.log('RDI exportado a BCF:', bcfTopic);
     trackRDIAction('export_individual_bcf', rdiId);
     return bcfTopic;
   }, [getRDIById, convertRDIToBCFTopic]);
 
-  // Exportar todos los RDIs a formato BCF
   const exportAllRDIsToBCF = useCallback(async () => {
-    if (rdiList.length === 0) {
-      throw new Error('No hay RDIs para exportar');
-    }
-
+    if (rdiList.length === 0) throw new Error('No hay RDIs para exportar');
     const bcfTopics = rdiList.map(rdi => convertRDIToBCFTopic(rdi));
-
-    // Crear estructura BCF completa
     const bcfData = {
       version: '3.0',
       topics: bcfTopics,
-      project: {
-        name: 'Proyecto RDI - Exportación Completa',
-        project_id: 'rdi-project-full',
-        creation_date: new Date().toISOString()
-      },
+      project: { name: 'Proyecto RDI - Exportación Completa', project_id: 'rdi-project-full', creation_date: new Date().toISOString() },
       extensions: {
-        topic_type: Array.from(new Set(rdiList.map(rdi => rdi.type).filter(Boolean))),
-        topic_status: Array.from(new Set(rdiList.map(rdi => rdi.status).filter(Boolean))),
-        topic_label: Array.from(new Set(rdiList.map(rdi => rdi.label).filter(Boolean))),
+        topic_type: [...new Set(rdiList.map(rdi => rdi.type).filter(Boolean))],
+        topic_status: [...new Set(rdiList.map(rdi => rdi.status).filter(Boolean))],
+        topic_label: [...new Set(rdiList.map(rdi => rdi.label).filter(Boolean))],
         users: ['signed.user@mail.com', 'coordinacion@gmail.com']
       }
     };
-
-    // Convertir a JSON para descarga
     const jsonString = JSON.stringify(bcfData, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
-
-    // Crear enlace de descarga
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -557,35 +406,24 @@ export const useRDIManager = (db) => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-
-    console.log(`${rdiList.length} RDIs exportados a BCF:`, bcfTopics);
     trackRDIAction('export_all_bcf', 'multiple');
     return bcfData;
   }, [rdiList, convertRDIToBCFTopic]);
 
   return {
-    // Estado
     rdiList,
     loading,
     error,
-
-    // Operaciones CRUD
     saveRDI,
     updateRDI,
     deleteRDI,
     updateRDIStatus,
-
-    // Utilidades
     getRDIByIdFromDB,
     getRDIById,
     clearAllRDIs,
     refreshRDIs,
     getRDIStats,
-
-    // Operaciones de carga
     loadRDIsFromDB,
-
-    // Exportación BCF
     convertRDIToBCFTopic,
     exportRDIToBCF,
     exportAllRDIsToBCF,

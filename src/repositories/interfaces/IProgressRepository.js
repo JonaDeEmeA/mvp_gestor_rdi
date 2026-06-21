@@ -4,6 +4,9 @@
  * Define el contrato que deben implementar todos los repositorios
  * (IndexedDB, Firebase, etc.). Los métodos devuelven objetos planos.
  *
+ * Esta interfaz se alinea con el dominio "production" del schema
+ * unificado definido en metadataStandards.js.
+ *
  * @interface IProgressRepository
  */
 
@@ -28,4 +31,7 @@ export const IProgressRepositoryMethods = [
   'getRootGroups',
   'getGroupTree',
   'getGroupsByParent',
+  // Integración con Metadata Repository (dominio production)
+  'getProductionDataForGlobalId',
+  'updateProductionDataFromMetadata',
 ];

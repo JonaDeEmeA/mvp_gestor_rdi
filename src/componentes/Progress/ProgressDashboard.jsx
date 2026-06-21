@@ -20,6 +20,7 @@ import {
   calculateCompliance,
   calculateProjectKPIs,
 } from '../../services/progressCalculator';
+import ProgressCurveChart from './ProgressCurveChart';
 
 const PALETTE = {
   primary: '#1F3A5F',
@@ -80,6 +81,7 @@ const ProgressDashboard = () => {
 
   const [kpIs, setKpIs] = useState(null);
   const [recentSnapshots, setRecentSnapshots] = useState([]);
+  const [snapshotsByGroup, setSnapshotsByGroup] = useState({});
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -90,15 +92,17 @@ const ProgressDashboard = () => {
   const computeKpis = async () => {
     setLoadingData(true);
     try {
-      const kpiData = calculateProjectKPIs(groups);
+      const kpiData = calculateProjectKPIs(groups, new Date());
       let totalElements = 0;
       const allSnapshots = [];
+      const byGroup = {};
 
       for (const group of groups) {
         const elements = await getElementsByGroup(group.id);
         totalElements += elements.length;
 
         const snapshots = await getSnapshotsByGroup(group.id);
+        byGroup[group.id] = snapshots;
         for (const snap of snapshots) {
           allSnapshots.push({ ...snap, groupName: group.name });
         }
@@ -107,6 +111,7 @@ const ProgressDashboard = () => {
       allSnapshots.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
       setKpIs({ ...kpiData, totalElements });
+      setSnapshotsByGroup(byGroup);
       setRecentSnapshots(allSnapshots.slice(0, 5));
     } catch (err) {
       console.error('Error computing KPIs:', err);
@@ -344,6 +349,14 @@ const ProgressDashboard = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      <Box sx={{ mt: 3 }}>
+        <ProgressCurveChart
+          groups={groups}
+          snapshotsByGroup={snapshotsByGroup}
+          loading={loading || loadingData}
+        />
+      </Box>
     </Box>
   );
 };

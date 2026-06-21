@@ -106,7 +106,7 @@ const ProgressGroupForm = ({ show, onCancel, onSave, existingGroups = [] }) => {
               }}
               error={!!weightError}
               helperText={weightError}
-              inputProps={{ min: 0.01, step: 0.1 }}
+              inputProps={{ min: 0.01, step: 'any' }}
             />
           </Grid>
           <Grid item xs={6}>
