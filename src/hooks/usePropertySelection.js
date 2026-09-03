@@ -3,12 +3,34 @@ import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import { getGuidMap } from '../services/guidMapService';
 
+const QUANTITY_VALUE_KEYS = ['LengthValue', 'AreaValue', 'VolumeValue', 'CountValue', 'WeightValue', 'TimeValue'];
+
+const QUANTITY_UNITS = {
+  LengthValue: 'm',
+  AreaValue: 'm²',
+  VolumeValue: 'm³',
+  CountValue: 'ud',
+  WeightValue: 'kg',
+  TimeValue: 'h',
+};
+
+const formatQuantityValue = (value) => {
+  const num = Number(value);
+  if (isNaN(num)) return String(value);
+  return num.toFixed(3).replace(/\.?0+$/, '');
+};
+
 const getPropertyValue = (property) => {
   if (property === null || property === undefined) return '';
   if (typeof property !== 'object') return String(property);
   if (property.value !== undefined) return String(property.value);
-  if (property.NominalValue && property.NominalValue.value !== undefined) {
-    return String(property.NominalValue.value);
+  if (property.NominalValue?.value !== undefined) return String(property.NominalValue.value);
+  for (const key of QUANTITY_VALUE_KEYS) {
+    if (property[key]?.value !== undefined) {
+      const formatted = formatQuantityValue(property[key].value);
+      const unit = QUANTITY_UNITS[key] || '';
+      return unit ? `${formatted} ${unit}` : formatted;
+    }
   }
   return 'Complejo';
 };
@@ -49,6 +71,7 @@ export const usePropertySelection = (components, world, highlighter, setSelected
             IsDefinedBy: { attributes: true, relations: true },
             HasPropertySets: { attributes: true, relations: true },
             IsTypedBy: { attributes: true, relations: false },
+            ContainedInStructure: { attributes: true, relations: false },
           },
         });
 
@@ -57,15 +80,32 @@ export const usePropertySelection = (components, world, highlighter, setSelected
 
           if (Array.isArray(attributes.IsDefinedBy)) {
             for (const pset of attributes.IsDefinedBy) {
-              if (pset.Name && "value" in pset.Name && Array.isArray(pset.HasProperties)) {
-                const properties = pset.HasProperties.map(prop => ({
-                  name: prop.Name?.value || '',
-                  value: getPropertyValue(prop)
-                }));
-                psets.push({
-                  name: pset.Name.value,
-                  properties: properties
-                });
+              if (pset.Name && "value" in pset.Name) {
+                const key = pset.Name.value;
+                const existing = psets.find(p => p.name === key);
+                const properties = existing ? existing.properties : {};
+
+                if (Array.isArray(pset.HasProperties)) {
+                  for (const prop of pset.HasProperties) {
+                    const propName = prop.Name?.value || '';
+                    if (propName) {
+                      properties[propName] = { value: getPropertyValue(prop) };
+                    }
+                  }
+                }
+
+                if (Array.isArray(pset.Quantities)) {
+                  for (const qto of pset.Quantities) {
+                    const qtoName = qto.Name?.value || '';
+                    if (qtoName) {
+                      properties[qtoName] = { value: getPropertyValue(qto) };
+                    }
+                  }
+                }
+
+                if (!existing && Object.keys(properties).length > 0) {
+                  psets.push({ name: key, properties });
+                }
               }
             }
           }
@@ -93,11 +133,21 @@ export const usePropertySelection = (components, world, highlighter, setSelected
         getGuidMap().addMapping(globalId, modelId, Number(expressID));
       }
 
+      let spatialContainer = null;
+      if (attributes.ContainedInStructure) {
+        const container = attributes.ContainedInStructure;
+        spatialContainer = {
+          name: container.Name?.value || container.RelatingStructure?.Name?.value || '',
+          type: container.RelatingStructure?.type?.value || '',
+        };
+      }
+
       setSelectedEntityProps({
         attributes: attributes,
         psets: psets,
         modelName: model.name || modelId,
         globalId: globalId,
+        spatialContainer,
       });
 
     } catch (error) {

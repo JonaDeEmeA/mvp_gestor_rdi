@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Box, Typography, LinearProgress, Chip, List, ListItemButton,
   ListItemText, Button, IconButton, Paper, Tabs, Tab, Tooltip, TextField,
@@ -9,6 +9,10 @@ import {
   Warning as WarningIcon, Timeline as TimelineIcon,
   ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { es } from 'date-fns/locale';
 import { getProgressColor, getWeightUnitLabel, formatWeight } from '../../constants/progressStandards';
 import { calculateCompliance, getEffectivePlannedProgress } from '../../services/progressCalculator';
 import { BIM_COLORS } from '../../constants/designTokens';
@@ -34,6 +38,17 @@ const ProgressGroupDetail = ({ group, groups = [], elements, selectedGuid, onBac
   const alreadyAssigned = selectedGuid && elements.some((el) => el.ifcGuid === selectedGuid);
   const childrenGroups = (groups || []).filter((g) => g.parentId === group.id);
   const isParent = childrenGroups.length > 0;
+
+  const hasUnsavedChanges = useMemo(() => {
+    const valid = curvePoints.filter((p) => p.date && p.planned != null);
+    if (valid.length === 0) return false;
+    const saved = group.plannedCurve || [];
+    if (valid.length !== saved.length) return true;
+    const sort = (arr) => [...arr].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const a = sort(valid);
+    const b = sort(saved);
+    return a.some((p, i) => p.date !== b[i].date || p.planned !== b[i].planned);
+  }, [curvePoints, group.plannedCurve]);
 
   const {
     snapshots,
@@ -239,43 +254,66 @@ const ProgressGroupDetail = ({ group, groups = [], elements, selectedGuid, onBac
         </Box>
         <Collapse in={curveOpen}>
           <Box sx={{ p: 1.5, borderTop: `1px solid ${BIM_COLORS.neutral.border}`, bgcolor: '#FAFBFC' }}>
-            {curvePoints.map((point, idx) => (
-              <Box key={idx} sx={{ display: 'flex', gap: 0.8, mb: 0.8, alignItems: 'center' }}>
-                <TextField
-                  size="small"
-                  type="date"
-                  value={point.date || ''}
-                  onChange={(e) => {
-                    const next = [...curvePoints];
-                    next[idx] = { ...next[idx], date: e.target.value };
-                    setCurvePoints(next);
-                  }}
-                  slotProps={{ input: { sx: { fontSize: '0.7rem', height: 28, width: 140 } } }}
-                />
-                <TextField
-                  size="small"
-                  type="number"
-                  label="%"
-                  value={point.planned ?? ''}
-                  onChange={(e) => {
-                    const next = [...curvePoints];
-                    next[idx] = { ...next[idx], planned: Number(e.target.value) };
-                    setCurvePoints(next);
-                  }}
-                  slotProps={{
-                    input: { sx: { fontSize: '0.7rem', height: 28, width: 70 } },
-                    htmlInput: { min: 0, max: 100, step: 1 },
-                  }}
-                />
-                <IconButton
-                  size="small"
-                  onClick={() => setCurvePoints((prev) => prev.filter((_, i) => i !== idx))}
-                  sx={{ color: BIM_COLORS.status.error.main, p: 0.3 }}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            ))}
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+              {curvePoints.map((point, idx) => (
+                <Box key={idx} sx={{ display: 'flex', gap: 0.8, mb: 0.8, alignItems: 'center' }}>
+                  <DatePicker
+                    value={point.date ? new Date(point.date + 'T00:00:00') : null}
+                    onChange={(newDate) => {
+                      const next = [...curvePoints];
+                      next[idx] = {
+                        ...next[idx],
+                        date: newDate ? newDate.toISOString().split('T')[0] : '',
+                      };
+                      setCurvePoints(next);
+                    }}
+                    format="dd/MM/yyyy"
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        sx: {
+                          height: 40,
+                          '& .MuiInputBase-root': {
+                            fontSize: '0.5rem',
+                            height: "100%",
+                            width: 140,
+                            minHeight: 0,
+                          },
+                          '& .MuiOutlinedInput-input': { py: 0, px: 1 },
+                          '& .MuiInputAdornment-root': { m: 0, maxHeight: 20 },
+                          '& .MuiIconButton-root': { p: 0.3 },
+                          '& .MuiSvgIcon-root': { fontSize: '1rem' },
+                        },
+                      },
+                      actionBar: { actions: ['accept', 'cancel'] },
+                    }}
+                  />
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="%"
+                    value={point.planned ?? ''}
+                    onChange={(e) => {
+                      const next = [...curvePoints];
+                      next[idx] = { ...next[idx], planned: Number(e.target.value) };
+                      setCurvePoints(next);
+                    }}
+                    sx={{ height: 40 }}
+                    slotProps={{
+                      input: { sx: { fontSize: '0.7rem', height: '100%', width: 70 } },
+                      htmlInput: { min: 0, max: 100, step: 1 },
+                    }}
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={() => setCurvePoints((prev) => prev.filter((_, i) => i !== idx))}
+                    sx={{ color: BIM_COLORS.status.error.main, p: 0.3 }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+            </LocalizationProvider>
             <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
               <Button
                 size="small"
@@ -289,11 +327,17 @@ const ProgressGroupDetail = ({ group, groups = [], elements, selectedGuid, onBac
               <Button
                 size="small"
                 variant="contained"
+                disabled={!hasUnsavedChanges}
                 onClick={async () => {
                   const cleaned = curvePoints.filter((p) => p.date && p.planned != null);
                   await onCurveUpdate(group.id, cleaned);
                 }}
-                sx={{ fontSize: '0.65rem', textTransform: 'none', height: 24 }}
+                sx={{
+                  fontSize: '0.65rem',
+                  textTransform: 'none',
+                  height: 24,
+                  opacity: hasUnsavedChanges ? 1 : 0.5,
+                }}
               >
                 Guardar Curva
               </Button>
@@ -399,8 +443,8 @@ const ProgressGroupDetail = ({ group, groups = [], elements, selectedGuid, onBac
                     primary={
                       el.elementType
                         ? <Typography variant="body2" sx={{ fontWeight: 'medium', fontSize: '0.78rem', color: BIM_COLORS.neutral.text.primary }}>
-                            {el.elementType}
-                          </Typography>
+                          {el.elementType}
+                        </Typography>
                         : null
                     }
                     secondary={

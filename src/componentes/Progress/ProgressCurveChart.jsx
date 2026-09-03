@@ -62,9 +62,13 @@ const options = {
     },
     y: {
       min: 0,
-      max: 100,
+      max: 120,
       grid: { color: CHART_COLORS.grid },
-      ticks: { font: { size: 10 }, color: CHART_COLORS.text, callback: (v) => `${v}%` },
+      ticks: {
+        font: { size: 10 },
+        color: CHART_COLORS.text,
+        callback: (v) => v > 100 ? '' : `${v}%`,
+      },
     },
   },
 };
@@ -80,6 +84,10 @@ const ProgressCurveChart = ({ groups, snapshotsByGroup, loading }) => {
 
   const chartData = useMemo(() => {
     if (!dataset || dataset.labels.length === 0) return null;
+    const today = new Date().toISOString().split('T')[0];
+    const actualData = dataset.labels.map((label, i) =>
+      label > today ? null : dataset.actualData[i]
+    );
     return {
       labels: dataset.labels,
       datasets: [
@@ -97,7 +105,7 @@ const ProgressCurveChart = ({ groups, snapshotsByGroup, loading }) => {
         },
         {
           label: 'Real',
-          data: dataset.actualData,
+          data: actualData,
           borderColor: CHART_COLORS.actual,
           backgroundColor: CHART_COLORS.actualFill,
           borderWidth: 2,
@@ -110,11 +118,26 @@ const ProgressCurveChart = ({ groups, snapshotsByGroup, loading }) => {
     };
   }, [dataset]);
 
-  const diffLabel = dataset
-    ? `${dataset.diffPercent >= 0 ? '+' : ''}${dataset.diffPercent.toFixed(1)}%`
-    : '—';
+  const today = new Date().toISOString().split('T')[0];
+
+  const currentActual = dataset && dataset.labels.length > 0
+    ? (() => {
+        const lastIdx = dataset.labels.map((l) => l <= today).lastIndexOf(true);
+        return lastIdx >= 0 ? dataset.actualData[lastIdx] : 0;
+      })()
+    : 0;
+
+  const currentPlanned = dataset && dataset.labels.length > 0
+    ? (() => {
+        const lastIdx = dataset.labels.map((l) => l <= today).lastIndexOf(true);
+        return lastIdx >= 0 ? dataset.plannedData[lastIdx] : 0;
+      })()
+    : 0;
+
+  const diff = currentActual - currentPlanned;
+  const diffLabel = dataset ? `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%` : '—';
   const diffColor = !dataset ? BIM_COLORS.neutral.text.secondary
-    : dataset.diffPercent >= 0 ? BIM_COLORS.accent.main : BIM_COLORS.status.error.main;
+    : diff >= 0 ? BIM_COLORS.accent.main : BIM_COLORS.status.error.main;
 
   if (loading) {
     return (
@@ -161,7 +184,7 @@ const ProgressCurveChart = ({ groups, snapshotsByGroup, loading }) => {
                   Planificado
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 'bold', color: CHART_COLORS.planned }}>
-                  {dataset.currentPlanned.toFixed(1)}%
+                  {currentPlanned.toFixed(1)}%
                 </Typography>
               </Box>
             </Grid>
@@ -171,7 +194,7 @@ const ProgressCurveChart = ({ groups, snapshotsByGroup, loading }) => {
                   Real
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 'bold', color: CHART_COLORS.actual }}>
-                  {dataset.currentActual.toFixed(1)}%
+                  {currentActual.toFixed(1)}%
                 </Typography>
               </Box>
             </Grid>

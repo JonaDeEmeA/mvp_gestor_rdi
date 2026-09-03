@@ -15,10 +15,35 @@ import FloatingWindow from './FloatingWindow';
 /**
  * Extrae el valor legible de una propiedad IFC.
  */
+const QUANTITY_VALUE_KEYS = ['LengthValue', 'AreaValue', 'VolumeValue', 'CountValue', 'WeightValue', 'TimeValue'];
+
+const QUANTITY_UNITS = {
+  LengthValue: 'm',
+  AreaValue: 'm²',
+  VolumeValue: 'm³',
+  CountValue: 'ud',
+  WeightValue: 'kg',
+  TimeValue: 'h',
+};
+
+const formatQuantityValue = (value) => {
+  const num = Number(value);
+  if (isNaN(num)) return String(value);
+  return num.toFixed(3).replace(/\.?0+$/, '');
+};
+
 const getPropertyValue = (property) => {
   if (property === null || property === undefined) return '';
   if (typeof property !== 'object') return String(property);
   if (property.value !== undefined) return String(property.value);
+  if (property.NominalValue?.value !== undefined) return String(property.NominalValue.value);
+  for (const key of QUANTITY_VALUE_KEYS) {
+    if (property[key]?.value !== undefined) {
+      const formatted = formatQuantityValue(property[key].value);
+      const unit = QUANTITY_UNITS[key] || '';
+      return unit ? `${formatted} ${unit}` : formatted;
+    }
+  }
   return 'Complejo';
 };
 
@@ -60,15 +85,29 @@ const PropertyList = ({ data }) => {
   );
 };
 
+const isQto = (name) => name?.startsWith('Qto_');
+
 const PropertyWindow = ({ open, onClose, properties }) => {
   
   const renderContent = () => {
     if (!properties) return null;
 
-    const { attributes, psets } = properties;
+    const { attributes, psets, spatialContainer } = properties;
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {/* Espacio contenedor (nivel / storey) */}
+        {spatialContainer && (
+          <Paper variant="outlined" sx={{ p: 1, bgcolor: 'rgba(76, 175, 80, 0.06)', borderRadius: 1.5, borderColor: 'rgba(76, 175, 80, 0.2)' }}>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'success.main', textTransform: 'uppercase', fontSize: '0.62rem' }}>
+              Nivel Contenedor
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+              {spatialContainer.name || spatialContainer.type || '—'}
+            </Typography>
+          </Paper>
+        )}
+
         {/* Sección de Atributos del Elemento */}
         <Accordion defaultExpanded sx={{ boxShadow: 'none', '&:before': { display: 'none' }, bgcolor: 'transparent' }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -79,11 +118,13 @@ const PropertyWindow = ({ open, onClose, properties }) => {
           </AccordionDetails>
         </Accordion>
 
-        {/* Secciones de Property Sets */}
+        {/* Secciones de Property Sets y Quantity Take-Offs */}
         {psets && psets.map((pset, index) => (
           <Accordion key={index} sx={{ boxShadow: 'none', '&:before': { display: 'none' }, bgcolor: 'transparent' }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="subtitle2" fontWeight="bold">{pset.name}</Typography>
+              <Typography variant="subtitle2" fontWeight="bold">
+                {isQto(pset.name) ? '📐 ' : ''}{pset.name}
+              </Typography>
             </AccordionSummary>
             <AccordionDetails sx={{ pt: 0 }}>
               <PropertyList data={pset.properties} />

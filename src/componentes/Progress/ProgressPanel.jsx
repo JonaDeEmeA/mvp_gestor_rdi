@@ -32,10 +32,21 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
   });
 
   const loadElementCounts = useCallback(async () => {
-    const counts = {};
+    const directCounts = {};
     for (const group of groups) {
       const elements = await getElementsByGroup(group.id);
-      counts[group.id] = elements.length;
+      directCounts[group.id] = elements.length;
+    }
+    const getTotalCount = (groupId) => {
+      let total = directCounts[groupId] || 0;
+      for (const g of groups) {
+        if (g.parentId === groupId) total += getTotalCount(g.id);
+      }
+      return total;
+    };
+    const counts = {};
+    for (const group of groups) {
+      counts[group.id] = getTotalCount(group.id);
     }
     setElementCounts(counts);
   }, [groups, getElementsByGroup]);
@@ -47,13 +58,16 @@ const ProgressPanel = ({ selectedGuid, selectedElementType = '', onHighlightByGu
   });
 
   useEffect(() => {
-    if (groups.length > 0 && showBIMColors) {
+    if (groups.length > 0) {
       loadElementCounts();
-      if (onApplyBIMColors) {
-        onApplyBIMColors(groups, getElementsByGroup);
-      }
     }
-  }, [groups, loadElementCounts, onApplyBIMColors, getElementsByGroup, showBIMColors]);
+  }, [groups, loadElementCounts]);
+
+  useEffect(() => {
+    if (groups.length > 0 && showBIMColors && onApplyBIMColors) {
+      onApplyBIMColors(groups, getElementsByGroup);
+    }
+  }, [groups, onApplyBIMColors, getElementsByGroup, showBIMColors]);
 
   useEffect(() => {
     if (groups.length === 0 && onClearBIMColors) {

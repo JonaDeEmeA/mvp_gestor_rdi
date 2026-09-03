@@ -37,6 +37,8 @@ const KpiCard = ({ icon: Icon, title, value, subtitle, color }) => (
     sx={{
       p: 3,
       height: '100%',
+      width: '100%',
+      boxSizing: 'border-box',
       border: '1px solid',
       borderColor: '#E8ECF0',
       borderRadius: 2,
@@ -61,9 +63,11 @@ const KpiCard = ({ icon: Icon, title, value, subtitle, color }) => (
         {title}
       </Typography>
     </Box>
-    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1E1E1E', lineHeight: 1.2 }}>
-      {value}
-    </Typography>
+    <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+      <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1E1E1E', lineHeight: 1.2 }}>
+        {value}
+      </Typography>
+    </Box>
     {subtitle && (
       <Typography variant="caption" sx={{ color: '#9AA4AF' }}>
         {subtitle}
@@ -128,17 +132,15 @@ const ProgressDashboard = () => {
 
   if (isLoading && !kpIs) {
     return (
-      <Box>
+      <Box sx={{ width: '100%', overflow: 'hidden' }}>
         <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1E1E1E', mb: 3 }}>
           Avance de Obra
         </Typography>
-        <Grid container spacing={3}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 3 }}>
           {[1, 2, 3, 4].map(i => (
-            <Grid item xs={12} sm={6} md={3} key={i}>
-              <Skeleton variant="rounded" height={140} />
-            </Grid>
+            <Skeleton key={i} variant="rounded" height={140} width="100%" />
           ))}
-        </Grid>
+        </Box>
       </Box>
     );
   }
@@ -148,7 +150,7 @@ const ProgressDashboard = () => {
   const complianceColor = kpIs.compliance >= 100 ? PALETTE.green : kpIs.compliance >= 50 ? PALETTE.amber : PALETTE.grey;
 
   return (
-    <Box>
+    <Box sx={{ width: '100%', overflow: 'hidden' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1E1E1E' }}>
@@ -191,164 +193,159 @@ const ProgressDashboard = () => {
         </Paper>
       )}
 
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <KpiCard
-            icon={LayersIcon}
-            title="Grupos"
-            value={kpIs.totalGroups}
-            subtitle="Grupos de avance creados"
-            color={PALETTE.primary}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <KpiCard
-            icon={AssignmentIcon}
-            title="Elementos"
-            value={kpIs.totalElements}
-            subtitle="Elementos IFC asignados"
-            color={PALETTE.blue}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <KpiCard
-            icon={PercentIcon}
-            title="Avance Ponderado"
-            value={`${kpIs.weightedProgress.toFixed(1)}%`}
-            subtitle={`Promedio simple: ${kpIs.simpleAverage.toFixed(1)}% · ${kpIs.coveredGroups} grupos con avance`}
-            color={getProgressColor(kpIs.weightedProgress)}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <KpiCard
-            icon={kpIs.compliance >= 100 ? CheckCircleIcon : WarningIcon}
-            title="Cumplimiento"
-            value={`${kpIs.compliance.toFixed(1)}%`}
-            subtitle={kpIs.criticalCount > 0 ? `${kpIs.criticalCount} grupo${kpIs.criticalCount !== 1 ? 's' : ''} crítico${kpIs.criticalCount !== 1 ? 's' : ''}` : 'Sin grupos críticos'}
-            color={complianceColor}
-          />
-        </Grid>
-      </Grid>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 3, mb: 4 }}>
+        <KpiCard
+          icon={LayersIcon}
+          title="Grupos"
+          value={kpIs.totalGroups}
+          subtitle="Grupos de avance creados"
+          color={PALETTE.primary}
+        />
+        <KpiCard
+          icon={AssignmentIcon}
+          title="Elementos"
+          value={kpIs.totalElements}
+          subtitle="Elementos IFC asignados"
+          color={PALETTE.blue}
+        />
+        <KpiCard
+          icon={PercentIcon}
+          title="Avance Ponderado"
+          value={`${kpIs.weightedProgress.toFixed(1)}%`}
+          subtitle={`Promedio simple: ${kpIs.simpleAverage.toFixed(1)}% · ${kpIs.coveredGroups} grupos con avance`}
+          color={getProgressColor(kpIs.weightedProgress)}
+        />
+        <KpiCard
+          icon={kpIs.compliance >= 100 ? CheckCircleIcon : WarningIcon}
+          title="Cumplimiento"
+          value={`${kpIs.compliance.toFixed(1)}%`}
+          subtitle={kpIs.criticalCount > 0 ? `${kpIs.criticalCount} grupo${kpIs.criticalCount !== 1 ? 's' : ''} crítico${kpIs.criticalCount !== 1 ? 's' : ''}` : 'Sin grupos críticos'}
+          color={complianceColor}
+        />
+      </Box>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={7}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              border: '1px solid #E8ECF0',
-              borderRadius: 2,
-              height: '100%',
-            }}
-          >
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#1E1E1E', mb: 2 }}>
-              Distribución por Rango de Avance
-            </Typography>
-            <Stack spacing={1.5}>
-              {PROGRESS_RANGES.map((range) => {
-                const key = range.min === 0 ? '0' : range.min === 100 ? '100' : range.min < 50 ? '1-49' : '50-99';
-                const count = kpIs.rangeCounts[key] || 0;
-                const pct = kpIs.totalGroups > 0 ? Math.round((count / kpIs.totalGroups) * 100) : 0;
-                return (
-                  <Box key={key}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: range.color }} />
-                        <Typography variant="body2" sx={{ color: '#5F6B7A', fontWeight: 'medium' }}>
-                          {range.label}
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1E1E1E' }}>
-                        {count} ({pct}%)
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            border: '1px solid #E8ECF0',
+            borderRadius: 2,
+            height: '100%',
+            width: '100%',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#1E1E1E', mb: 2 }}>
+            Distribución por Rango de Avance
+          </Typography>
+          <Stack spacing={1.5}>
+            {PROGRESS_RANGES.map((range) => {
+              const key = range.min === 0 ? '0' : range.min === 100 ? '100' : range.min < 50 ? '1-49' : '50-99';
+              const count = kpIs.rangeCounts[key] || 0;
+              const pct = kpIs.totalGroups > 0 ? Math.round((count / kpIs.totalGroups) * 100) : 0;
+              return (
+                <Box key={key}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: range.color }} />
+                      <Typography variant="body2" sx={{ color: '#5F6B7A', fontWeight: 'medium' }}>
+                        {range.label}
                       </Typography>
                     </Box>
-                    <Box
-                      sx={{
-                        width: '100%', height: 8, borderRadius: 4,
-                        bgcolor: '#F0F2F5', overflow: 'hidden',
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: `${pct}%`, height: '100%', borderRadius: 4,
-                          bgcolor: range.color,
-                          transition: 'width 0.5s ease',
-                        }}
-                      />
-                    </Box>
-                  </Box>
-                );
-              })}
-            </Stack>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={5}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              border: '1px solid #E8ECF0',
-              borderRadius: 2,
-              height: '100%',
-              maxHeight: 340,
-              overflow: 'auto',
-            }}
-          >
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#1E1E1E', mb: 2 }}>
-              Snapshots Recientes
-            </Typography>
-            {recentSnapshots.length === 0 ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, color: '#9AA4AF' }}>
-                <PhotoIcon sx={{ fontSize: 40, mb: 1, opacity: 0.4 }} />
-                <Typography variant="body2">No hay snapshots registrados</Typography>
-                <Typography variant="caption">Registra avances desde el visor 3D</Typography>
-              </Box>
-            ) : (
-              <Stack spacing={1.5}>
-                {recentSnapshots.map((snap) => (
-                  <Box
-                    key={snap.id}
-                    sx={{
-                      p: 1.5,
-                      border: '1px solid #E8ECF0',
-                      borderRadius: 1.5,
-                      bgcolor: '#FAFBFC',
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1E1E1E', fontSize: '0.85rem' }}>
-                        {snap.groupName}
-                      </Typography>
-                      <Chip
-                        label={`${Number(snap.progress).toFixed(1)}%`}
-                        size="small"
-                        sx={{
-                          fontWeight: 'bold',
-                          fontSize: '0.7rem',
-                          height: 20,
-                          bgcolor: getProgressColor(snap.progress) + '20',
-                          color: getProgressColor(snap.progress),
-                        }}
-                      />
-                    </Box>
-                    {snap.comment && (
-                      <Typography variant="caption" sx={{ color: '#5F6B7A', display: 'block', mb: 0.5 }}>
-                        {snap.comment.length > 60 ? snap.comment.slice(0, 60) + '...' : snap.comment}
-                      </Typography>
-                    )}
-                    <Typography variant="caption" sx={{ color: '#9AA4AF' }}>
-                      {new Date(snap.createdAt).toLocaleDateString('es-MX', {
-                        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-                      })}
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1E1E1E' }}>
+                      {count} ({pct}%)
                     </Typography>
                   </Box>
-                ))}
-              </Stack>
-            )}
-          </Paper>
-        </Grid>
-      </Grid>
+                  <Box
+                    sx={{
+                      width: '100%', height: 8, borderRadius: 4,
+                      bgcolor: '#F0F2F5', overflow: 'hidden',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: `${pct}%`, height: '100%', borderRadius: 4,
+                        bgcolor: range.color,
+                        transition: 'width 0.5s ease',
+                      }}
+                    />
+                  </Box>
+                </Box>
+              );
+            })}
+          </Stack>
+        </Paper>
+
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            border: '1px solid #E8ECF0',
+            borderRadius: 2,
+            height: '100%',
+            width: '100%',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'auto',
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#1E1E1E', mb: 2 }}>
+            Snapshots Recientes
+          </Typography>
+          {recentSnapshots.length === 0 ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, color: '#9AA4AF' }}>
+              <PhotoIcon sx={{ fontSize: 40, mb: 1, opacity: 0.4 }} />
+              <Typography variant="body2">No hay snapshots registrados</Typography>
+              <Typography variant="caption">Registra avances desde el visor 3D</Typography>
+            </Box>
+          ) : (
+            <Stack spacing={1.5}>
+              {recentSnapshots.map((snap) => (
+                <Box
+                  key={snap.id}
+                  sx={{
+                    p: 1.5,
+                    border: '1px solid #E8ECF0',
+                    borderRadius: 1.5,
+                    bgcolor: '#FAFBFC',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1E1E1E', fontSize: '0.85rem' }}>
+                      {snap.groupName}
+                    </Typography>
+                    <Chip
+                      label={`${Number(snap.progress).toFixed(1)}%`}
+                      size="small"
+                      sx={{
+                        fontWeight: 'bold',
+                        fontSize: '0.7rem',
+                        height: 20,
+                        bgcolor: getProgressColor(snap.progress) + '20',
+                        color: getProgressColor(snap.progress),
+                      }}
+                    />
+                  </Box>
+                  {snap.comment && (
+                    <Typography variant="caption" sx={{ color: '#5F6B7A', display: 'block', mb: 0.5 }}>
+                      {snap.comment.length > 60 ? snap.comment.slice(0, 60) + '...' : snap.comment}
+                    </Typography>
+                  )}
+                  <Typography variant="caption" sx={{ color: '#9AA4AF' }}>
+                    {new Date(snap.createdAt).toLocaleDateString('es-MX', {
+                      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                    })}
+                  </Typography>
+                </Box>
+              ))}
+            </Stack>
+          )}
+        </Paper>
+      </Box>
 
       <Box sx={{ mt: 3 }}>
         <ProgressCurveChart
